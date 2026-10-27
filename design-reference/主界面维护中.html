@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Launcher 自定義版</title>
+
+    <link href="https://fontsapi.zeoseven.com/546/main/result.css" onload="this.rel='stylesheet'" rel="preload" as="style" crossorigin />
+    <noscript><link rel="stylesheet" href="https://fontsapi.zeoseven.com/546/main/result.css" /></noscript>
+
+    <style>
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");font-style:normal;font-weight:700;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");font-style:normal;font-weight:300;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");font-style:normal;font-weight:600;font-display:swap;}
+
+        :root {
+            --font-main: "ZSFT-br", sans-serif;
+            --color-bg: #f1efe9;        
+            --color-bg-image: none;
+            --color-text-main: #333333;       
+            --color-text-muted: #666666;      
+            --color-widget-bg: #87949e; 
+            --color-time: rgba(108, 126, 138, 0.75);       
+            --color-time-muted: rgba(108, 126, 138, 0.4); 
+            --color-app-label: #72828e;
+
+            --color-icon-1: #7590a3;
+            --color-icon-2: #a4b8c6;
+            --color-icon-3: #8a98a3;
+            --color-icon-4: #5a7082;
+            --color-dock-1: #688396;
+            --color-dock-2: #8b9ba8;
+            --color-dock-3: #9eb2c0;
+            --color-dock-4: #4f6475;
+            --color-capsule-bg: #e2dfd5;
+            --color-home-stroke-failed: #9e9e9e;
+            --color-home-stroke-success: #8a98a3;
+            --color-placeholder: rgba(255,255,255,0.7);
+
+            --size-icon: 50px;
+            --radius-icon: 6px;
+            --radius-widget: 8px;
+            --spacing-grid-gap: 15px;
+            --spacing-padding-h: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: var(--font-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-bg);
+            color: var(--color-text-main);
+            overflow: hidden;
+        }
+
+        .screen-container {
+            max-width: 480px;
+            height: 100dvh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: var(--color-bg);
+            background-image: var(--color-bg-image);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 30px 25px 5px 25px; 
+        }
+
+        .time-widget { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-start; 
+        }
+
+        .date-text { 
+            font-size: 0.8rem; 
+            color: var(--color-text-muted); 
+            margin-bottom: 2px; 
+            font-weight: 600; 
+            margin-left: 2px;
+        }
+
+        .time-stacked { 
+            font-size: 3.8rem; 
+            line-height: 0.9; 
+            font-weight: 400; 
+            letter-spacing: -1.5px; 
+            margin-left: -2px; 
+            font-variant-numeric: lining-nums tabular-nums; 
+        }
+        
+        #hourText { color: var(--color-time); }
+        #minuteText { color: var(--color-time-muted); }
+        
+        .spacer { flex-grow: 1; }
+
+        .pages-wrapper {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+
+        .pages-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .page {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: var(--size-icon) auto var(--size-icon) 20px;
+            column-gap: var(--spacing-grid-gap);
+            padding: 0 var(--spacing-padding-h);
+            margin-bottom: var(--spacing-grid-gap);
+        }
+
+        .main-grid-2 {
+            container-type: inline-size;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto var(--size-icon) auto var(--size-icon) auto var(--size-icon) auto var(--size-icon) auto;
+            column-gap: var(--spacing-grid-gap);
+            padding: 30px var(--spacing-padding-h) 0 var(--spacing-padding-h);
+            width: 100%;
+            margin-bottom: var(--spacing-grid-gap);
+        }
+
+        .app-icon {
+            width: var(--size-icon); 
+            height: var(--size-icon);
+            border-radius: var(--radius-icon); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .app-icon:active { transform: scale(0.92); }
+        
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            object-fit: cover;
+        }
+
+        .app-label {
+            font-size: 0.7rem; 
+            font-weight: 700;
+            color: var(--color-app-label);
+            letter-spacing: 0.2px;
+            text-align: center;
+            align-self: start;
+            justify-self: center;
+            margin-top: 2px;
+        }
+
+        .bg-1 { background-color: var(--color-icon-1); }
+        .bg-2 { background-color: var(--color-icon-2); }
+        .bg-3 { background-color: var(--color-icon-3); }
+        .bg-4 { background-color: var(--color-icon-4); }
+
+        .icon-1 { grid-column: 1; grid-row: 1; justify-self: center; }
+        .lbl-1  { grid-column: 1; grid-row: 2; }
+        .icon-2 { grid-column: 2; grid-row: 1; justify-self: center; }
+        .lbl-2  { grid-column: 2; grid-row: 2; }
+        .icon-3 { grid-column: 1; grid-row: 3; justify-self: center; }
+        .lbl-3  { grid-column: 1; grid-row: 4; }
+        .icon-4 { grid-column: 2; grid-row: 3; justify-self: center; }
+        .lbl-4  { grid-column: 2; grid-row: 4; }
+
+        .widget-wrapper {
+            grid-column: 3 / 5;
+            grid-row: 1 / 4; 
+            width: 100%;
+            height: auto; 
+            aspect-ratio: 1 / 1;
+            background-color: var(--color-widget-bg);
+            border-radius: var(--radius-widget); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 0.2s;
+        }
+
+        .widget-wrapper:active { opacity: 0.8; }
+        
+        .placeholder {
+            color: var(--color-placeholder);
+            font-size: 0.75rem;
+            text-align: center;
+            line-height: 1.3;
+            pointer-events: none;
+        }
+
+        .widget-lbl {
+            grid-column: 3 / 5;
+            grid-row: 4;
+        }
+
+        .p2-wide { width: 100%; height: calc(50cqw - 7.5px); border-radius: var(--radius-widget); grid-column: 1 / 5; grid-row: 1; }
+        .p2-wide-lbl { grid-column: 1 / 5; grid-row: 2; margin-bottom: 20px; }
+
+        .p2-sq-l { width: 100%; aspect-ratio: 1 / 1; border-radius: var(--radius-widget); grid-column: 1 / 3; grid-row: 3 / 6; }
+        .p2-sq-l-lbl { grid-column: 1 / 3; grid-row: 6; margin-bottom: 20px; }
+
+        .p2-sq-r { width: 100%; aspect-ratio: 1 / 1; border-radius: var(--radius-widget); grid-column: 3 / 5; grid-row: 7 / 10; }
+        .p2-sq-r-lbl { grid-column: 3 / 5; grid-row: 10; }
+
+        .p2-wide, .p2-sq-l, .p2-sq-r {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 0.2s;
+        }
+        .p2-wide:active, .p2-sq-l:active, .p2-sq-r:active { opacity: 0.8; }
+
+        .p2-i-1 { grid-column: 3; grid-row: 3; justify-self: center; }
+        .p2-l-1 { grid-column: 3; grid-row: 4; }
+        .p2-i-2 { grid-column: 4; grid-row: 3; justify-self: center; }
+        .p2-l-2 { grid-column: 4; grid-row: 4; }
+        .p2-i-3 { grid-column: 3; grid-row: 5; justify-self: center; }
+        .p2-l-3 { grid-column: 3; grid-row: 6; margin-bottom: 20px; }
+        .p2-i-4 { grid-column: 4; grid-row: 5; justify-self: center; }
+        .p2-l-4 { grid-column: 4; grid-row: 6; margin-bottom: 20px; }
+
+        .p2-i-5 { grid-column: 1; grid-row: 7; justify-self: center; }
+        .p2-l-5 { grid-column: 1; grid-row: 8; }
+        .p2-i-6 { grid-column: 2; grid-row: 7; justify-self: center; }
+        .p2-l-6 { grid-column: 2; grid-row: 8; }
+        .p2-i-7 { grid-column: 1; grid-row: 9; justify-self: center; }
+        .p2-l-7 { grid-column: 1; grid-row: 10; }
+        .p2-i-8 { grid-column: 2; grid-row: 9; justify-self: center; }
+        .p2-l-8 { grid-column: 2; grid-row: 10; }
+
+        .indicator-container {
+            height: 22px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .indicator-capsule {
+            display: grid;
+            place-items: center;
+            background-color: var(--color-capsule-bg);
+            padding: 3px 8px; 
+            border-radius: 15px;
+            min-height: 22px; 
+        }
+
+        .capsule-content {
+            grid-area: 1 / 1;
+            display: flex;
+            align-items: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-content { opacity: 1; }
+        .dots-content { opacity: 0; gap: 5px; }
+
+        .indicator-capsule.sliding .status-content { opacity: 0; }
+        .indicator-capsule.sliding .dots-content { opacity: 1; }
+
+        .status-content.failed .home-icon { stroke: var(--color-home-stroke-failed); }
+        .status-content.success .home-icon { stroke: var(--color-home-stroke-success); }
+
+        .home-icon {
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+        }
+
+        .capsule-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .list-icon {
+            width: 7px;
+            height: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-right: 3px;
+            opacity: 0.5;
+        }
+
+        .list-icon::before,
+        .list-icon::after {
+            content: '';
+            width: 100%;
+            height: 2px;
+            background-color: var(--color-text-muted);
+            border-radius: 2px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--color-text-muted);
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+
+        .dot.active {
+            opacity: 1;
+        }
+
+        .dock-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            column-gap: var(--spacing-grid-gap);
+            justify-items: center;
+            padding: 5px var(--spacing-padding-h) 30px var(--spacing-padding-h); 
+        }
+
+        .dock-bg-1 { background-color: var(--color-dock-1); }
+        .dock-bg-2 { background-color: var(--color-dock-2); }
+        .dock-bg-3 { background-color: var(--color-dock-3); }
+        .dock-bg-4 { background-color: var(--color-dock-4); }
+
+    </style>
+</head>
+<body>
+
+<div class="screen-container">
+    <div class="pages-wrapper" id="pagesWrapper">
+        <div class="page">
+            <header class="top-header">
+                <div class="time-widget">
+                    <div id="dateText" class="date-text"></div>
+                    <div class="time-stacked">
+                        <div id="hourText">--</div>
+                        <div id="minuteText">--</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="spacer"></div>
+
+            <section class="main-grid">
+                <div class="app-icon icon-1 bg-1" data-id="chat" onclick="openApp('CHAT')">
+                    <!-- 保持气泡宽度和高度为 24 -->
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F5F2EC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M 5 5.2 H 17 A 2 2 0 0 1 19 7.2 V 15.3 A 2 2 0 0 1 17 17.3 H 11 L 7.5 20.8 V 17.3 H 5 A 2 2 0 0 1 3 15.3 V 7.2 A 2 2 0 0 1 5 5.2 Z"></path>
+                        <line x1="6.5" y1="8.7" x2="14.5" y2="8.7"></line>
+                        <line x1="6.5" y1="11.9" x2="11.5" y2="11.9"></line>
+                    </svg>
+                </div>
+                <div class="app-label lbl-1">CHAT</div>
+                
+                <div class="app-icon icon-2 bg-2" data-id="app2"></div>
+                <div class="app-label lbl-2">APP</div>
+
+                <div class="app-icon icon-3 bg-3" data-id="app3"></div>
+                <div class="app-label lbl-3">APP</div>
+
+                <div class="app-icon icon-4 bg-4" data-id="app4"></div>
+                <div class="app-label lbl-4">APP</div>
+
+                <div class="widget-wrapper uploadable" id="imgWidget">
+                    <span class="placeholder">TAP TO<br>UPLOAD</span>
+                </div>
+                <div class="app-label widget-lbl">PHOTO</div>
+            </section>
+        </div>
+        
+        <div class="page">
+            <section class="main-grid-2">
+                <div class="p2-wide bg-3 uploadable">
+                    <span class="placeholder">TAP TO<br>UPLOAD</span>
+                </div>
+                <div class="app-label p2-wide-lbl">PHOTO</div>
+
+                <div class="p2-sq-l bg-4 uploadable">
+                    <span class="placeholder">TAP TO<br>UPLOAD</span>
+                </div>
+                <div class="app-label p2-sq-l-lbl">PHOTO</div>
+
+                <div class="app-icon p2-i-1 bg-1"></div>
+                <div class="app-label p2-l-1">APP</div>
+                <div class="app-icon p2-i-2 bg-2"></div>
+                <div class="app-label p2-l-2">APP</div>
+                <div class="app-icon p2-i-3 bg-2"></div>
+                <div class="app-label p2-l-3">APP</div>
+                <div class="app-icon p2-i-4 bg-1"></div>
+                <div class="app-label p2-l-4">APP</div>
+
+                <div class="app-icon p2-i-5 bg-3"></div>
+                <div class="app-label p2-l-5">APP</div>
+                <div class="app-icon p2-i-6 bg-1"></div>
+                <div class="app-label p2-l-6">APP</div>
+                <div class="app-icon p2-i-7 bg-1"></div>
+                <div class="app-label p2-l-7">APP</div>
+                <div class="app-icon p2-i-8 bg-2"></div>
+                <div class="app-label p2-l-8">APP</div>
+
+                <div class="p2-sq-r bg-2 uploadable">
+                    <span class="placeholder">TAP TO<br>UPLOAD</span>
+                </div>
+                <div class="app-label p2-sq-r-lbl">PHOTO</div>
+            </section>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+    <div class="indicator-container">
+        <div class="indicator-capsule" id="indCapsule">
+            <div class="capsule-content status-content failed" id="indStatus">
+                <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10.2 L12 3.3 L21 10.2" />
+                    <path d="M8 3.8 V6.2" />
+                    <path d="M5 10.2 L5 20.7 L19 20.7 L19 10.2" />
+                    <path d="M10 20.7 L10 14.2 L14 14.2 L14 20.7" />
+                    <rect x="10.5" y="8.2" width="3" height="2.6" />
+                </svg>
+                <span class="capsule-text">CODEX</span>
+            </div>
+            <div class="capsule-content dots-content">
+                <span class="list-icon"></span>
+                <div class="dot active"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="dock-container">
+        <div class="app-icon dock-bg-1" data-id="settings" onclick="openApp('SETTINGS')">
+            <!-- 修复视觉比重差异：将小房子的宽高调回22，以此在视觉上完美匹配24的气泡 -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F2EC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"></path>
+                <path d="M2.5 10.5l8.25-7.13a2 2 0 0 1 2.5 0L21.5 10.5"></path>
+                <path d="M10 21v-7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7"></path>
+            </svg>
+        </div>
+        <div class="app-icon dock-bg-2" data-id="dock2"></div>
+        <div class="app-icon dock-bg-3" data-id="dock3"></div>
+        <div class="app-icon dock-bg-4" data-id="dock4"></div>
+    </footer>
+</div>
+
+<script>
+    let isInitializing = true;
+    const pagesWrapper = document.getElementById('pagesWrapper');
+    const indCapsule = document.getElementById('indCapsule');
+    const dots = document.querySelectorAll('.dot');
+    const fileInput = document.getElementById('fileInput');
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+            isInitializing = false;
+        }, 100);
+    });
+
+    function updateDateTime() {
+        const now = new Date();
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        document.getElementById('dateText').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+        document.getElementById('hourText').textContent = String(now.getHours()).padStart(2, '0');
+        document.getElementById('minuteText').textContent = String(now.getMinutes()).padStart(2, '0');
+    }
+    
+    let timeInterval = setInterval(updateDateTime, 30000);
+    updateDateTime();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearInterval(timeInterval);
+      } else {
+        updateDateTime();
+        timeInterval = setInterval(updateDateTime, 30000);
+      }
+    });
+
+    let currentUploadTarget = null;
+    let currentPlaceholderTarget = null;
+
+    const uploadables = document.querySelectorAll('.uploadable');
+    uploadables.forEach(widget => {
+        widget.addEventListener('click', () => {
+            currentUploadTarget = widget;
+            currentPlaceholderTarget = widget.querySelector('.placeholder');
+            fileInput.click();
+        });
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE) {
+            alert('文件過大，請选择小於5MB的文件。');
+            e.target.value = '';
+            return;
+        }
+
+        const oldUrl = currentUploadTarget.dataset.bgUrl;
+        if (oldUrl) {
+            URL.revokeObjectURL(oldUrl);
+        }
+
+        const newUrl = URL.createObjectURL(file);
+        currentUploadTarget.dataset.bgUrl = newUrl;
+        currentUploadTarget.style.backgroundImage = `url(${newUrl})`;
+        
+        if (currentPlaceholderTarget) {
+            currentPlaceholderTarget.style.display = 'none';
+        }
+
+        e.target.value = '';
+    });
+
+    let scrollTimeout;
+
+    pagesWrapper.addEventListener('scroll', () => {
+        const pageIndex = Math.round(pagesWrapper.scrollLeft / pagesWrapper.clientWidth);
+        dots.forEach((dot, index) => {
+            if (index === pageIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+
+        if (!isInitializing) {
+            indCapsule.classList.add('sliding');
+            clearTimeout(scrollTimeout);
+            
+            scrollTimeout = setTimeout(() => {
+                indCapsule.classList.remove('sliding');
+            }, 1000);
+        }
+    });
+
+    function openApp(appName) {}
+</script>
+</body>
+</html>

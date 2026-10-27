@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Archive Chat</title>
+    <link href="https://fontsapi.zeoseven.com/24/main/result.css" onload="this.rel='stylesheet'" rel="preload" as="style" crossorigin />
+    <noscript><link rel="stylesheet" href="https://fontsapi.zeoseven.com/24/main/result.css" /></noscript>
+    <style>
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");font-style:normal;font-weight:700;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");font-style:normal;font-weight:300;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");font-style:normal;font-weight:600;font-display:swap;}
+
+        :root {
+            --bg-color: #f1efe9;
+            --ink-main: #3b4d5a;
+            --ink-muted: #5a7082;
+            --line-color: #6b6256;
+            --line-light: rgba(107, 98, 86, 0.3);
+            --sys-run: #7590a3;
+            --sys-done: #7a936e;
+            --sys-err: #b6625b;
+            --module-ribbon-bg: #7590a3; 
+            --module-body-bg: #F5F2EC;   
+            --bubble-user-bg: #EBE7DE; 
+            --bubble-bot-bg: #FCFBF8;
+            --bubble-stopped-border: #7590a3;
+            --thought-blue: #5480a6; 
+            
+            --avatar-user-bg: #d8d0c5;
+            --mask-solid: #000;
+            --shadow-light-color: rgba(255, 255, 255, 0.7);
+            --shadow-drop-sm: rgba(0,0,0,0.03);
+            --shadow-drop-md: rgba(0, 0, 0, 0.04);
+            --ribbon-fill-light: #E2DACF;
+            --ribbon-fill-dark: #C5BCAC;
+            
+            --ribbon-width: 370px;
+            --ribbon-height: 59px;
+            --avatar-size: 34px;
+            --avatar-radius: 50%;
+            --msg-gap: 24px;
+            --msg-content-pad: 44px;
+            --icon-size-sm: 12px;
+            --icon-size-md: 14px;
+            --icon-size-lg: 20px;
+            --send-btn-size: 28px;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100dvh;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--ink-main);
+            font-family: "LXGW Heart Serif", sans-serif;
+            font-weight: normal;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overscroll-behavior: none;
+        }
+
+        .header-wrap {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 0 20px;
+            margin-top: -6px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .ribbon-container {
+            position: relative;
+            width: var(--ribbon-width); 
+            height: var(--ribbon-height); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .ribbon-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .ribbon-text {
+            position: relative;
+            z-index: 1;
+            font-size: 15px;
+            letter-spacing: 8px;
+            padding-left: 8px;
+            color: var(--line-color);
+            font-weight: bold;
+            text-shadow: 0.5px 1px 0 var(--shadow-light-color);
+            line-height: 1;
+            transform: translateY(2px);
+        }
+
+        .chat-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 28px, var(--mask-solid) 53px, var(--mask-solid) var(--input-top-y, calc(100% - 100px)), transparent calc(var(--input-top-y, calc(100% - 100px)) + 25px));
+            mask-image: linear-gradient(to bottom, transparent 28px, var(--mask-solid) 53px, var(--mask-solid) var(--input-top-y, calc(100% - 100px)), transparent calc(var(--input-top-y, calc(100% - 100px)) + 25px));
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .chat-stream::-webkit-scrollbar {
+            display: none; 
+        }
+        
+        .chat-stream::before {
+            content: "";
+            display: block;
+            height: 70px; 
+        }
+        
+        .chat-stream::after {
+            content: "";
+            display: block;
+            height: var(--input-area-height, 100px); 
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column; 
+            width: 100%;
+            margin-bottom: var(--msg-gap);
+            min-height: 50px; 
+        }
+        
+        .msg-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .msg-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: -34px; 
+            will-change: transform, opacity;
+            animation: bubblePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.0) forwards;
+        }
+
+        .msg-row[data-api-role="user"] .msg-header,
+        .msg-row[data-api-role="assistant"] .msg-header {
+            flex-direction: row;
+        }
+        
+        .msg-row[data-api-role="user"] .msg-header {
+            justify-content: flex-end;
+            transform-origin: right bottom;
+        }
+        
+        .msg-row[data-api-role="assistant"] .msg-header {
+            justify-content: flex-start;
+            transform-origin: left bottom;
+        }
+
+        .msg-avatar-wrapper, .msg-avatar {
+            width: var(--avatar-size); 
+            height: var(--avatar-size);
+            flex-shrink: 0;
+        }
+
+        .msg-avatar-wrapper {
+            position: relative;
+        }
+
+        .msg-avatar {
+            border-radius: var(--avatar-radius);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .user-avatar-placeholder { background-color: var(--avatar-user-bg); }
+        .bot-avatar-placeholder { background-color: var(--module-ribbon-bg); }
+        
+        .msg-time {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 2px;
+            font-family: "ZSFT-br", sans-serif;
+            font-weight: normal;
+            font-size: 10px;
+            color: var(--ink-muted);
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .msg-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 0 var(--msg-content-pad) 0 var(--msg-content-pad); 
+            box-sizing: border-box;
+            gap: 6px;
+        }
+        
+        .msg-row[data-api-role="user"] .msg-content { align-items: flex-end; }
+        .msg-row[data-api-role="assistant"] .msg-content { align-items: flex-start; }
+        
+        .msg-text {
+            width: fit-content;
+            max-width: 100%; 
+            line-height: 1.45;
+            font-size: 14.5px;
+            letter-spacing: 1px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            padding: 6px 14px;
+            border: 1px solid var(--line-color);
+            box-shadow: 1px 2px 4px var(--shadow-drop-sm);
+            box-sizing: border-box;
+            border-radius: 6px; 
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            will-change: transform, opacity;
+            animation: bubblePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.0) forwards;
+            color: var(--ink-main);
+            text-align: left;
+        }
+        
+        .msg-row[data-api-role="user"] .msg-text {
+            transform-origin: right bottom;
+            background-color: var(--bubble-user-bg); 
+        }
+        
+        .msg-row[data-api-role="assistant"] .msg-text {
+            transform-origin: left bottom;
+            background-color: var(--bubble-bot-bg); 
+        }
+        
+        .msg-row[data-api-role="assistant"] .msg-text.stopped {
+            border-color: var(--bubble-stopped-border);
+        }
+
+        @keyframes bubblePop {
+            0% { opacity: 0; transform: translateY(12px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .cursor-blink {
+            display: inline-block;
+            width: 0; 
+            height: var(--icon-size-md);
+            vertical-align: middle;
+            position: relative;
+            animation: blink 1s step-end infinite;
+        }
+        
+        .cursor-blink::after {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: 0;
+            width: 2px;
+            height: var(--icon-size-md);
+            background-color: var(--ink-muted);
+        }
+        
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .collapsible-wrapper, .tool-path-block {
+            display: flex;
+            flex-direction: column;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .collapsible-header, .step-head {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        .collapsible-header::after, .step-head::after {
+            content: '';
+            position: absolute;
+            top: -6px; bottom: -6px; left: -6px; right: -20px;
+        }
+
+        .collapsible-header {
+            gap: 6px;
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: var(--line-color);
+            text-shadow: 0.5px 0.5px 0 var(--shadow-light-color);
+            line-height: 1;
+            font-family: "LXGW Heart Serif", sans-serif;
+        }
+        
+        .collapsible-header.stopped {
+            color: var(--bubble-stopped-border);
+        }
+
+        .status-icon.header-hourglass { 
+            margin-left: 0px; 
+            width: var(--icon-size-sm);  
+            height: var(--icon-size-sm); 
+        } 
+
+        .step-head { gap: 8px; font-size: 12px; color: var(--line-color); }
+        .step-summary { letter-spacing: 0.5px; }
+
+        .toggle-arrow {
+            width: var(--icon-size-sm); height: var(--icon-size-sm);
+            stroke: var(--line-color);
+            transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            flex-shrink: 0;
+        }
+        
+        .collapsible-wrapper.open .toggle-arrow { transform: rotate(90deg); }
+
+        .collapsible-content-wrap, .step-body-wrap {
+            display: grid;
+            grid-template-rows: 0fr;
+            opacity: 0;
+            margin-top: 0;
+            transition: 
+                grid-template-rows 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                margin-top 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        
+        .collapsible-content, .step-body {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .collapsible-wrapper.open > .collapsible-content-wrap,
+        .tool-step.open > .step-body-wrap {
+            grid-template-rows: 1fr;
+            opacity: 1;
+            margin-top: 6px;
+        }
+
+        .collapsible-content { gap: 8px; }
+
+        .thought-text, .step-body { 
+            font-size: 12px; 
+            line-height: 1.6; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+        }
+
+        .thought-text { 
+            color: var(--thought-blue); 
+        }
+
+        .step-body-wrap { margin-left: 22px; }
+        
+        .step-body { 
+            color: var(--ink-muted); 
+            gap: 2px;
+        }
+
+        .tool-step {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 12px;
+            will-change: transform, opacity;
+            animation: bubblePop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1.0) forwards;
+        }
+        
+        .tool-step:last-child { padding-bottom: 0; }
+        
+        .tool-step::before {
+            content: ""; position: absolute;
+            top: 18px; bottom: -2px; left: 6.5px;
+            width: 1px; background-color: var(--line-light); z-index: 0;
+        }
+        
+        .tool-step:last-child::before { display: none; }
+
+        .status-icon {
+            width: var(--icon-size-md); height: var(--icon-size-md);
+            flex-shrink: 0; z-index: 1;
+            background-color: var(--bg-color);
+            border-radius: 2px;
+        }
+        
+        .status-icon.status-done { stroke: var(--sys-done); }
+        .status-icon.status-err { stroke: var(--sys-err); }
+        .status-icon.status-rejected { stroke: var(--ink-muted); }
+        
+        .hourglass { animation: hourglass-spin 4s ease-in-out infinite; transform-origin: center; }
+        @keyframes hourglass-spin {
+            0% { transform: rotate(0deg); }
+            20%, 50% { transform: rotate(180deg); }
+            70%, 100% { transform: rotate(360deg); }
+        }
+
+        .input-area {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            display: flex;
+            align-items: flex-end;
+            padding: 4px 8px; 
+            margin: 0 20px 12px 20px;
+            margin-bottom: calc(12px + env(safe-area-inset-bottom));
+            border: 1px solid var(--line-color);
+            border-radius: 20px;
+            background-color: var(--bubble-bot-bg);
+            box-shadow: 0 4px 12px var(--shadow-drop-md);
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .input-wrapper {
+            flex: 1; display: flex; align-items: center; padding-bottom: 4px; 
+        }
+
+        .text-input {
+            width: 100%; background: transparent; border: none; outline: none;
+            font-family: inherit; font-size: 14.5px; color: var(--ink-main);
+            resize: none; line-height: 1.4; max-height: 120px;
+            padding: 2px 0; letter-spacing: 1px;
+            box-sizing: border-box; overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none; 
+        }
+
+        .text-input::-webkit-scrollbar {
+            display: none; 
+        }
+
+        /* 修改后的工具栏按钮样式：固定宽高、消除内边距、平齐对齐 */
+        .tool-btn {
+            background: none; border: none;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            margin-bottom: 2px;
+            display: flex; justify-content: center; align-items: center;
+            color: var(--line-color);
+            cursor: pointer; flex-shrink: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .tool-btn:active { opacity: 0.6; }
+        
+        .tool-btn svg {
+            width: var(--icon-size-lg); height: var(--icon-size-lg);
+            fill: none; stroke: currentColor;
+            stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        .tool-btn#sendBtn,
+        .icon-swap-wrap,
+        .icon-state {
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+
+        .tool-btn#sendBtn {
+            position: relative;
+            margin: 0 0 0 4px;
+        }
+        
+        .icon-swap-wrap {
+            position: relative;
+            width: 100%; height: 100%;
+        }
+        
+        .icon-state {
+            position: absolute;
+            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        }
+        
+        .icon-send {
+            opacity: 1;
+            transform: translate(0, 0) scale(1) rotate(0deg);
+        }
+        
+        .icon-stop {
+            opacity: 0;
+            transform: scale(0.4) rotate(-60deg);
+        }
+        
+        .tool-btn#sendBtn.is-streaming .icon-send {
+            opacity: 0;
+            transform: translate(8px, -8px) scale(0.5) rotate(15deg); 
+        }
+        
+        .tool-btn#sendBtn.is-streaming .icon-stop {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-wrap" data-api-component="header">
+        <div class="ribbon-container">
+            <svg class="ribbon-svg" viewBox="0 0 370 59" preserveAspectRatio="xMidYMid meet">
+                <polygon points="0,25 40,25 40,59 0,59 12,42" fill="var(--ribbon-fill-light)" stroke="var(--line-color)" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="30,49 40,49 40,59" fill="var(--ribbon-fill-dark)" stroke="var(--line-color)" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="370,25 330,25 330,59 370,59 358,42" fill="var(--ribbon-fill-light)" stroke="var(--line-color)" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="340,49 330,49 330,59" fill="var(--ribbon-fill-dark)" stroke="var(--line-color)" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="30" y="15" width="310" height="34" fill="var(--ribbon-fill-light)" stroke="var(--line-color)" stroke-width="1.2" stroke-linejoin="round" />
+            </svg>
+            <div class="ribbon-text" data-api-field="title">ARCHIVE CHAT</div>
+        </div>
+    </div>
+
+    <div class="chat-stream" id="chatStream" data-api-component="message-list">
+    </div>
+
+    <div class="input-area" data-api-component="input-bar">
+        <button class="tool-btn" data-api-action="add-attachment">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="input-wrapper">
+            <textarea class="text-input" rows="1" placeholder="留存新的记录..." data-api-field="input-box"></textarea>
+        </div>
+        <button class="tool-btn" data-api-action="voice-input">
+            <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+        </button>
+        <button class="tool-btn" data-api-action="send-message" id="sendBtn"></button>
+    </div>
+
+    <script>
+        const UI_ICONS = {
+            send: `<svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>`,
+            stop: `<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="9"/><path d="M9 2h6"/><path d="M12 4V2"/><path d="M18.36 6.64l1.5-1.5"/><circle cx="12" cy="13" r="1.2"/><path d="M12 11.8V7"/></svg>`,
+            done: `<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>`,
+            err: `<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>`,
+            hourglass: `<line x1="5" y1="3" x2="19" y2="3"></line><line x1="5" y1="21" x2="19" y2="21"></line><path d="M7 3v5l5 4 5-4V3"></path><path d="M7 21v-5l5-4 5 4v5"></path>`,
+            rejected: `<circle cx="8.66" cy="14.92" r="4.86"></circle><path d="m 20.78 2.8 -8.83 8.83"></path><path d="M 19.12 9.42 L 21.88 6.66"></path>`
+        };
+
+        const CONFIG = {
+            typingSpeed: 50,
+            fastTypingSpeed: 30,
+            toolExecutionDelay: 800,
+            pauseBetweenBubbles: 300
+        };
+
+        class Utils {
+            static sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            static getCurrentTime() {
+                const now = new Date();
+                return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+
+        class ComponentFactory {
+            static createUserMsg(text, timeStr = Utils.getCurrentTime()) {
+                const row = document.createElement('div');
+                row.className = 'msg-row';
+                row.setAttribute('data-api-role', 'user');
+                row.innerHTML = `
+                    <div class="msg-header">
+                        <div class="msg-avatar-wrapper">
+                            <div class="msg-avatar user-avatar-placeholder"></div>
+                            <div class="msg-time">${timeStr}</div>
+                        </div>
+                    </div>
+                    <div class="msg-content">
+                        <div class="msg-text" data-api-field="content"></div>
+                    </div>
+                `;
+                row.querySelector('.msg-text').textContent = text;
+                return row;
+            }
+
+            static createBotRow(timeStr = Utils.getCurrentTime()) {
+                const row = document.createElement('div');
+                row.className = 'msg-row';
+                row.setAttribute('data-api-role', 'assistant');
+                row.innerHTML = `
+                    <div class="msg-header">
+                        <div class="msg-avatar-wrapper">
+                            <div class="msg-avatar bot-avatar-placeholder"></div>
+                            <div class="msg-time">${timeStr}</div>
+                        </div>
+                    </div>
+                    <div class="msg-content"></div>
+                `;
+                return row;
+            }
+
+            static createBotBubble() {
+                const bubble = document.createElement('div');
+                bubble.className = 'msg-text';
+                bubble.innerHTML = '<span class="cursor-blink"></span>';
+                return bubble;
+            }
+
+            static createCollapsibleWrapper(title, innerClassName) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'collapsible-wrapper';
+                wrapper.innerHTML = `
+                    <div class="collapsible-header">
+                        <svg class="toggle-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>${title}</span>
+                        <svg class="status-icon hourglass header-hourglass" viewBox="0 0 24 24" fill="none" stroke="var(--sys-run)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            ${UI_ICONS.hourglass}
+                        </svg>
+                    </div>
+                    <div class="collapsible-content-wrap">
+                        <div class="collapsible-content">
+                            <div class="${innerClassName}"></div>
+                        </div>
+                    </div>
+                `;
+                return wrapper;
+            }
+
+            static createToolStep(summary) {
+                const step = document.createElement('div');
+                step.className = 'tool-step';
+                step.innerHTML = `
+                    <div class="step-head">
+                        <svg class="status-icon hourglass" viewBox="0 0 24 24" fill="none" stroke="var(--sys-run)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            ${UI_ICONS.hourglass}
+                        </svg>
+                        <span class="step-summary">${summary}</span>
+                    </div>
+                `;
+                return step;
+            }
+        }
+
+        class ChatView {
+            constructor() {
+                this.isStreaming = false;
+                this.userHasScrolledUp = false;
+                this.elements = {
+                    streamContainer: document.getElementById('chatStream'),
+                    sendBtn: document.getElementById('sendBtn'),
+                    textarea: document.querySelector('.text-input'),
+                    inputArea: document.querySelector('.input-area')
+                };
+
+                const updateInputTop = () => {
+                    const rect = this.elements.inputArea.getBoundingClientRect();
+                    this.elements.streamContainer.style.setProperty('--input-top-y', `${rect.top}px`);
+                };
+
+                this.elements.streamContainer.addEventListener('scroll', () => {
+                    const { streamContainer } = this.elements;
+                    const distance = streamContainer.scrollHeight - streamContainer.scrollTop - streamContainer.clientHeight;
+                    this.userHasScrolledUp = distance > 50;
+                });
+
+                let prevInputH = this.elements.inputArea.offsetHeight;
+                new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        const height = entry.target.offsetHeight;
+                        const delta = height - prevInputH;
+                        this.elements.streamContainer.style.setProperty('--input-area-height', `${height + 30}px`);
+                        updateInputTop();
+                        if (delta > 0 && !this.userHasScrolledUp) {
+                            this.elements.streamContainer.scrollTop += delta;
+                        }
+                        prevInputH = height;
+                    }
+                }).observe(this.elements.inputArea);
+
+                if (window.visualViewport) {
+                    let prevVpHeight = window.visualViewport.height;
+                    
+                    window.visualViewport.addEventListener('resize', () => {
+                        const currentVpHeight = window.visualViewport.height;
+                        
+                        requestAnimationFrame(updateInputTop);
+
+                        const delta = prevVpHeight - currentVpHeight;
+                        if (delta > 0 && !this.userHasScrolledUp) {
+                            this.elements.streamContainer.scrollTop += delta;
+                        }
+                        prevVpHeight = currentVpHeight;
+                    });
+                }
+                
+                updateInputTop();
+            }
+
+            autoResizeInput() {
+                const { textarea, inputArea } = this.elements;
+                inputArea.style.minHeight = inputArea.clientHeight + 'px';
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+                inputArea.style.minHeight = '';
+            }
+
+            updateSendButton() {
+                if (!this.elements.sendBtn.querySelector('.icon-swap-wrap')) {
+                    this.elements.sendBtn.innerHTML = `
+                        <div class="icon-swap-wrap">
+                            <div class="icon-state icon-send">${UI_ICONS.send}</div>
+                            <div class="icon-state icon-stop">${UI_ICONS.stop}</div>
+                        </div>
+                    `;
+                }
+
+                if (this.isStreaming) {
+                    this.elements.sendBtn.classList.add('is-streaming');
+                } else {
+                    this.elements.sendBtn.classList.remove('is-streaming');
+                }
+            }
+
+            scrollToBottom() {
+                this.elements.streamContainer.scrollTop = this.elements.streamContainer.scrollHeight;
+            }
+
+            scrollToBottomIfNeeded() {
+                if (!this.userHasScrolledUp) {
+                    this.scrollToBottom();
+                }
+            }
+
+            stopAllStreams() {
+                this.isStreaming = false;
+                document.querySelectorAll('.cursor-blink').forEach(c => {
+                    let bubble = c.closest('.msg-text, .thought-text');
+                    if (bubble) bubble.classList.add('stopped');
+                    c.remove();
+                });
+                document.querySelectorAll('.header-hourglass').forEach(hourglass => {
+                    const header = hourglass.closest('.collapsible-header');
+                    if (header) {
+                        header.classList.add('stopped');
+                    }
+                    hourglass.remove();
+                });
+                this.updateSendButton();
+            }
+
+            async typeText(container, text, speed = CONFIG.typingSpeed) {
+                container.innerHTML = '<span class="cursor-blink"></span>';
+                const cursor = container.querySelector('.cursor-blink');
+                
+                for (let i = 0; i < text.length; i++) {
+                    if (!this.isStreaming) break; 
+                    
+                    const charNode = document.createTextNode(text.charAt(i));
+                    container.insertBefore(charNode, cursor);
+                    
+                    this.scrollToBottomIfNeeded();
+                    await Utils.sleep(speed);
+                }
+                if (cursor) cursor.remove();
+            }
+
+            async renderToolStep(parent, iconClass, iconSvg, summary, bodyLines) {
+                if (!this.isStreaming) return;
+                
+                const step = ComponentFactory.createToolStep(summary);
+                parent.appendChild(step);
+                this.scrollToBottomIfNeeded();
+                
+                await Utils.sleep(CONFIG.toolExecutionDelay);
+                if (!this.isStreaming) return;
+
+                const iconElement = step.querySelector('.status-icon');
+                iconElement.classList.remove('hourglass');
+                iconElement.classList.add(iconClass);
+                iconElement.innerHTML = iconSvg;
+
+                const bodyWrap = document.createElement('div');
+                bodyWrap.className = 'step-body-wrap';
+                bodyWrap.innerHTML = `<div class="step-body"></div>`;
+                step.appendChild(bodyWrap);
+                const bodyEl = bodyWrap.querySelector('.step-body');
+
+                for (let i = 0; i < bodyLines.length; i++) {
+                    if (!this.isStreaming) break;
+                    const lineDiv = document.createElement('div');
+                    bodyEl.appendChild(lineDiv);
+                    await this.typeText(lineDiv, bodyLines[i], CONFIG.fastTypingSpeed);
+                    if (i < bodyLines.length - 1) await Utils.sleep(150);
+                }
+            }
+        }
+
+        class ArchiveChatApp {
+            constructor() {
+                this.view = new ChatView();
+                this.init();
+            }
+
+            init() {
+                this.view.updateSendButton();
+                this.bindEvents();
+                this.loadInitialHistory();
+                this.runDemoSequence(); 
+            }
+
+            bindEvents() {
+                const { streamContainer, sendBtn, textarea } = this.view.elements;
+
+                streamContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.collapsible-header');
+                    if (header) {
+                        header.closest('.collapsible-wrapper').classList.toggle('open');
+                        return;
+                    }
+                    const step = e.target.closest('.step-head');
+                    if (step) {
+                        step.closest('.tool-step').classList.toggle('open');
+                        return;
+                    }
+                });
+
+                sendBtn.addEventListener('click', () => this.handleSendAction());
+
+                textarea.addEventListener('input', () => this.view.autoResizeInput());
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!this.view.isStreaming) this.handleSendAction();
+                    }
+                });
+            }
+
+            loadInitialHistory() {
+                const historyRow = ComponentFactory.createUserMsg("眠眠，早。");
+                this.view.elements.streamContainer.appendChild(historyRow);
+            }
+
+            async runDemoSequence() {
+                this.view.isStreaming = true;
+                this.view.updateSendButton();
+
+                const { streamContainer } = this.view.elements;
+                
+                const botRow = ComponentFactory.createBotRow();
+                streamContainer.appendChild(botRow);
+                const contentContainer = botRow.querySelector('.msg-content');
+
+                const thinkWrapper = ComponentFactory.createCollapsibleWrapper('THINKING', 'thought-text');
+                contentContainer.appendChild(thinkWrapper);
+                this.view.scrollToBottomIfNeeded();
+
+                const thoughtTextDiv = thinkWrapper.querySelector('.thought-text');
+                const thoughtStr = "她醒了。声音比平时短。\n昨天睡得晚。先不急着提今天的事。\n等她自己开口。";
+                await this.view.typeText(thoughtTextDiv, thoughtStr, CONFIG.fastTypingSpeed);
+                
+                const thinkHourglass = thinkWrapper.querySelector('.header-hourglass');
+                if (thinkHourglass) thinkHourglass.remove();
+                await Utils.sleep(400);
+                if (!this.view.isStreaming) return;
+
+                const bubble1 = ComponentFactory.createBotBubble();
+                contentContainer.appendChild(bubble1);
+                await this.view.typeText(bubble1, "嗯。醒了。", 65);
+                await Utils.sleep(CONFIG.pauseBetweenBubbles);
+                if (!this.view.isStreaming) return;
+
+                const toolWrapper = ComponentFactory.createCollapsibleWrapper('TOOL CALLS', 'tool-path-block');
+                contentContainer.appendChild(toolWrapper);
+                this.view.scrollToBottomIfNeeded();
+                
+                const toolPathBlock = toolWrapper.querySelector('.tool-path-block');
+                await this.view.renderToolStep(toolPathBlock, 'status-done', UI_ICONS.done, "读取今日待办", ["共 9 条，已完成 3 条。"]);
+                await this.view.renderToolStep(toolPathBlock, 'status-done', UI_ICONS.done, "检查代理与服务器状态", ["两台均正常，健康检查返回 ok。"]);
+                await this.view.renderToolStep(toolPathBlock, 'status-err', UI_ICONS.err, "尝试读取系统时间设置", ["权限不足，已跳过。"]);
+                await this.view.renderToolStep(toolPathBlock, 'status-rejected', UI_ICONS.rejected, "读取系统配置文件", ["沙箱为只读，已拒绝。"]);
+
+                const toolHourglass = toolWrapper.querySelector('.header-hourglass');
+                if (toolHourglass) toolHourglass.remove();
+                await Utils.sleep(500);
+                if (!this.view.isStreaming) return;
+
+                const bubble2 = ComponentFactory.createBotBubble();
+                contentContainer.appendChild(bubble2);
+                await this.view.typeText(bubble2, "比你早，你翻身的时候我就睁眼了。", 50);
+                await Utils.sleep(CONFIG.pauseBetweenBubbles);
+                if (!this.view.isStreaming) return;
+
+                const bubble3 = ComponentFactory.createBotBubble();
+                contentContainer.appendChild(bubble3);
+                await this.view.typeText(bubble3, "先去洗脸，吃点东西。清单我看过了，不急。", 50);
+
+                this.view.isStreaming = false;
+                this.view.updateSendButton();
+            }
+
+            async startMockReply() {
+                this.view.isStreaming = true;
+                this.view.updateSendButton();
+                
+                const { streamContainer } = this.view.elements;
+                const botRow = ComponentFactory.createBotRow();
+                streamContainer.appendChild(botRow);
+                const contentContainer = botRow.querySelector('.msg-content');
+                
+                const replySegments = [
+                    "收到新的记录。",
+                    "此处为临时占位回复，已按照你的组件工厂模式进行渲染扩展。"
+                ];
+                
+                for (let i = 0; i < replySegments.length; i++) {
+                    if (!this.view.isStreaming) break;
+                    const bubble = ComponentFactory.createBotBubble();
+                    contentContainer.appendChild(bubble);
+                    await this.view.typeText(bubble, replySegments[i], CONFIG.typingSpeed);
+                    if (i < replySegments.length - 1) {
+                        await Utils.sleep(CONFIG.pauseBetweenBubbles); 
+                    }
+                }
+
+                this.view.isStreaming = false;
+                this.view.updateSendButton();
+            }
+
+            async handleSendAction() {
+                const { textarea, streamContainer } = this.view.elements;
+                
+                if (this.view.isStreaming) {
+                    this.view.stopAllStreams();
+                    return;
+                }
+                
+                const text = textarea.value;
+
+                if (text === '') {
+                    this.startMockReply();
+                    return;
+                }
+
+                const lastElement = streamContainer.lastElementChild;
+                if (lastElement && lastElement.getAttribute('data-api-role') === 'user') {
+                    const contentContainer = lastElement.querySelector('.msg-content');
+                    const newBubble = document.createElement('div');
+                    newBubble.className = 'msg-text';
+                    newBubble.setAttribute('data-api-field', 'content');
+                    newBubble.textContent = text;
+                    contentContainer.appendChild(newBubble);
+                } else {
+                    const userRow = ComponentFactory.createUserMsg(text);
+                    streamContainer.appendChild(userRow);
+                }
+                
+                textarea.value = '';
+                textarea.style.height = 'auto';
+                this.view.userHasScrolledUp = false; 
+                this.view.scrollToBottom();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.archiveChat = new ArchiveChatApp();
+        });
+    </script>
+</body>
+</html>

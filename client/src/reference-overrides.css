@@ -1,0 +1,7 @@
+.connection-page{--env-h:440px;--mail-scale:.9}
+.mail-envelope{height:var(--env-h);transform:scale(var(--mail-scale));transform-origin:right top}
+.mail-first{margin-bottom:calc((25px * var(--mail-scale)) - (var(--env-h) * (1 - var(--mail-scale))))}
+.mail-second{margin-bottom:calc(0px - (var(--env-h) * (1 - var(--mail-scale))))}
+@media(max-height:820px){.connection-page{--mail-scale:.84}}
+@media(max-height:760px){.connection-page{--mail-scale:.77}}
+@media(max-height:700px){.connection-page{--mail-scale:.71}}

@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连接设置</title>
+    <link rel="preload" href="https://fontsapi.zeoseven.com/br/main.woff2" as="font" type="font/woff2" crossorigin>
+    <style>
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");font-style:normal;font-weight:700;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");font-style:normal;font-weight:300;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");font-style:normal;font-weight:600;font-display:swap;}
+
+        :root {
+            --env-h: 440px;
+            --base-gap: 25px;
+            --scale: 1.15;
+            --paper: #7590a3;
+            --ink: #3b4d5a;
+            --btn: #5a7082;
+        }
+
+        html {
+            background-color: #e8e6df; 
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "ZSFT-br", sans-serif;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; 
+            padding-right: 2vw; 
+            justify-content: center;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            position: relative; 
+        }
+
+        /* 左上角返回键样式 */
+        .settings-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 12.5px 16px; 
+            z-index: 10;
+        }
+        .back-btn {
+            display: inline-flex; 
+            align-items: flex-start; 
+            cursor: pointer; 
+            position: relative; 
+            transition: transform 0.2s ease, opacity 0.2s ease; 
+        }
+        .back-btn::after { 
+            content: ''; 
+            position: absolute; 
+            top: -10px; 
+            right: -15px; 
+            bottom: -10px; 
+            left: -15px; 
+        }
+        .back-btn:active { 
+            opacity: 0.6; 
+            transform: translateX(-4px); 
+        }
+
+        .envelope {
+            width: min(312px, calc(100vw - 32px));
+            height: var(--env-h);
+            background-color: var(--paper); 
+            position: relative;
+            box-shadow: -15px 25px 45px rgba(90, 112, 130, 0.25), -4px 8px 12px rgba(0,0,0,0.1);
+            border-radius: 3px;
+            box-sizing: border-box;
+            transform: scale(var(--scale));
+            transform-origin: right top;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease, outline-offset 0.2s ease;
+            cursor: pointer;
+        }
+
+        @media (hover: hover) {
+            .envelope:hover {
+                transform: translateY(calc(-4px / var(--scale))) scale(var(--scale));
+                box-shadow: -20px 35px 55px rgba(90, 112, 130, 0.35), -6px 15px 22px rgba(0,0,0,0.15);
+            }
+
+            .tie-container-v:hover .tie-btn, 
+            .tie-container-h:hover .tie-btn {
+                background-color: #688094;
+            }
+        }
+
+        .envelope:focus-visible {
+            outline: 2px solid var(--ink);
+            outline-offset: 3px;
+        }
+
+        .envelope.is-active {
+            transform: translateY(calc(-2px / var(--scale))) scale(var(--scale));
+            box-shadow: -18px 30px 50px rgba(90, 112, 130, 0.3), -5px 12px 18px rgba(0,0,0,0.12);
+        }
+
+        .envelope.is-active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: var(--ink);
+            border-radius: 3px 0 0 3px;
+            z-index: 20;
+        }
+
+        .env-first { 
+            z-index: 2; 
+            margin-top: 8px; 
+            margin-bottom: calc((var(--base-gap) * var(--scale)) - (var(--env-h) * (1 - var(--scale)))); 
+        }
+        
+        .env-second { 
+            z-index: 1; 
+            margin-bottom: calc(0px - (var(--env-h) * (1 - var(--scale)))); 
+        }
+
+        .tie-btn {
+            position: absolute;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background-color: var(--btn); 
+            box-shadow: 
+                inset 1px 2px 3px rgba(255,255,255,0.2), 
+                inset -1px -2px 3px rgba(0,0,0,0.3),
+                1px 3px 6px rgba(0,0,0,0.25);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
+            transition: background-color 0.2s ease;
+        }
+        .tie-btn::after {
+            content: '';
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background-color: var(--ink);
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .env-side-flap {
+            position: absolute;
+            top: 0; right: 0; bottom: 0; width: 100px;
+            background-color: var(--paper);
+            border-left: 1px solid rgba(0,0,0,0.08);
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15); 
+            border-radius: 0 3px 3px 0;
+            z-index: 1;
+        }
+
+        .tie-container-v {
+            position: absolute;
+            right: 100px; top: 50%;
+            transform: translate(50%, -50%);
+            width: 68px; height: 28px;
+            z-index: 10;
+            cursor: pointer;
+        }
+        .tie-container-v .tie-btn:nth-child(1) { left: 0; }
+        .tie-container-v .tie-btn:nth-child(2) { right: 0; }
+
+        .string-svg-v {
+            position: absolute; top: -2px; left: -2px;
+            width: 80px; height: 60px; pointer-events: none; overflow: visible;
+        }
+
+        .env1-title-container {
+            position: absolute;
+            left: -8px; 
+            top: 10px; 
+            width: 60px;
+            z-index: 5; pointer-events: none;
+        }
+        .env1-title-text {
+            position: absolute;
+            left: 0; top: 0;
+            transform-origin: left top;
+            transform: rotate(90deg) translateY(-100%);
+            white-space: nowrap;
+            font-size: 52px;
+            letter-spacing: 5px;
+            color: rgba(241, 239, 233, 0.9);
+            font-weight: 400;
+        }
+        .env1-title-text .maison {
+            font-style: italic;
+            font-weight: 300;
+            margin-left: 15px;
+        }
+
+        .env-top-flap-wrapper {
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 69px;
+            z-index: 4;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
+        .env-top-flap {
+            width: 100%; height: 100%;
+            background-color: var(--paper);
+            clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
+            border-radius: 3px 3px 0 0;
+        }
+        .env-top-flap::before {
+            content: ''; position: absolute; top:0; left:0; right:0; height: 1px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        .tie-container-h {
+            position: absolute;
+            top: 69px; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 28px; height: 68px;
+            z-index: 10;
+            cursor: pointer;
+        }
+        .tie-container-h .tie-btn:nth-child(1) { top: 0; left: 0; }
+        .tie-container-h .tie-btn:nth-child(2) { bottom: 0; left: 0; }
+
+        .string-svg-h {
+            position: absolute; top: -2px; left: -2px;
+            width: 60px; height: 80px; pointer-events: none; overflow: visible;
+        }
+
+        .env2-center-title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .env2-center-title .forma {
+            font-size: 24px;
+            letter-spacing: 4px;
+            color: rgba(241, 239, 233, 0.9);
+            font-weight: 400;
+            margin-bottom: -4px;
+        }
+        .env2-center-title .maison {
+            font-size: 24px;
+            letter-spacing: 2px;
+            color: rgba(241, 239, 233, 0.9);
+            font-style: italic;
+            font-weight: 300;
+        }
+
+        .env2-footer {
+            position: absolute;
+            bottom: 8px;
+            left: 12px; right: 12px;
+            display: flex; justify-content: space-between;
+            z-index: 5; pointer-events: none;
+            color: rgba(241, 239, 233, 0.65);
+            font-size: 9px;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+
+        .paper-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(59, 77, 90, 0.35);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .paper-overlay.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .paper-popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -40%);
+            width: min(320px, 90vw);
+            height: auto;
+            max-height: 85svh;
+            background-color: #f1efe9;
+            border-radius: 2px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(90, 112, 130, 0.15);
+            z-index: 101;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            color: #1a1a1a;
+            overflow: hidden;
+        }
+        .paper-popup::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.04"/></svg>');
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            border-radius: 2px;
+            z-index: 1;
+        }
+        .paper-popup.is-visible {
+            transform: translate(-50%, -50%);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .popup-content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            flex: 0 1 auto;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .popup-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .header-left .title {
+            font-size: 24px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .header-left .version {
+            font-size: 11px;
+            color: #1a1a1a;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        /* 状态文字本身变色样式（柔和过渡、无发光） */
+        .status-text {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+        .status-not-connected { color: #8C8376; }
+        .status-checking { color: #8FA6B5; }
+        .status-ready { color: #7A936E; }
+        .status-login-required { color: #5480A6; }
+        .status-error { color: #B6625B; }
+
+        .popup-divider {
+            width: 100%;
+            height: 20px;
+            background-color: transparent;
+            margin: 0;
+            flex-shrink: 0;
+            border: none;
+        }
+
+        .section-block {
+            margin-bottom: 0px;
+            flex-shrink: 0;
+        }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .field-group {
+            margin-bottom: 10px;
+        }
+        .field-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            color: #1a1a1a;
+            letter-spacing: 0;
+        }
+        .field-input, .field-select {
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 400;
+            padding: 0;
+            color: #1a1a1a;
+            outline: none;
+            border-radius: 0;
+            box-sizing: border-box;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .field-input:focus, .field-select:focus {
+            box-shadow: 0 1px 0 0 #1a1a1a;
+        }
+        .field-select {
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        /* 底部排版及指定颜色 */
+        .popup-footer {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            padding-bottom: 0;
+            flex-shrink: 0;
+        }
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #8C8376;
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: inherit;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: opacity 0.2s ease, transform 0.1s ease;
+        }
+        .action-btn:hover {
+            opacity: 0.7;
+        }
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+        .action-divider {
+            font-size: 14px;
+            font-weight: 600;
+            user-select: none;
+        }
+        
+        /* 调整 None 间距，保持与下方的呼吸感 */
+        .test-result {
+            font-size: 11px;
+            color: #1a1a1a;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .custom-select-trigger {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            min-height: 18px;
+        }
+        
+        /* 邮票下拉框调整区域 - 四角打直角处理 & 色块缩小 */
+        .stamp-dropdown {
+            display: none;
+            position: fixed;
+            width: 144px;
+            box-sizing: border-box;
+            /* 增加间距到9px，向内挤压蓝色色块 */
+            padding: 9px; 
+            background-color: #ffffff;
+            filter: drop-shadow(0 6px 12px rgba(59, 77, 90, 0.35));
+            z-index: 50;
+            
+            /* 分为6层遮罩：1层中心填补、4层直角填补、1层圆孔排列 */
+            -webkit-mask-image: 
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                radial-gradient(circle at 6px 6px, transparent 3px, black 3.5px);
+            -webkit-mask-position: 
+                center,
+                0 0,
+                100% 0,
+                0 100%,
+                100% 100%,
+                -6px -6px;
+            -webkit-mask-size: 
+                calc(100% - 12px) calc(100% - 12px),
+                6px 6px,
+                6px 6px,
+                6px 6px,
+                6px 6px,
+                12px 12px;
+            -webkit-mask-repeat: 
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                repeat;
+            
+            mask-image: 
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                linear-gradient(black, black),
+                radial-gradient(circle at 6px 6px, transparent 3px, black 3.5px);
+            mask-position: 
+                center,
+                0 0,
+                100% 0,
+                0 100%,
+                100% 100%,
+                -6px -6px;
+            mask-size: 
+                calc(100% - 12px) calc(100% - 12px),
+                6px 6px,
+                6px 6px,
+                6px 6px,
+                6px 6px,
+                12px 12px;
+            mask-repeat: 
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                no-repeat,
+                repeat;
+        }
+        
+        .stamp-dropdown.is-open {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: stretch;
+            animation: stampIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes stampIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .stamp-inner {
+            background-color: var(--ink);
+            /* 收紧内部 padding，使色块更加包裹文字，从视觉上变小 */
+            padding: 6px 8px; 
+            border-radius: 1px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px; 
+            position: relative;
+            z-index: 1;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .stamp-option {
+            font-size: 10px;
+            font-weight: 500;
+            color: rgba(241, 239, 233, 0.65);
+            padding: 4px 8px 4px 8px; 
+            cursor: pointer;
+            position: relative;
+            border-radius: 2px;
+            transition: color 0.15s, background-color 0.15s;
+            user-select: none;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .stamp-option:hover, .stamp-option.is-focused {
+            color: #f1efe9;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .stamp-option.is-selected {
+            color: #f1efe9;
+            font-weight: 700;
+        }
+        
+        .stamp-option.is-selected::before {
+            content: '';
+            position: absolute;
+            left: 0px; 
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #f1efe9;
+            border-radius: 50%;
+        }
+
+        @media (max-height: 1080px) { :root { --scale: 1.10; } }
+        @media (max-height: 1000px) { :root { --scale: 1.02; } }
+        @media (max-height: 940px)  { :root { --scale: 0.96; } }
+        @media (max-height: 880px)  { :root { --scale: 0.90; } }
+        @media (max-height: 820px)  { :root { --scale: 0.84; } }
+        @media (max-height: 760px)  { :root { --scale: 0.77; } }
+        @media (max-height: 700px)  { :root { --scale: 0.71; } }
+        @media (max-height: 640px)  { :root { --scale: 0.65; } }
+        @media (max-height: 580px)  { :root { --scale: 0.59; } }
+        @media (max-height: 520px)  { :root { --scale: 0.53; } }
+    </style>
+</head>
+<body>
+
+    <!-- 左上角小鱼返回键 -->
+    <div class="settings-header">
+        <div class="back-btn" id="headerBackBtn" onclick="history.back()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 4L2 12L10 20" stroke="var(--btn)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="12" r="1.4" fill="var(--btn)"/>
+                <path d="M18 8.5L13.5 12L18 15.5" stroke="var(--btn)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="envelope env-first is-active" id="conn-codex" tabindex="0" role="button" aria-pressed="true">
+        <div class="env-side-flap"></div>
+        
+        <div class="env1-title-container">
+            <div class="env1-title-text">
+                CODEX <span class="maison">LOCAL</span>
+            </div>
+        </div>
+
+        <div class="tie-container-v">
+            <div class="tie-btn"></div>
+            <div class="tie-btn"></div>
+            <svg class="string-svg-v">
+                <path d="M 16,11 L 56,11 M 16,21 L 56,21" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="envelope env-second" id="conn-api" tabindex="0" role="button" aria-pressed="false">
+        <div class="env-top-flap-wrapper">
+            <div class="env-top-flap"></div>
+        </div>
+
+        <div class="env2-center-title">
+            <div class="forma">REMOTE</div>
+            <div class="maison">CONNECT</div>
+        </div>
+        
+        <div class="env2-footer">
+            <span>ENDPOINT</span>
+            <span>KEY</span>
+            <span>MODEL</span>
+        </div>
+
+        <div class="tie-container-h">
+            <div class="tie-btn"></div>
+            <div class="tie-btn"></div>
+            <svg class="string-svg-h">
+                <path d="M 11,16 L 11,56 M 21,16 L 21,56" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="paper-overlay" id="paper-overlay"></div>
+    <div class="paper-popup" id="paper-popup">
+        <div class="popup-content">
+            
+            <div class="popup-header">
+                <div class="header-left">
+                    <div class="title">CODEX</div>
+                    <div class="version">v1.0.0</div>
+                </div>
+                <div class="header-right">
+                    <!-- 移除了小圆点，直接通过 class 控制文本颜色 -->
+                    <div class="status-text status-not-connected">NOT CONNECTED</div>
+                </div>
+            </div>
+
+            <div class="popup-divider"></div>
+
+            <div class="section-block">
+                <div class="section-title">CONNECTION</div>
+                <div class="field-group">
+                    <label class="field-label">Executable</label>
+                    <input class="field-input" type="text" value="codex">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Working Directory</label>
+                    <input class="field-input" type="text">
+                </div>
+            </div>
+
+            <div class="popup-divider"></div>
+
+            <div class="section-block">
+                <div class="section-title">BEHAVIOR</div>
+                <div class="field-group">
+                    <label class="field-label">Model</label>
+                    <input class="field-input" type="text">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Sandbox</label>
+                    <div class="custom-select-wrapper" id="sandbox-wrapper">
+                        <select class="field-select" style="display: none;" tabindex="-1" aria-hidden="true">
+                            <option value="read-only">read-only</option>
+                            <option value="workspace-write">workspace-write</option>
+                            <option value="danger-full-access">danger-full-access</option>
+                        </select>
+                        <div class="custom-select-trigger field-input" tabindex="0" role="combobox" aria-expanded="false" aria-controls="sandbox-dropdown" aria-haspopup="listbox">
+                            <span class="custom-select-value">read-only</span>
+                        </div>
+                        <div class="stamp-dropdown" id="sandbox-dropdown" role="listbox">
+                            <div class="stamp-inner">
+                                <div class="stamp-option is-selected" role="option" aria-selected="true" data-value="read-only">read-only</div>
+                                <div class="stamp-option" role="option" aria-selected="false" data-value="workspace-write">workspace-write</div>
+                                <div class="stamp-option" role="option" aria-selected="false" data-value="danger-full-access">danger-full-access</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Timeout</label>
+                    <input class="field-input" type="number">
+                </div>
+            </div>
+
+            <div class="popup-divider"></div>
+
+            <div class="popup-footer">
+                <!-- None 的显示被调换到了上方 -->
+                <div class="test-result">None</div>
+                <div class="action-group">
+                    <button class="action-btn" type="button">[ SAVE ]</button>
+                    <span class="action-divider">X</span>
+                    <button class="action-btn" type="button">[ TEST ]</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const envelopes = document.querySelectorAll('.envelope');
+        envelopes.forEach(env => {
+            env.addEventListener('click', () => {
+                envelopes.forEach(e => {
+                    e.classList.remove('is-active');
+                    e.setAttribute('aria-pressed', 'false');
+                });
+                env.classList.add('is-active');
+                env.setAttribute('aria-pressed', 'true');
+            });
+            env.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    envelopes.forEach(el => {
+                        el.classList.remove('is-active');
+                        el.setAttribute('aria-pressed', 'false');
+                    });
+                    env.classList.add('is-active');
+                    env.setAttribute('aria-pressed', 'true');
+                }
+            });
+        });
+
+        const paperOverlay = document.getElementById('paper-overlay');
+        const paperPopup = document.getElementById('paper-popup');
+        const codexTies = document.querySelectorAll('#conn-codex .tie-container-v');
+
+        function updatePaperHeight() {
+            const active = document.activeElement;
+            const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
+            if (!isTyping) {
+                paperPopup.style.maxHeight = Math.floor(window.innerHeight * 0.85) + 'px';
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            if (paperPopup.classList.contains('is-visible')) {
+                updatePaperHeight();
+            }
+        });
+
+        codexTies.forEach(tie => {
+            tie.addEventListener('click', (e) => {
+                document.body.style.overflow = 'hidden';
+                
+                const computedScale = getComputedStyle(document.documentElement).getPropertyValue('--scale').trim();
+                document.documentElement.style.setProperty('--scale', computedScale);
+                
+                updatePaperHeight();
+                
+                paperOverlay.classList.add('is-visible');
+                paperPopup.classList.add('is-visible');
+            });
+        });
+
+        function closePaperPopup() {
+            if (typeof sandboxIsOpen !== 'undefined' && sandboxIsOpen) {
+                closeSandbox(true);
+            }
+            
+            if (document.activeElement && paperPopup.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            
+            document.body.style.overflow = '';
+            document.documentElement.style.removeProperty('--scale');
+            paperPopup.style.removeProperty('max-height');
+            
+            paperOverlay.classList.remove('is-visible');
+            paperPopup.classList.remove('is-visible');
+        }
+
+        paperOverlay.addEventListener('click', closePaperPopup);
+
+        const sandboxWrapper = document.getElementById('sandbox-wrapper');
+        const sandboxTrigger = sandboxWrapper.querySelector('.custom-select-trigger');
+        const sandboxValue = sandboxWrapper.querySelector('.custom-select-value');
+        const sandboxDropdown = document.getElementById('sandbox-dropdown');
+        const sandboxOptions = sandboxDropdown.querySelectorAll('.stamp-option');
+        const sandboxNative = sandboxWrapper.querySelector('.field-select');
+        const popupContent = paperPopup.querySelector('.popup-content');
+
+        let sandboxIsOpen = false;
+        let sandboxFocusedIdx = 0;
+
+        function openSandbox() {
+            sandboxIsOpen = true;
+            sandboxDropdown.style.height = 'auto';
+            sandboxDropdown.style.visibility = 'hidden';
+            sandboxDropdown.classList.add('is-open');
+            
+            const h = sandboxDropdown.offsetHeight;
+            const snapped = Math.ceil(h / 12) * 12;
+            sandboxDropdown.style.height = snapped + 'px';
+            
+            const wrapperRect = sandboxWrapper.getBoundingClientRect();
+            const popupRect = paperPopup.getBoundingClientRect();
+            
+            const topPos = wrapperRect.bottom - popupRect.top + 4;
+            const leftPos = wrapperRect.left - popupRect.left;
+            
+            sandboxDropdown.style.top = topPos + 'px';
+            sandboxDropdown.style.left = leftPos + 'px';
+            
+            sandboxDropdown.style.visibility = '';
+            sandboxTrigger.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeSandbox(preventFocus) {
+            sandboxIsOpen = false;
+            sandboxDropdown.classList.remove('is-open');
+            sandboxTrigger.setAttribute('aria-expanded', 'false');
+            
+            if (preventFocus !== true) {
+                sandboxTrigger.focus();
+            }
+            
+            sandboxOptions.forEach((opt, idx) => {
+                if(opt.classList.contains('is-selected')) sandboxFocusedIdx = idx;
+                opt.classList.remove('is-focused');
+            });
+        }
+
+        function selectSandboxOption(index) {
+            sandboxOptions.forEach(opt => opt.classList.remove('is-selected'));
+            sandboxOptions[index].classList.add('is-selected');
+            const val = sandboxOptions[index].getAttribute('data-value');
+            sandboxValue.textContent = val;
+            if (sandboxNative) {
+                sandboxNative.value = val;
+            }
+            closeSandbox();
+        }
+
+        sandboxTrigger.addEventListener('click', (e) => {
+            if (sandboxIsOpen) closeSandbox();
+            else openSandbox();
+        });
+
+        sandboxOptions.forEach((opt, idx) => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectSandboxOption(idx);
+            });
+            opt.addEventListener('mouseenter', () => {
+                sandboxOptions.forEach(o => o.classList.remove('is-focused'));
+                opt.classList.add('is-focused');
+                sandboxFocusedIdx = idx;
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!sandboxWrapper.contains(e.target) && sandboxIsOpen) {
+                closeSandbox(true);
+            }
+        });
+        
+        popupContent.addEventListener('scroll', () => {
+            if (sandboxIsOpen) closeSandbox(true);
+        });
+
+        sandboxTrigger.addEventListener('keydown', (e) => {
+            if (!sandboxIsOpen) {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    openSandbox();
+                    sandboxOptions[sandboxFocusedIdx].classList.add('is-focused');
+                }
+            } else {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectSandboxOption(sandboxFocusedIdx);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeSandbox();
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    sandboxOptions[sandboxFocusedIdx].classList.remove('is-focused');
+                    sandboxFocusedIdx = (sandboxFocusedIdx + 1) % sandboxOptions.length;
+                    sandboxOptions[sandboxFocusedIdx].classList.add('is-focused');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    sandboxOptions[sandboxFocusedIdx].classList.remove('is-focused');
+                    sandboxFocusedIdx = (sandboxFocusedIdx - 1 + sandboxOptions.length) % sandboxOptions.length;
+                    sandboxOptions[sandboxFocusedIdx].classList.add('is-focused');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

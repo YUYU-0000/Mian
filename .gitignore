@@ -1,0 +1,98 @@
+# Dependencies and reproducible build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Local runtime configuration, credentials, and environment files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+
+# Real Mian conversation/thread mappings and runtime state
+server/data/
+server/server/data/
+**/data/conversations.json
+**/data/config.json
+**/data/runtime*.json
+**/data/session*.json
+
+# Local browser profiles, caches, logs, and temporary verification files
+.chrome*/
+.edge*/
+.tmp-chrome*/
+.npm-cache/
+.cache/
+.protocol/
+*.log
+*.err
+*.tmp
+.tmp-*
+tmp/
+temp/
+
+# Local backups and generated verification artifacts
+.backups/
+Mian.backups/
+/*.png
+/*.webp
+*.mp4
+*.zip
+
+# Generated standalone UI exports are not required to rebuild the app
+ui-exports/
+
+# OS and editor metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+
+# Private local data and authentication state
+.codex/
+.agents/
+.aws/
+.ssh/
+.npmrc
+.pypirc
+auth.json
+credentials/
+secrets/
+*.sqlite
+*.sqlite3
+*.db
+*.jsonl
+chats/
+chat-history/
+chat_history/
+conversations/
+personal-data/
+
+# Additional logs, archives, and backups
+logs/
+backup/
+backups/
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*.7z
+*.rar
+*.tar
+*.gz
+
+# Personal standalone mockup (preserved locally)
+/对话界面维护中kk.html
