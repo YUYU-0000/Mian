@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Archive Settings</title>
+    <!-- 字體引入 -->
+    <!-- 中文：霞鹜铭心宋（与仓库聊天页一致，放进仓库后从本地 /fonts/lxgw 加载） -->
+    <link rel="stylesheet" href="/fonts/lxgw/result.css" />
+    <style>
+        /* 引入 ZSFT-br 字体 */
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");font-style:normal;font-weight:700;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");font-style:normal;font-weight:300;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;}
+        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");font-style:normal;font-weight:600;font-display:swap;}
+
+        @font-face {
+            font-family: 'ZSFT-l';
+            src: url('https://fontsapi.zeoseven.com/l/main.woff2') format('woff2');
+            font-display: swap;
+        }
+
+        /* 主题颜色 & 字體設定 */
+        :root {
+            --bg-color: #f1efe9;
+            --font-main: "LXGW Heart Serif", serif;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --icon-bg-1: #7590a3;
+            --icon-bg-2: #a4b8c6;
+            --icon-bg-3: #8a98a3;
+            --icon-bg-4: #5a7082;
+            --icon-bg-4-rgb: 90, 112, 130;
+            --color-text-main: #4f6475;
+            --color-text-muted: #72828e;
+            --color-tab-text: #ffffff;
+            
+            /* 纸张色调 */
+            --paper-layer-top: #F5F2EC;
+            --paper-layer-mid: #EBE7DE;
+            --paper-layer-bot: #E1DDD2;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color); 
+            font-family: var(--font-main);
+            font-weight: normal; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 桌面端响应式适配 */
+        @media (min-width: 768px) {
+            html { background-color: #e8e6df; }
+            body { max-width: 480px; margin: 0 auto; box-shadow: 0 0 30px rgba(0,0,0,0.08); position: relative; }
+        }
+
+        /* 顶部导航 */
+        .settings-header {
+            padding: 24px 16px 0px 16px; flex: none; display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 10;
+        }
+        .back-btn {
+            display: inline-flex; align-items: flex-start; cursor: pointer; position: relative; transition: transform 0.2s ease, opacity 0.2s ease; margin-top: -2px; 
+        }
+        .back-btn::after { content: ''; position: absolute; top: -10px; right: -15px; bottom: -10px; left: -15px; }
+        .back-btn:active { opacity: 0.6; transform: translateX(-4px); }
+
+        .right-decor { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; }
+        .archive-en { writing-mode: vertical-rl; font-size: 8px; letter-spacing: 2.5px; color: var(--color-text-muted); font-weight: 500; opacity: 0.75; text-transform: uppercase; line-height: 1; margin: 0; padding-top: 1px; }
+        .decor-line { width: 1px; height: 65px; margin: 0; background: linear-gradient(180deg, rgba(var(--icon-bg-4-rgb), 0.6) 0%, rgba(var(--icon-bg-4-rgb), 0) 100%); }
+        .archive-cn { writing-mode: vertical-rl; font-size: 24px; font-weight: 800; letter-spacing: 12px; line-height: 1; margin: 0; color: transparent; background: linear-gradient(180deg, var(--icon-bg-4) 0%, rgba(var(--icon-bg-4-rgb), 0.15) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* 档案袋容器 */
+        .folders-container { position: relative; flex: 1; width: 100%; }
+        .folder { position: absolute; bottom: 0; width: 100%; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; }
+        .folder.active { transform: translateY(-25px); }
+        .folder-body { width: 100%; height: calc(100% + 50px); border-radius: 0; box-shadow: 0 -2px 6px rgba(0,0,0,0.12), 0 -8px 24px rgba(0,0,0,0.08); position: relative; }
+
+        .f1 { height: 56vh; z-index: 1; } .f1 .folder-body { background-color: var(--icon-bg-4); } .f1 .tab-wrapper { left: 0; width: 115px; } .f1 .tab-bg { background-color: var(--icon-bg-4); clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%); } .f1 .tab-text { padding-right: 6px; }
+        .f2 { height: 44vh; z-index: 2; } .f2 .folder-body { background-color: var(--icon-bg-1); } .f2 .tab-wrapper { right: 0; left: auto; width: 115px; } .f2 .tab-bg { background-color: var(--icon-bg-1); clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%); } .f2 .tab-text { padding-left: 10px; }
+        .f3 { height: 32vh; z-index: 3; } .f3 .folder-body { background-color: var(--icon-bg-3); } .f3 .tab-wrapper { left: 0; width: 115px; } .f3 .tab-bg { background-color: var(--icon-bg-3); clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%); } .f3 .tab-text { padding-right: 6px; }
+        .f4 { height: 20vh; z-index: 4; } .f4 .folder-body { background-color: var(--icon-bg-2); } .f4 .tab-wrapper { right: 0; left: auto; width: 115px; } .f4 .tab-bg { background-color: var(--icon-bg-2); clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%); } .f4 .tab-text { padding-left: 10px; }
+        @media (max-height: 640px) { .f1 { height: 50vh; } .f2 { height: 40vh; } .f3 { height: 30vh; } .f4 { height: 20vh; } }
+
+        .tab-wrapper { position: absolute; top: -30px; height: 31px; filter: drop-shadow(0px -3px 5px rgba(0,0,0,0.15)); }
+        .tab-bg { position: absolute; inset: 0; border-radius: 0; }
+        .tab-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--color-tab-text); font-size: 10px; letter-spacing: 3px; font-weight: 400; padding-top: 3px; z-index: 2; }
+
+        /* 恢复：文件夹 4 (存儲設置) 底部的文字排版 */
+        .front-deco { position: absolute; top: 40px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; transform: rotate(-3.5deg); }
+        .front-hand { font-family: 'ZSFT-l', cursive; font-size: 50px; color: var(--color-text-main); margin: 0; line-height: 0.8; margin-top: 6px; margin-right: 40px; text-transform: uppercase; }
+        .front-sub { font-size: 8.5px; letter-spacing: 3px; color: var(--icon-bg-4); font-weight: 600; margin: 0; margin-top: 4px; margin-left: 60px; text-transform: uppercase; }
+
+        /* 弹出特效层 */
+        .paper-overlay { position: fixed; inset: 0; z-index: 100; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; backdrop-filter: blur(4px); perspective: 1200px; }
+        .paper-overlay.active { opacity: 1; visibility: visible; }
+
+        .paper-stack-container { width: 82%; max-width: 340px; aspect-ratio: 3.2 / 4.2; position: relative; transform: translateY(30px) scale(0.95) rotateX(-5deg); opacity: 0; transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s ease; transform-origin: center 80%; }
+        .paper-overlay.active .paper-stack-container { transform: translateY(0) scale(1) rotateX(0deg); opacity: 1; }
+
+        .paper-layer-bot { position: absolute; inset: 0; background-color: var(--paper-layer-bot); border-radius: 2px; transform: rotate(-1.5deg) translate(-2px, 8px); box-shadow: 0 12px 30px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03); z-index: 1; }
+        .paper-layer-mid { position: absolute; inset: 0; background-color: var(--paper-layer-mid); border-radius: 2px; transform: rotate(1deg) translate(3px, 4px); box-shadow: -2px 6px 15px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03); z-index: 2; }
+        .paper-main { position: absolute; inset: 0; background-color: var(--paper-layer-top); border-radius: 2px; z-index: 3; transform: rotate(-0.2deg) translate(0, 0); box-shadow: -1px 3px 10px rgba(0,0,0,0.05), inset 0 0 40px rgba(160, 150, 130, 0.04); border: 1px solid rgba(255,255,255,0.8); }
+
+        .paper-holes { position: absolute; left: 14px; top: 10%; bottom: 10%; display: flex; flex-direction: column; justify-content: space-between; z-index: 5; pointer-events: none; }
+        .hole { width: 12px; height: 12px; border-radius: 50%; background-color: var(--paper-layer-mid); box-shadow: inset 1px 2px 4px rgba(0,0,0,0.25), 0.5px 0.5px 0px rgba(255,255,255,1); }
+
+        .polaroid { background: #FCFBF8; padding: 0; border-radius: 1px; border: 1px solid rgba(0,0,0,0.03); position: relative; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.03), 0px 6px 12px rgba(0, 0, 0, 0.04), 0px 12px 24px rgba(0, 0, 0, 0.05); }
+        .polaroid-img-placeholder { width: 100%; box-shadow: inset 0 2px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s ease; }
+        .upload-icon { color: rgba(255, 255, 255, 0.5); font-size: 24px; font-weight: 300; pointer-events: none; transition: opacity 0.2s; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .upload-text { font-size: 8px; font-family: var(--font-main); color: rgba(255,255,255,0.4); letter-spacing: 1px; margin-top: 6px; }
+        .file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+        .loading-text { display: none; position: absolute; font-size: 10px; color: rgba(255,255,255,0.7); z-index: 2; letter-spacing: 1px; font-family: var(--font-main); }
+
+        /* -------------------------------------
+           API 设置专属 - 整体纸张滑动 
+        -------------------------------------- */
+        .api-wrapper { position: absolute; inset: 0; z-index: 10; display: none; }
+
+        /* 视口保持 visible，多余纸片由 JS 自动淡化自然消失 */
+        .api-slider-viewport { position: absolute; inset: 0; overflow: visible; touch-action: pan-y; }
+        .api-slider-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1); column-gap: 16px; transform-origin: center center; }
+        
+        .api-page {
+            flex: 0 0 100%; width: 100%; height: 100%; position: relative; background-color: var(--paper-layer-top); border-radius: 2px;
+            box-shadow: -1px 3px 10px rgba(0,0,0,0.05), inset 0 0 40px rgba(160, 150, 130, 0.04); border: 1px solid rgba(255,255,255,0.8);
+            box-sizing: border-box; opacity: 0; 
+        }
+
+        .api-polaroid-container { position: absolute; top: 14px; left: 28px; width: 135px; transform: rotate(0.5deg); z-index: 5;}
+        .api-polaroid-container .polaroid { padding: 8px 8px 28px 8px; }
+        .api-polaroid-container .polaroid-img-placeholder { aspect-ratio: 1 / 1; background-color: #8A9CA8; }
+        .api-polaroid-container .polaroid-img-placeholder:hover { background-color: #798B97; }
+        .api-polaroid-input-main { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-family: "ZSFT-br", sans-serif; font-size: 13px; color: #6b6256; line-height: 1; font-weight: 400; letter-spacing: 1px; border: none !important; background: transparent !important; outline: none !important; box-shadow: none !important; padding: 0 8px; margin: 0; width: 100%; box-sizing: border-box; -webkit-appearance: none; }
+        .api-polaroid-input-main::placeholder { color: rgba(107, 98, 86, 0.6); font-weight: 400; }
+        .api-model-input { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-family: "ZSFT-br", sans-serif; font-size: 8px; color: rgba(140, 131, 117, 0.8); border: none; background: transparent; outline: none; padding: 0 8px; margin: 0; width: 100%; box-sizing: border-box; letter-spacing: 0.5px; }
+        .api-model-input::placeholder { color: rgba(140, 131, 117, 0.4); }
+
+        .api-paperclip { position: absolute; top: -16px; left: 44px; width: 24px; height: 70px; z-index: 12; transform: rotate(1deg); filter: drop-shadow(1.5px 3px 2px rgba(0,0,0,0.3)); pointer-events: none; }
+
+        .api-typography { position: absolute; top: 22px; right: 24px; width: 120px; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+        .api-typo-title { font-family: "ZSFT-br", sans-serif; font-size: 20px; line-height: 1.05; color: #6b6256; letter-spacing: 0.5px; font-weight: normal; margin-bottom: 0px; text-transform: uppercase; }
+        .api-typo-greeting { font-family: "ZSFT-br", sans-serif; font-size: 15px; color: #8fa6b5; margin-top: -2px; font-style: italic; }
+
+        /* 跟随纸片移动的 Counter */
+        .api-custom-counter { position: absolute; top: 86px; right: 36px; width: 65px; height: 90px; z-index: 12; pointer-events: none; }
+        .acc-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+        .acc-num-top { position: absolute; top: 7px; left: 0px; font-family: "ZSFT-l", sans-serif; font-size: 38px; color: #3b352f; line-height: 1; font-weight: 300; letter-spacing: -3.5px; transform: scale(0.65, 1.25); transform-origin: left top; }
+        .apiBtnAdd, .apiBtnDel { pointer-events: auto; cursor: pointer; transition: opacity 0.2s; position: absolute; left: 0px; font-family: "ZSFT-br", sans-serif; font-size: 9px; color: #9e917d; font-weight: 600; letter-spacing: 0.5px; line-height: 1; }
+        .apiBtnAdd { top: 38px; } .apiBtnDel { top: 78px; left: 10px; }
+        .apiBtnAdd:active, .apiBtnDel:active { opacity: 0.6; }
+        .apiBtnDel.disabled { color: #d3ccc3; pointer-events: none; }
+        .acc-num-bot { position: absolute; top: 56px; left: 32px; font-family: "ZSFT-l", sans-serif; font-size: 38px; color: #3b352f; line-height: 1; font-weight: 300; letter-spacing: -3.5px; transform: scale(0.65, 1.25); transform-origin: left top; }
+
+        .api-postcard-form { position: absolute; top: 185px; left: 32px; right: 24px; display: flex; flex-direction: column; gap: 16px; }
+        .api-field-row { display: flex; align-items: flex-end; position: relative; height: 22px; border-bottom: 1px solid rgba(140, 131, 117, 0.4); padding-bottom: 2px; transition: border-bottom-color 0.2s ease; }
+        .api-field-row:focus-within { border-bottom-color: rgba(140, 131, 117, 0.9); }
+        .api-field-label { font-family: "ZSFT-br", sans-serif; font-size: 13px; color: #8c8376; letter-spacing: 1px; width: 36px; margin-right: 4px; text-transform: uppercase; line-height: 1; padding-bottom: 0; }
+        .api-field-input { flex: 1; border: none; background: transparent; font-family: "ZSFT-br", sans-serif; font-size: 12px; color: #6b6256; padding: 0; outline: none; line-height: 1; transform: translateY(1px); }
+        .api-field-input::placeholder { color: rgba(140, 131, 117, 0.45); font-family: "ZSFT-br", sans-serif; font-size: 10px; letter-spacing: 0.5px; }
+
+        .fish-slider-container { position: absolute; left: 40px; right: 0; bottom: -10px; height: 20px; }
+        .fish-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 100%; background: transparent; position: absolute; z-index: 5; opacity: 0; cursor: pointer; margin: 0; }
+        .fish-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; }
+        .fish-thumb-wrapper { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); pointer-events: none; z-index: 2; display: flex; flex-direction: column; align-items: center; transition: left 0.15s ease-out; }
+        .fish-value { font-family: "ZSFT-br", sans-serif; font-size: 9px; color: #8c8376; margin-bottom: 0px; letter-spacing: 0.5px; white-space: nowrap; }
+        .fish-svg { transform: scale(0.9) scaleX(-1); transition: transform 0.3s ease; }
+        .fish-svg path, .fish-svg circle { stroke: #8c8376; } .fish-svg circle { fill: #8c8376; }
+
+        .api-actions { position: absolute; top: auto; bottom: calc(10% - 6px); left: 32px; right: 24px; display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+        .action-btn { display: inline-flex; align-items: center; padding: 4px 0px; background: transparent; border: none; cursor: pointer; transition: opacity 0.2s ease, transform 0.2s ease; position: relative; -webkit-tap-highlight-color: transparent; }
+        .action-btn:hover { opacity: 0.7; }
+        .action-btn:active { transform: scale(0.95); }
+        .btn-text { font-family: "ZSFT-br", sans-serif; font-size: 11px; color: #8c8376; letter-spacing: 1px; font-weight: 600; position: relative; text-transform: uppercase; }
+        .btn-text::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1px; background-color: rgba(140, 131, 117, 0.5); border-radius: 1px; }
+
+        /* -------------------------------------
+           壁纸设置专属
+        -------------------------------------- */
+        .wallpaper-wrapper { position: absolute; inset: 0; z-index: 10; display: none; }
+        .wp-layout { position: absolute; top: 25px; left: 55px; width: 135px; z-index: 5; }
+        .wp-backing-wrapper { position: absolute; top: -15px; left: -20px; width: 240px; height: 215px; filter: drop-shadow(1px 3px 6px rgba(0,0,0,0.08)); z-index: 0; }
+        .wp-backing { width: 100%; height: 100%; background-color: #E2DACF; clip-path: polygon(1% 4%, 6% 1%, 14% 3%, 22% 1%, 32% 4%, 45% 1%, 55% 3%, 68% 0%, 80% 4%, 92% 1%, 99% 5%, 98% 18%, 100% 30%, 97% 42%, 99% 55%, 98% 68%, 100% 80%, 98% 92%, 97% 99%, 85% 97%, 72% 100%, 60% 98%, 48% 100%, 35% 97%, 22% 100%, 10% 98%, 1% 99%, 2% 85%, 0% 72%, 3% 60%, 1% 48%, 2% 35%, 0% 22%, 3% 10%); }
+        .wp-photo-container { position: relative; z-index: 1; width: 100%; transform: rotate(-1.5deg); }
+        .wp-photo-container .polaroid { padding: 6px; border-radius: 0; }
+        .wp-photo-container .polaroid-img-placeholder { aspect-ratio: 4 / 5; background-color: #8A9CA8; }
+        .wp-photo-container .polaroid-img-placeholder:hover { background-color: #798B97; }
+        .wp-tape { position: absolute; top: -6px; left: 12px; width: 70px; height: 16px; background-color: rgba(235, 235, 232, 0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.06); transform: rotate(-3deg); z-index: 5; clip-path: polygon(2% 0, 98% 1%, 100% 99%, 0 98%); }
+        .wp-typography { position: absolute; top: 250px; left: -15px; width: 160px; z-index: 6; pointer-events: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .wp-typo-title { font-family: var(--font-main); font-size: 26px; font-weight: 800; color: #6b6256; letter-spacing: 5px; line-height: 1; margin-bottom: 0; text-shadow: 0.5px 0.5px 0px rgba(255,255,255,0.8); }
+        .wp-typo-divider { width: 70px; height: 1px; background-color: rgba(140, 131, 117, 0.4); margin-bottom: 0; border-radius: 1px; }
+        .wp-typo-subtitle { font-family: "ZSFT-br", sans-serif; font-size: 8px; letter-spacing: 1.5px; color: #8c8376; line-height: 1.5; text-transform: uppercase; font-weight: 500; }
+        .wp-typo-vertical { position: absolute; top: 175px; height: 160px; right: -80px; display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 4px; z-index: 5; pointer-events: none; }
+        .wp-typo-vertical span { writing-mode: vertical-rl; font-family: "ZSFT-br", sans-serif; font-size: 6px; letter-spacing: 2px; color: rgba(140, 131, 117, 0.6); text-transform: uppercase; font-weight: 600; }
+        .wp-flower-container { position: absolute; top: 175px; right: -80px; width: 80px; height: 160px; z-index: 4; transform: rotate(3deg); pointer-events: none; }
+        .wp-flower-tape { position: absolute; top: 100px; left: 27px; width: 24px; height: 12px; background-color: #edece4; box-shadow: 1px 2px 4px rgba(0,0,0,0.12); transform: rotate(-10deg); z-index: 5; border-radius: 1px; border: 1px solid rgba(0,0,0,0.03); pointer-events: none; }
+        .wp-flower-svg { width: 100%; height: 100%; filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.08)); }
+        .clickable-flora { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; transform-origin: var(--origin-x) var(--origin-y); transform-box: view-box; }
+        .clickable-flora.wobble { animation: floraWobble 1.2s ease-in-out forwards; }
+        @keyframes floraWobble { 0% { transform: rotate(0deg); } 15% { transform: rotate(-5deg); } 35% { transform: rotate(3deg); } 55% { transform: rotate(-1.5deg); } 75% { transform: rotate(0.5deg); } 100% { transform: rotate(0deg); } }
+        .wp-note-card { position: absolute; top: 55px; right: -45px; width: 100px; height: 110px; background-color: #F8F8F8; background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 12px 12px; box-shadow: 2px 4px 12px rgba(0,0,0,0.15); transform: rotate(6deg); z-index: 2; padding: 20px 8px 8px 10px; box-sizing: border-box; }
+        .wp-note-text { font-family: "ZSFT-br", sans-serif; font-size: 7px; line-height: 1.5; color: #444; text-align: left; letter-spacing: 0px; font-weight: 300; opacity: 0.7; }
+        .wp-note-clip { position: absolute; top: -14px; left: 14px; width: 16px; height: 50px; z-index: 5; filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.2)); }
+        .video-play-btn { position: absolute; z-index: 10; background-color: rgba(117, 144, 163, 0.9); color: #ffffff; padding: 6px 12px; border-radius: 2px; font-size: 10px; font-family: var(--font-main); letter-spacing: 1px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+
+        /* -------------------------------------
+           语音设置专属 - 唱片套 + 票根
+        -------------------------------------- */
+        .voice-wrapper { position: absolute; inset: 0; z-index: 10; display: none; }
+        .vc-viewport { position: absolute; inset: 0; touch-action: pan-y; }
+        .vc-page { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.35s ease, transform 0.35s ease; transform: translateX(14px); }
+        .vc-page.current { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .vc-page.left { transform: translateX(-14px); }
+
+        /* 黑胶 */
+        .vc-record { position: absolute; top: 30px; left: 92px; width: 118px; height: 118px; border-radius: 50%; z-index: 4;
+            background: radial-gradient(circle, transparent 0 21px, rgba(255,255,255,0.05) 22px, transparent 23px),
+                        repeating-radial-gradient(circle, #3f5262 0 1.6px, #4a5f70 1.6px 3.2px);
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.18);
+            transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); }
+        .vc-record-inner { position: absolute; inset: 0; border-radius: 50%; }
+        .vc-record-inner::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 35%, transparent 65%, rgba(255,255,255,0.06) 100%); }
+        .vc-ring-text { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .vc-ring-text text { font-family: "ZSFT-br", sans-serif; font-size: 6.5px; letter-spacing: 1.6px; fill: rgba(241,239,233,0.75); text-transform: uppercase; }
+        .vc-label { position: absolute; top: 50%; left: 50%; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; background: #8fa6b5; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px rgba(0,0,0,0.06); }
+        .vc-label::after { content: ''; position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #2f3d48; }
+        .vc-label-model { font-family: "ZSFT-br", sans-serif; font-size: 5.5px; letter-spacing: 0.6px; color: rgba(245,242,236,0.9); margin-top: 14px; max-width: 36px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; }
+        .vc-page.playing .vc-record { transform: translateX(22px); }
+        .vc-page.playing .vc-record-inner { animation: vcSpin 1.8s linear infinite; }
+        @keyframes vcSpin { to { transform: rotate(360deg); } }
+
+        /* 唱片套 */
+        .vc-sleeve { position: absolute; top: 22px; left: 30px; width: 128px; height: 132px; z-index: 5; background-color: #EBE7DE;
+            box-shadow: 1px 3px 8px rgba(0,0,0,0.10), inset 0 0 30px rgba(160,150,130,0.08); border: 1px solid rgba(255,255,255,0.7); transform: rotate(-1.2deg);
+            clip-path: polygon(0 0, 100% 0, 100% 44%, 92% 44%, 92% 58%, 100% 58%, 100% 100%, 0 100%); }
+        .vc-sleeve-side { position: absolute; top: 10px; left: 10px; font-family: "ZSFT-br", sans-serif; font-size: 6.5px; letter-spacing: 2px; color: rgba(140,131,117,0.7); text-transform: uppercase; }
+        .vc-sleeve-birds { position: absolute; top: 26px; left: 14px; width: 26px; height: 14px; }
+        .vc-note-input { position: absolute; left: 10px; right: 16px; bottom: 30px; border: none; background: transparent; outline: none; padding: 0; font-family: var(--font-main); font-size: 15px; color: #6b6256; letter-spacing: 1px; }
+        .vc-note-input::placeholder { color: rgba(107,98,86,0.35); }
+        .vc-sleeve-line { position: absolute; left: 10px; right: 16px; bottom: 28px; height: 1px; background: rgba(140,131,117,0.35); }
+        .vc-sleeve-arrow { position: absolute; right: 18px; top: 40px; width: 26px; height: 14px; }
+        .vc-sleeve-bar { position: absolute; left: 10px; right: 16px; bottom: 9px; height: 15px; border-radius: 8px; background: #5a7082; display: flex; align-items: center; padding: 0 7px 0 3px; gap: 5px; box-sizing: border-box; opacity: 0.9; }
+        .vc-bar-icon { width: 10px; height: 10px; border-radius: 50%; background: #F5F2EC; flex: none; display: flex; align-items: center; justify-content: center; }
+        .vc-bar-icon::after { content: ''; border-left: 3.5px solid #5a7082; border-top: 2.2px solid transparent; border-bottom: 2.2px solid transparent; margin-left: 1px; }
+        .vc-bar-wave { flex: 1; height: 9px; display: flex; align-items: center; justify-content: space-between; }
+        .vc-bar-wave i { display: block; width: 1.2px; border-radius: 1px; background: rgba(245,242,236,0.9); }
+        .vc-page.playing .vc-bar-wave i { animation: vcWave 0.9s ease-in-out infinite alternate; }
+        @keyframes vcWave { from { transform: scaleY(0.4); } to { transform: scaleY(1); } }
+
+        /* 页码计数器（沿用字体页） */
+        .vc-counter { position: absolute; top: 12px; right: 14px; width: 65px; height: 90px; z-index: 12; pointer-events: none; }
+
+        /* 票根 */
+        .vc-ticket { position: absolute; top: 166px; left: 30px; right: 20px; height: 196px; z-index: 6; background-color: #FCFBF8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03), 0 6px 14px rgba(0,0,0,0.05); transform: rotate(0.6deg);
+            -webkit-mask: radial-gradient(circle 6px at 0 144px, transparent 98%, #000) , radial-gradient(circle 6px at 100% 144px, transparent 98%, #000);
+            -webkit-mask-composite: source-in; mask-composite: intersect; }
+        .vc-ticket-frame { position: absolute; inset: 6px 6px 58px 6px; border: 1px solid rgba(117,144,163,0.55); }
+        .vc-ticket-title { position: absolute; top: 12px; left: 14px; font-family: "ZSFT-br", sans-serif; font-size: 7px; letter-spacing: 2.5px; color: #7590a3; text-transform: uppercase; }
+        .vc-ticket-no { position: absolute; top: 10px; right: 14px; font-family: "ZSFT-l", sans-serif; font-size: 13px; color: #5a7082; }
+        .vc-form { position: absolute; top: 28px; left: 14px; right: 14px; display: flex; flex-direction: column; gap: 7px; }
+        .vc-form .api-field-row { height: 16px; }
+        .vc-form .api-field-label { font-size: 9px; width: 44px; }
+        .vc-form .api-field-input { font-size: 10px; min-width: 0; }
+        .vc-perf { position: absolute; left: 10px; right: 10px; top: 144px; border-top: 2px dotted rgba(140,131,117,0.45); }
+        .vc-stub { position: absolute; left: 14px; right: 14px; bottom: 10px; height: 36px; display: flex; align-items: center; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .vc-stub:active { opacity: 0.7; }
+        .vc-barcode { flex: 1; height: 26px; background: repeating-linear-gradient(90deg, #4f6475 0 1px, transparent 1px 3px, #4f6475 3px 5px, transparent 5px 6px, #4f6475 6px 7px, transparent 7px 10px); opacity: 0.8; }
+        .vc-play { font-family: "ZSFT-br", sans-serif; font-size: 8px; letter-spacing: 2px; color: #6b6256; text-transform: uppercase; white-space: nowrap; }
+        .vc-play b { display: block; font-family: var(--font-main); font-weight: normal; font-size: 10px; letter-spacing: 3px; margin-top: 2px; }
+        .vc-page.playing .vc-play { color: #5a7082; }
+
+        /* Toast 提示框样式 */
+        .toast-message {
+            position: fixed; bottom: -50px; left: 50%; transform: translateX(-50%);
+            background-color: var(--icon-bg-4); color: #f1efe9; padding: 10px 20px;
+            border-radius: 4px; font-family: var(--font-main); font-size: 12px;
+            letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: bottom 0.3s ease, opacity 0.3s ease; opacity: 0;
+            z-index: 1000; pointer-events: none;
+        }
+        .toast-message.show { bottom: 40px; opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 顶部 Header -->
+    <div class="settings-header">
+        <div class="back-btn" id="headerBackBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 4L2 12L10 20" stroke="var(--icon-bg-4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="12" r="1.4" fill="var(--icon-bg-4)"/>
+                <path d="M18 8.5L13.5 12L18 15.5" stroke="var(--icon-bg-4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="right-decor">
+            <div class="archive-en">ARCHIVES</div>
+            <div class="decor-line"></div>
+            <div class="archive-cn">檔案館</div>
+        </div>
+    </div>
+
+    <!-- 档案袋 -->
+    <div class="folders-container">
+        <div class="folder f1" id="folderApiSettings">
+            <div class="tab-wrapper"><div class="tab-bg"></div><div class="tab-text">字體設置</div></div>
+            <div class="folder-body"></div>
+        </div>
+        <div class="folder f2" id="folderWallpaperSettings">
+            <div class="tab-wrapper"><div class="tab-bg"></div><div class="tab-text">壁紙設置</div></div>
+            <div class="folder-body"></div>
+        </div>
+        <div class="folder f3" id="folderVoiceSettings">
+            <div class="tab-wrapper"><div class="tab-bg"></div><div class="tab-text">語音設置</div></div>
+            <div class="folder-body"></div>
+        </div>
+        <div class="folder f4" id="folderStorageSettings">
+            <div class="tab-wrapper"><div class="tab-bg"></div><div class="tab-text">存儲設置</div></div>
+            <div class="folder-body">
+                <!-- 恢复原有的字体排版装饰 -->
+                <div class="front-deco">
+                    <div class="front-hand">ARCHIVE</div>
+                    <div class="front-sub">SYSTEM PREFERENCES</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹出纸片特效 -->
+    <div id="paperOverlay" class="paper-overlay">
+        <div class="paper-stack-container">
+            <div class="paper-layer-bot"></div>
+            <div class="paper-layer-mid"></div>
+            <div class="paper-main">
+                
+                <!-- 侧边打孔 (基础底纹) -->
+                <div class="paper-holes">
+                    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+                </div>
+                
+                <!-- ============================ -->
+                <!-- API 设置区 (物理滑动多页) -->
+                <!-- ============================ -->
+                <div id="apiWrapper" class="api-wrapper">
+                    <!-- 视口设为 visible，完全取消强制裁切 -->
+                    <div class="api-slider-viewport" id="apiSliderViewport">
+                        <div class="api-slider-track" id="apiSliderTrack">
+                            <!-- 动态加载页面 -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ============================ -->
+                <!-- 语音设置区 (唱片套 + 票根) -->
+                <!-- ============================ -->
+                <div id="voiceWrapper" class="voice-wrapper">
+                    <div class="vc-viewport" id="vcViewport"></div>
+                    <div class="vc-counter api-custom-counter">
+                        <svg class="acc-svg" viewBox="0 0 65 90"><path d="M 23 42 L 52 42 L 11 76 L 30 76" fill="none" stroke="#6b6256" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        <div class="acc-num-top" id="vcTotal">001</div>
+                        <div class="apiBtnAdd" id="vcAdd">ADD</div>
+                        <div class="apiBtnDel" id="vcDel">DEL</div>
+                        <div class="acc-num-bot" id="vcCurrent">01</div>
+                    </div>
+                </div>
+                <!-- ============================ -->
+                <!-- 壁纸设置区 -->
+                <!-- ============================ -->
+                <div id="wallpaperWrapper" class="wallpaper-wrapper">
+                    <div class="wp-layout">
+                        <div class="wp-backing-wrapper"><div class="wp-backing"></div></div>
+                        <div class="wp-photo-container">
+                            <div class="wp-tape"></div>
+                            <div class="polaroid">
+                                <div class="polaroid-img-placeholder" id="mediaContainer_wp">
+                                    <span class="upload-icon" id="uploadIcon_wp">+<span class="upload-text">點擊上傳</span></span>
+                                    <div class="loading-text" id="loadingText_wp">載入中...</div>
+                                    <input type="file" class="file-input" id="mediaUpload_wp" accept="image/*, video/*" data-key="wp">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wp-typography">
+                            <div class="wp-typo-title">壁紙選集</div>
+                            <div class="wp-typo-divider"></div>
+                            <div class="wp-typo-subtitle">Collected & Preserved<br>For Our Little Corner</div>
+                        </div>
+                        <div class="wp-typo-vertical">
+                            <span>COLLECTION</span><span>DETAIL</span>
+                        </div>
+                        <div class="wp-flower-container">
+                            <div class="wp-flower-tape"></div>
+                            <svg class="wp-flower-svg" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M 40,45 Q 45,90 37,125 T 35,160" fill="none" stroke="#4a3e36" stroke-width="1.2" stroke-linecap="round"/>
+                                <g class="clickable-flora" style="--origin-x: 41.5px; --origin-y: 95px;"><path d="M 41.5,95 C 47,92 52,85 54,80 C 49,85 43.5,88 41.5,95" fill="#5c6352" /></g>
+                                <g class="clickable-flora" style="--origin-x: 36.5px; --origin-y: 130px;"><path d="M 36.5,130 C 30,128 25,122 22,118 C 26,122 32,124 36.5,130" fill="#5c6352" /></g>
+                                <g class="clickable-flora" style="--origin-x: 40px; --origin-y: 45px;"><path d="M 40,45 C 22,32 25,15 40,16 C 55,17 58,32 40,45" fill="rgba(102, 144, 204, 0.85)" transform="rotate(-45 40 45)"/></g>
+                                <g class="clickable-flora" style="--origin-x: 40px; --origin-y: 45px;"><path d="M 40,45 C 20,33 28,14 41,15 C 54,16 60,33 40,45" fill="rgba(88, 131, 191, 0.85)" transform="rotate(45 40 45)"/></g>
+                                <g class="clickable-flora" style="--origin-x: 40px; --origin-y: 45px;"><path d="M 40,45 C 23,30 24,17 39,18 C 56,19 57,31 40,45" fill="rgba(94, 137, 197, 0.8)" transform="rotate(135 40 45)"/></g>
+                                <g class="clickable-flora" style="--origin-x: 40px; --origin-y: 45px;"><path d="M 40,45 C 21,34 29,16 42,17 C 53,18 59,34 40,45" fill="rgba(112, 154, 214, 0.85)" transform="rotate(225 40 45)"/></g>
+                                <circle cx="40" cy="45" r="3" fill="#242b47" opacity="0.95"/>
+                                <circle cx="40" cy="45" r="1.5" fill="#35406b" />
+                            </svg>
+                        </div>
+                        <div class="wp-note-card">
+                            <svg class="wp-note-clip" viewBox="0 0 24 60" xmlns="http://www.w3.org/2000/svg"><path d="M 8,14 L 8,6 A 4,4 0 0,1 16,6 L 16,42 A 3,3 0 0,1 10,42 L 10,20" stroke="#8ba5b8" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                            <div class="wp-note-text">Species: Crab &amp; Fish<br>Habitat: The Drain<br>Status: Together<br>Notes: Stay close,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stay warm.</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存失败的 Toast 提示 -->
+    <div id="toast" class="toast-message"></div>
+
+    <script>
+        /* ===== 全局函数及预留接口 ===== */
+        window.goBack = () => { history.back(); };
+        window.pullModels = () => { console.log('待接入:拉取模型列表'); };
+        window.testConnection = () => { console.log('待接入:测试API连接'); };
+
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            if(!toast) return;
+            // 修复 Bug 4：加入清除旧 timer
+            if (toastTimer) clearTimeout(toastTimer);
+            toast.textContent = message;
+            toast.classList.add('show');
+            toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        /* ===== IndexedDB 存储 ===== */
+        const DB_NAME = 'LauncherDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'mediaStore';
+        let db;
+
+        const MEDIA_KEYS = ['wp'];
+
+        function initDB() {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = function(event) {
+                db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+            };
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                MEDIA_KEYS.forEach(key => loadSavedMedia(key));
+                initApiCarousel(); 
+            };
+            request.onerror = function(event) { showToast('資料庫初始化失敗'); };
+        }
+
+        function saveMediaFile(file, key) {
+            if (!db) return;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            transaction.onerror = function(event) { showToast('檔案保存失敗，請重試'); };
+            transaction.objectStore(STORE_NAME).put(file, `savedMediaFile_${key}`);
+        }
+
+        function loadSavedMedia(key) {
+            if (!db) return;
+            const icon = document.getElementById(`uploadIcon_${key}`);
+            const loadingText = document.getElementById(`loadingText_${key}`);
+            if (icon) icon.style.display = 'none';
+            if (loadingText) loadingText.style.display = 'block';
+
+            const request = db.transaction([STORE_NAME], 'readonly').objectStore(STORE_NAME).get(`savedMediaFile_${key}`);
+            request.onsuccess = function(event) {
+                const file = event.target.result;
+                if (file) renderMedia(file, key); 
+                else {
+                    if (icon) icon.style.display = 'flex';
+                    if (loadingText) loadingText.style.display = 'none';
+                }
+            };
+            request.onerror = function() {
+                if (icon) icon.style.display = 'flex';
+                if (loadingText) loadingText.style.display = 'none';
+                showToast('讀取媒體失敗');
+            }
+        }
+
+        function renderMedia(file, key) {
+            const container = document.getElementById(`mediaContainer_${key}`);
+            const icon = document.getElementById(`uploadIcon_${key}`);
+            const loadingText = document.getElementById(`loadingText_${key}`);
+            
+            if (!container) return;
+            if (icon) icon.style.display = 'none';
+            if (loadingText) loadingText.style.display = 'none'; 
+            
+            const oldMedia = container.querySelector('.uploaded-media');
+            if (oldMedia) {
+                if (oldMedia.src && oldMedia.src.startsWith('blob:')) URL.revokeObjectURL(oldMedia.src);
+                oldMedia.remove();
+            }
+
+            const fileURL = URL.createObjectURL(file);
+            
+            if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = fileURL; video.className = 'uploaded-media';
+                video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true; 
+                video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover';
+                video.style.position = 'absolute'; video.style.inset = '0'; video.style.zIndex = '1';
+                container.appendChild(video);
+                
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        const playBtn = document.createElement('div');
+                        playBtn.className = 'video-play-btn';
+                        playBtn.innerText = '點擊播放';
+                        container.appendChild(playBtn);
+                        playBtn.addEventListener('click', (e) => {
+                            e.preventDefault(); e.stopPropagation(); video.play(); playBtn.remove();
+                        });
+                    });
+                }
+            } 
+            else if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = fileURL; img.className = 'uploaded-media';
+                img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
+                img.style.position = 'absolute'; img.style.inset = '0'; img.style.zIndex = '1';
+                container.appendChild(img);
+            }
+        }
+
+        initDB();
+
+        /* ===== 主题设置 ===== */
+        (function initSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('launcher_settings'));
+                if (saved && saved.cssVars) {
+                    for (const [key, value] of Object.entries(saved.cssVars)) {
+                        document.documentElement.style.setProperty(key, value);
+                    }
+                }
+            } catch (e) {}
+        })();
+
+        /* ===== 文件夹动画交互 ===== */
+        let currentActive = null;
+        function toggleFolder(id) {
+            const folders = document.querySelectorAll('.folder');
+            const overlay = document.getElementById('paperOverlay');
+            const apiWrapper = document.getElementById('apiWrapper');
+            const wallpaperWrapper = document.getElementById('wallpaperWrapper');
+            const voiceWrapper = document.getElementById('voiceWrapper');
+            
+            if (currentActive === id) {
+                folders[id-1].classList.remove('active');
+                currentActive = null;
+                overlay.classList.remove('active');
+            } else {
+                folders.forEach(f => f.classList.remove('active'));
+                folders[id-1].classList.add('active');
+                currentActive = id;
+                overlay.classList.add('active');
+                
+                apiWrapper.style.display = id === 1 ? 'block' : 'none';
+                wallpaperWrapper.style.display = id === 2 ? 'block' : 'none';
+                voiceWrapper.style.display = id === 3 ? 'block' : 'none';
+
+                // 修复 Bug 3：仅播放当前的媒体视频，不后台滥跑
+                const activeWrapper = id === 1 ? apiWrapper : (id === 2 ? wallpaperWrapper : null);
+                if (activeWrapper) {
+                    if (id === 1) {
+                        const track = document.getElementById('apiSliderTrack');
+                        if (track && track.children[currentApiIndex]) {
+                            track.children[currentApiIndex].querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+                        }
+                    } else {
+                        activeWrapper.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+                    }
+                }
+            }
+            if (navigator.vibrate) navigator.vibrate(10); 
+        }
+
+        function closePaper() {
+            if (currentActive !== null) {
+                const folders = document.querySelectorAll('.folder');
+                const overlay = document.getElementById('paperOverlay');
+                folders[currentActive - 1].classList.remove('active');
+                currentActive = null;
+                overlay.classList.remove('active');
+                document.querySelectorAll('.uploaded-media').forEach(el => {
+                    if (el.tagName === 'VIDEO') el.pause();
+                });
+                if (navigator.vibrate) navigator.vibrate(10); 
+            }
+        }
+
+        /* ===== 多页 API 逻辑 (自然延迟消失算法) ===== */
+        let apiPageCount = 0;
+        let currentApiIndex = 0;
+        let activeApiId = 1;
+        let globalPageIdCounter = 1;
+
+        function initApiCarousel() {
+            const track = document.getElementById('apiSliderTrack');
+            
+            addApiPage(true); 
+            updateCarouselUI();
+            
+            let startX = 0, currentX = 0, isDragging = false;
+            const viewport = document.getElementById('apiSliderViewport');
+            
+            function onDragStart(clientX) {
+                startX = clientX;
+                isDragging = true;
+                track.style.transition = 'none';
+                Array.from(track.children).forEach(p => p.style.transition = 'none');
+            }
+            
+            function onDragMove(clientX) {
+                if (!isDragging) return;
+                currentX = clientX;
+                let diff = currentX - startX;
+                
+                if (currentApiIndex === 0 && diff > 0) diff *= 0.4;
+                if (currentApiIndex === apiPageCount - 1 && diff < 0) diff *= 0.4;
+                
+                const rotate = diff * 0.012; 
+                track.style.transform = `translateX(calc(-${currentApiIndex * 100}% - ${currentApiIndex * 16}px + ${diff}px)) rotateZ(${rotate}deg)`;
+
+                const vw = viewport.clientWidth || 340;
+                let dragRatio = diff / vw;
+                
+                // 【深度优化消失算法】: 保持实体直到滑出 75%，然后才平滑褪色
+                Array.from(track.children).forEach((page, index) => {
+                    const dist = index - currentApiIndex;
+                    let slideProgress = Math.abs(dist + dragRatio);
+                    
+                    let op = 1;
+                    if (slideProgress > 0.75) {
+                        op = 1 - ((slideProgress - 0.75) * 4); // 最后 25% 距离快速淡化消失
+                    }
+                    page.style.opacity = Math.max(0, Math.min(1, op));
+                });
+            }
+            
+            function onDragEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                let diff = currentX - startX;
+                
+                if (diff < -40 && currentApiIndex < apiPageCount - 1) currentApiIndex++;
+                else if (diff > 40 && currentApiIndex > 0) currentApiIndex--;
+                
+                updateCarouselUI();
+                startX = currentX = 0; 
+            }
+
+            viewport.addEventListener('touchstart', e => {
+                if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('.apiBtnAdd') || e.target.closest('.apiBtnDel') || e.target.closest('.btnPullModel') || e.target.closest('.btnTestModel')) return;
+                onDragStart(e.touches[0].clientX);
+            });
+            viewport.addEventListener('touchmove', e => onDragMove(e.touches[0].clientX));
+            viewport.addEventListener('touchend', onDragEnd);
+
+            viewport.addEventListener('mousedown', e => {
+                if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('.apiBtnAdd') || e.target.closest('.apiBtnDel') || e.target.closest('.btnPullModel') || e.target.closest('.btnTestModel')) return;
+                onDragStart(e.clientX);
+            });
+            window.addEventListener('mousemove', e => onDragMove(e.clientX));
+            window.addEventListener('mouseup', () => { if (isDragging) onDragEnd(); });
+        }
+
+        function addApiPage(isFirst = false) {
+            const id = globalPageIdCounter++;
+            apiPageCount++;
+            if (isFirst) activeApiId = id;
+            
+            
+            const pageHTML = `
+                <div class="paper-holes">
+                    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+                </div>
+
+                <svg class="api-paperclip" viewBox="0 0 24 70" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 16,14 L 16,6 A 4,4 0 0,0 8,6 L 8,50 A 3.5,3.5 0 0,0 15,50 L 15,22 A 2,2 0 0,0 11,22 L 11,40" stroke="#8ba5b8" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
+                <div class="api-polaroid-container">
+                    <div class="polaroid">
+                        <div class="polaroid-img-placeholder" id="mediaContainer_api_${id}">
+                            <span class="upload-icon" id="uploadIcon_api_${id}">+<span class="upload-text">點擊上傳</span></span>
+                            <div class="loading-text" id="loadingText_api_${id}">載入中...</div>
+                            <input type="file" class="file-input" accept="image/*, video/*" data-key="api_${id}">
+                        </div>
+                        <input type="text" class="api-polaroid-input-main" placeholder="UNNAMED">
+                        <input type="text" class="api-model-input" placeholder="">
+                    </div>
+                </div>
+
+                <div class="api-typography">
+                    <div class="api-typo-title">TYPE<br>LETTER<br>STYLE</div>
+                    <div class="api-typo-greeting">A Path to You</div>
+                </div>
+
+                <div class="api-custom-counter">
+                    <svg class="acc-svg" viewBox="0 0 65 90">
+                        <path d="M 23 42 L 52 42 L 11 76 L 30 76" fill="none" stroke="#6b6256" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="acc-num-top apiTotalPages">001</div>
+                    <div class="apiBtnAdd">ADD</div>
+                    <div class="apiBtnDel">DEL</div>
+                    <div class="acc-num-bot apiCurrentPage">${String(apiPageCount).padStart(2, '0')}</div>
+                </div>
+
+                <div class="api-postcard-form">
+                    <div class="api-field-row">
+                        <div class="api-field-label">FACE</div>
+                        <input type="text" class="api-field-input" placeholder="@font-face { … }" />
+                    </div>
+                    <div class="api-field-row">
+                        <div class="api-field-label">VIEW</div>
+                        <input type="text" class="api-field-input" placeholder="Still water." />
+                    </div>
+                    <div class="api-field-row">
+                        <div class="api-field-label">SIZE</div>
+                        <div class="fish-slider-container">
+                            <input type="range" class="fish-slider timeout-slider" min="12" max="18" step="1" value="16">
+                            <div class="fish-thumb-wrapper">
+                                <div class="fish-value">16px</div>
+                                <svg class="fish-svg timeout-fish-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 4L2 12L10 20" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="9" cy="12" r="1.4"/>
+                                    <path d="M18 8.5L13.5 12L18 15.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-actions">
+                    <div class="action-btn btnPullModel"><span class="btn-text">SAVE STYLE</span></div>
+                    <div class="action-btn btnTestModel"><span class="btn-text">TEST STYLE</span></div>
+                </div>
+            `;
+            
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'api-page';
+            pageDiv.dataset.id = id;
+            pageDiv.innerHTML = pageHTML;
+            
+            pageDiv.querySelector('.apiBtnAdd').addEventListener('click', () => {
+                addApiPage();
+                currentApiIndex = apiPageCount - 1;
+                updateCarouselUI();
+            });
+            
+            pageDiv.querySelector('.apiBtnDel').addEventListener('click', () => {
+                if (apiPageCount <= 1) return;
+                const removingId = parseInt(pageDiv.dataset.id);
+                const track = document.getElementById('apiSliderTrack');
+                const pages = Array.from(track.children);
+                const indexToRemove = pages.indexOf(pageDiv);
+                
+                // 修复 Bug 1：删除 IndexedDB 中的历史留存数据
+                if (db) {
+                    db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).delete(`savedMediaFile_api_${removingId}`);
+                }
+
+                // 修复 Bug 2：移除 blob URL，释放内存
+                const oldMedia = pageDiv.querySelector('.uploaded-media');
+                if (oldMedia && oldMedia.src && oldMedia.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(oldMedia.src);
+                }
+
+                pageDiv.remove();
+                apiPageCount--;
+                
+                if (indexToRemove < currentApiIndex) currentApiIndex--;
+                else if (indexToRemove === currentApiIndex) currentApiIndex = Math.max(0, currentApiIndex - 1);
+                updateCarouselUI();
+            });
+
+            const slider = pageDiv.querySelector('.timeout-slider');
+            const thumbWrap = pageDiv.querySelector('.fish-thumb-wrapper');
+            const valDiv = pageDiv.querySelector('.fish-value');
+            const svg = pageDiv.querySelector('.timeout-fish-svg');
+            let lastVal = parseFloat(slider.value);
+            
+            slider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                const min = 12;
+                const max = 18;
+                const percent = ((val - min) / (max - min)) * 100;
+                thumbWrap.style.left = `${percent}%`;
+                valDiv.textContent = `${val} px`;
+                if (val > lastVal) svg.style.transform = 'scale(0.9) scaleX(-1)';
+                else if (val < lastVal) svg.style.transform = 'scale(0.9) scaleX(1)';
+                lastVal = val;
+            });
+            slider.dispatchEvent(new Event('input')); 
+            
+            const fileInput = pageDiv.querySelector('.file-input');
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) { showToast('文件過大，請選擇小於5MB的文件。'); event.target.value = ''; return; }
+                const key = event.target.getAttribute('data-key');
+                renderMedia(file, key); saveMediaFile(file, key);
+            });
+
+            pageDiv.querySelector('.api-polaroid-input-main').addEventListener('input', function() { this.value = this.value.replace(/[^a-zA-Z0-9\s\-_]/g, ''); });
+            pageDiv.querySelector('.api-model-input').addEventListener('input', function() { this.value = this.value.replace(/[^a-zA-Z0-9\s\-_]/g, ''); });
+            
+            loadSavedMedia(`api_${id}`);
+            
+            pageDiv.querySelector('.btnPullModel').addEventListener('click', window.pullModels);
+            pageDiv.querySelector('.btnTestModel').addEventListener('click', window.testConnection);
+            
+            document.getElementById('apiSliderTrack').appendChild(pageDiv);
+        }
+        
+        function updateCarouselUI() {
+            const track = document.getElementById('apiSliderTrack');
+            track.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1)'; 
+            track.style.transform = `translateX(calc(-${currentApiIndex * 100}% - ${currentApiIndex * 16}px)) rotateZ(0deg)`;
+            
+            const pages = Array.from(track.children);
+            pages.forEach((page, index) => {
+                page.style.transition = 'opacity 0.4s ease-in-out'; 
+                page.style.opacity = index === currentApiIndex ? 1 : 0;
+                page.style.pointerEvents = index === currentApiIndex ? 'auto' : 'none';
+
+                // 修复 Bug 3：翻页时控制视频播放，非当前页暂停，当前页才播放
+                page.querySelectorAll('video').forEach(v => {
+                    if (index === currentApiIndex) {
+                        if (currentActive === 1) v.play().catch(() => {});
+                    } else {
+                        v.pause();
+                    }
+                });
+
+                page.querySelector('.apiTotalPages').textContent = String(apiPageCount).padStart(3, '0');
+                page.querySelector('.apiCurrentPage').textContent = String(index + 1).padStart(2, '0');
+                
+                const delBtn = page.querySelector('.apiBtnDel');
+                if (apiPageCount <= 1) delBtn.classList.add('disabled');
+                else delBtn.classList.remove('disabled');
+            });
+        }
+
+
+
+        /* ===== 语音设置：唱片页 ===== */
+        window.testVoice = (cfg) => new Promise(r => setTimeout(r, 3000)); // 待接入：用 cfg 调 ElevenLabs，播完再 resolve
+        let vcIndex = 0, vcCount = 0;
+        function vcMask(v) { return v.length > 4 ? '•'.repeat(Math.min(12, v.length - 4)) + v.slice(-4) : v; }
+        function vcPageHTML() {
+            return `
+                <div class="vc-record"><div class="vc-record-inner">
+                    <svg class="vc-ring-text" viewBox="0 0 118 118"><defs><path id="ringPathID" d="M 59,59 m -47,0 a 47,47 0 1,1 94,0 a 47,47 0 1,1 -94,0"/></defs>
+                        <text><textPath href="#ringPathID" class="vc-ring-id">VOICE ID · ————</textPath></text></svg>
+                    <div class="vc-label"><div class="vc-label-model">MODEL</div></div>
+                </div></div>
+                <div class="vc-sleeve">
+                    <div class="vc-sleeve-side">Side A · Voice</div>
+                    <svg class="vc-sleeve-birds" viewBox="0 0 26 14"><path d="M1 6 Q4 1 7 6 Q10 1 13 6" fill="none" stroke="#8c8376" stroke-width="0.8" stroke-linecap="round"/><path d="M12 12 Q14 8.5 16 12 Q18 8.5 20 12" fill="none" stroke="#8c8376" stroke-width="0.8" stroke-linecap="round"/></svg>
+                    <svg class="vc-sleeve-arrow" viewBox="0 0 26 14"><path d="M1 12 Q12 11 23 4" fill="none" stroke="#8c8376" stroke-width="0.8" stroke-linecap="round"/><path d="M19 3.5 L23.5 3.8 L21.5 7.6" fill="none" stroke="#8c8376" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <input class="vc-note-input" type="text" placeholder="備註">
+                    <div class="vc-sleeve-line"></div>
+                    <div class="vc-sleeve-bar"><span class="vc-bar-icon"></span><span class="vc-bar-wave">${[3,6,4,8,5,9,4,7,3,6,9,5,8,4,6,3,7,5,9,4,6].map((h,i)=>`<i style="height:${h}px;animation-delay:${(i%5)*0.12}s"></i>`).join("")}</span></div>
+                </div>
+                <div class="vc-ticket">
+                    <div class="vc-ticket-frame"></div>
+                    <div class="vc-ticket-title">Voice Pass</div>
+                    <div class="vc-ticket-no">No.<span class="vc-no">01</span></div>
+                    <div class="vc-form">
+                        <div class="api-field-row"><div class="api-field-label">KEY</div><input type="text" class="api-field-input vc-key" placeholder="sk_…" autocomplete="off" spellcheck="false"></div>
+                        <div class="api-field-row"><div class="api-field-label">VOICE</div><input type="text" class="api-field-input vc-id" placeholder="Voice ID" spellcheck="false"></div>
+                        <div class="api-field-row"><div class="api-field-label">MODEL</div><input type="text" class="api-field-input vc-model" placeholder="eleven_v4" spellcheck="false"></div>
+                        <div class="api-field-row"><div class="api-field-label">LINE</div><input type="text" class="api-field-input vc-line" placeholder="你好，我在。"></div>
+                    </div>
+                    <div class="vc-perf"></div>
+                    <div class="vc-stub"><div class="vc-barcode"></div><div class="vc-play">Play<b>試聽</b></div></div>
+                </div>`;
+        }
+        function vcAddPage() {
+            const vp = document.getElementById('vcViewport');
+            const page = document.createElement('div');
+            page.className = 'vc-page';
+            const uid = 'ring' + Date.now() + Math.random().toString(36).slice(2, 6);
+            page.innerHTML = vcPageHTML().replaceAll('ringPathID', uid);
+            const key = page.querySelector('.vc-key');
+            key.addEventListener('focus', () => { key.value = key.dataset.real || ''; });
+            key.addEventListener('blur', () => { key.dataset.real = key.value.trim(); key.value = vcMask(key.dataset.real); });
+            const ring = page.querySelector('.vc-ring-id'), lbl = page.querySelector('.vc-label-model');
+            page.querySelector('.vc-id').addEventListener('input', e => { ring.textContent = 'VOICE ID · ' + (e.target.value.trim() || '————'); });
+            page.querySelector('.vc-model').addEventListener('input', e => { lbl.textContent = e.target.value.trim() || 'MODEL'; });
+            page.querySelector('.vc-stub').addEventListener('click', async () => {
+                if (page.classList.contains('playing')) return;
+                const cfg = { apiKey: key.dataset.real || key.value, voiceId: page.querySelector('.vc-id').value.trim(), model: page.querySelector('.vc-model').value.trim(), text: page.querySelector('.vc-line').value.trim() || '你好，我在。' };
+                if (!cfg.apiKey || !cfg.voiceId) { showToast('先填好 KEY 和 VOICE'); return; }
+                page.classList.add('playing');
+                try { await window.testVoice(cfg); } catch (e) { showToast('試聽失敗'); }
+                page.classList.remove('playing');
+            });
+            vp.appendChild(page);
+            vcCount++;
+        }
+        function vcUpdate() {
+            const pages = document.querySelectorAll('#vcViewport .vc-page');
+            pages.forEach((p, i) => {
+                p.classList.toggle('current', i === vcIndex);
+                p.classList.toggle('left', i < vcIndex);
+                p.querySelector('.vc-no').textContent = String(i + 1).padStart(2, '0');
+            });
+            document.getElementById('vcTotal').textContent = String(vcCount).padStart(3, '0');
+            document.getElementById('vcCurrent').textContent = String(vcIndex + 1).padStart(2, '0');
+            document.getElementById('vcDel').classList.toggle('disabled', vcCount <= 1);
+        }
+        function initVoice() {
+            vcAddPage(); vcUpdate();
+            document.getElementById('vcAdd').addEventListener('click', () => { vcAddPage(); vcIndex = vcCount - 1; vcUpdate(); });
+            document.getElementById('vcDel').addEventListener('click', () => {
+                if (vcCount <= 1) return;
+                document.querySelectorAll('#vcViewport .vc-page')[vcIndex].remove();
+                vcCount--; vcIndex = Math.max(0, vcIndex - 1); vcUpdate();
+            });
+            const vp = document.getElementById('vcViewport');
+            let sx = null;
+            const start = x => { sx = x; }, end = x => {
+                if (sx === null) return; const d = x - sx; sx = null;
+                if (d < -40 && vcIndex < vcCount - 1) vcIndex++; else if (d > 40 && vcIndex > 0) vcIndex--; else return;
+                vcUpdate();
+            };
+            vp.addEventListener('touchstart', e => { if (!e.target.closest('input, .vc-stub')) start(e.touches[0].clientX); });
+            vp.addEventListener('touchend', e => end(e.changedTouches[0].clientX));
+            vp.addEventListener('mousedown', e => { if (!e.target.closest('input, .vc-stub')) start(e.clientX); });
+            window.addEventListener('mouseup', e => end(e.clientX));
+        }
+        initVoice();
+
+        /* ===== DOMContentLoaded ===== */
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('headerBackBtn').addEventListener('click', () => { if(window.goBack) window.goBack(); });
+            document.getElementById('folderApiSettings').addEventListener('click', () => { toggleFolder(1); });
+            document.getElementById('folderWallpaperSettings').addEventListener('click', () => { toggleFolder(2); });
+            document.getElementById('folderVoiceSettings').addEventListener('click', () => { toggleFolder(3); });
+            document.getElementById('folderStorageSettings').addEventListener('click', () => { toggleFolder(4); });
+
+            const wpFileInput = document.getElementById('mediaUpload_wp');
+            if (wpFileInput) {
+                wpFileInput.addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) { showToast('文件過大，請選擇小於5MB的文件。'); event.target.value = ''; return; }
+                    const key = event.target.getAttribute('data-key');
+                    renderMedia(file, key); saveMediaFile(file, key);
+                });
+            }
+
+            const floraElements = document.querySelectorAll('.clickable-flora');
+            floraElements.forEach(el => {
+                el.addEventListener('animationend', function() { this.classList.remove('wobble'); });
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation(); this.classList.remove('wobble');
+                    requestAnimationFrame(() => { requestAnimationFrame(() => { this.classList.add('wobble'); }); });
+                    if (navigator.vibrate) navigator.vibrate(5); 
+                });
+            });
+
+            const paperOverlay = document.getElementById('paperOverlay');
+            if (paperOverlay) paperOverlay.addEventListener('click', closePaper);
+            const paperStackContainer = document.querySelector('.paper-stack-container');
+            if (paperStackContainer) paperStackContainer.addEventListener('click', (event) => event.stopPropagation());
+        });
+    </script>
+</body>
+</html>
