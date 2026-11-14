@@ -7,11 +7,9 @@ import express from "express";
 import {
   previewKind,
   fileLanguage,
-  fileNumber,
   fitPhoto,
   TEXT_PREVIEW_LIMIT,
 } from "../client/src/filePreview.ts";
-import { appendUserRecord, applyReplyEvent } from "../client/src/chatModel.ts";
 import { api } from "../client/src/api.ts";
 import type { ChatFile } from "../client/src/types.ts";
 import { ChatFiles } from "../server/src/chatFiles.ts";
@@ -83,31 +81,6 @@ test("照片按原比例缩小，横图受宽度约束，竖图受高度约束",
   assert.equal(tall.height, 844 * 0.6);
   assert.equal(tall.width / tall.height, 1 / 12);
   assert.deepEqual(fitPhoto(100, 80, 390, 844), { width: 100, height: 80 });
-});
-
-test("图片与文件序号跨用户和模型记录累计，刷新和分支不改变编号", () => {
-  const firstImage = file("photo.png", 20, "image/png");
-  const secondImage = file("drawing.svg", 30, "image/svg+xml");
-  const firstText = file("first.txt");
-  const secondText = file("second.md");
-  let groups = appendUserRecord([], "附件", "12:00", undefined, undefined, [
-    firstImage,
-    firstText,
-  ]);
-  groups = applyReplyEvent(
-    groups,
-    { type: "files", turnId: "reply", files: [secondText, secondImage] },
-    "12:01",
-  );
-  for (const history of [
-    groups,
-    JSON.parse(JSON.stringify(groups)),
-    structuredClone(groups),
-  ]) {
-    assert.equal(fileNumber(history, firstImage), 1);
-    assert.equal(fileNumber(history, secondImage), 2);
-    assert.equal(fileNumber(history, secondText), 2);
-  }
 });
 
 test("读取预览原文保留 HTML，失败显示服务端返回的原因", async (t) => {

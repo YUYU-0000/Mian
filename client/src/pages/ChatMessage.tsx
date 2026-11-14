@@ -23,7 +23,6 @@ import { shouldShowThinkingHourglass } from "../thinkingStatus";
 import ToolOutput from "../components/ToolOutput";
 import ReplyMarkdown from "../components/DeferredReplyMarkdown";
 import FileTicket from "../components/FileTicket";
-import { fileNumber } from "../filePreview";
 
 const Hourglass = () => (
   <svg
@@ -326,9 +325,6 @@ export default memo(function ChatMessage({
                     key={file.id}
                     file={file}
                     conversationId={session.conversationId}
-                    getNumber={() =>
-                      fileNumber(session.getSnapshot().messages, file)
-                    }
                     mine
                   />
                 ))}
@@ -452,9 +448,6 @@ export default memo(function ChatMessage({
                   key={file.id}
                   file={file}
                   conversationId={session.conversationId}
-                  getNumber={() =>
-                    fileNumber(session.getSnapshot().messages, file)
-                  }
                 />
               ))}
             {message.approvals.map((approval) => (

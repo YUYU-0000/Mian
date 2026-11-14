@@ -1,4 +1,3 @@
-import type { ChatGroup } from "./chatModel";
 import type { ChatFile } from "./types";
 
 export type PreviewKind = "image" | "text" | "markdown" | "html" | "pdf";
@@ -67,23 +66,6 @@ export function fileLanguage(name: string) {
     toml: "ini",
   };
   return aliases[extension] ?? extension;
-}
-
-// 图片与文档分别按会话中的出现顺序编号。
-export function fileNumber(groups: ChatGroup[], selected: ChatFile) {
-  let number = 0;
-  const image = selected.mimeType.startsWith("image/");
-  for (const group of groups) {
-    const files =
-      group.role === "user"
-        ? group.records.flatMap((record) => record.files ?? [])
-        : (group.files ?? []);
-    for (const file of files) {
-      if (file.mimeType.startsWith("image/") === image) number += 1;
-      if (file.id === selected.id) return number;
-    }
-  }
-  return number;
 }
 
 export function fitPhoto(

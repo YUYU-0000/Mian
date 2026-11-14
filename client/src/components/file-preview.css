@@ -51,11 +51,11 @@
   background-image: var(--grain);
 }
 .pv-under.a {
-  background-color: #6b8396;
+  background-color: #5f7789;
   transform: translate(-14px, 10px) rotate(-5deg);
 }
 .pv-under.b {
-  background-color: #c5d0d8;
+  background-color: #7f95a5;
   transform: translate(10px, 14px) rotate(3.5deg);
 }
 .pv-card {
@@ -99,8 +99,11 @@
   flex: 1;
   margin-right: 12px;
 }
+.pv-kicker,
+.pv-name {
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+}
 .pv-kicker {
-  font-family: "ZSFT-br", serif;
   font-weight: 500;
   font-size: 6.5px;
   letter-spacing: 2.2px;
@@ -108,8 +111,8 @@
 }
 .pv-name {
   margin-top: 4px;
-  font-size: 13px;
-  letter-spacing: 0.4px;
+  font-size: 12px;
+  letter-spacing: 1px;
   color: var(--ink);
   white-space: nowrap;
   overflow-x: auto;
@@ -170,7 +173,7 @@ img.pv-photo {
   display: none;
 }
 
-/* 文件用信纸替换照片，保留白边和底部编号。 */
+/* 文件用信纸替换照片，保留白边和底部日期。 */
 .pv-document {
   display: flex;
   flex-direction: column;
@@ -208,6 +211,7 @@ img.pv-photo {
     12px/1.5 ui-monospace,
     "SF Mono",
     Consolas,
+    "LXGW Heart Serif",
     monospace;
   color: var(--ink);
 }
@@ -216,8 +220,13 @@ img.pv-photo {
   font:
     14.5px/1.45 "ZSFT-br",
     "LXGW Heart Serif",
-    sans-serif;
+    serif;
   letter-spacing: 1px;
+}
+.pv-markdown .reply-markdown {
+  --rm-mono:
+    ui-monospace, "SF Mono", "Cascadia Code", Consolas, "LXGW Heart Serif",
+    monospace;
 }
 .pv-document:has(.pv-file-frame) {
   height: 60vh;

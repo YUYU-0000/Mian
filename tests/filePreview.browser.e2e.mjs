@@ -19,12 +19,12 @@ const cases = [
   ["tall.svg", svg(200, 2400)],
   [
     "example.ts",
-    `const value = "${"long-code ".repeat(80)}";\n` +
+    `// 中文注释\nconst value = "${"long-code ".repeat(80)}";\n` +
       "console.log(value);\n".repeat(100),
   ],
   [
     "readme.md",
-    "# 文件标题\n\n| 名称 | 数量 |\n| --- | --- |\n| 茶 | 2 |\n\n<script>window.markdownUnsafe = true</script>\n\n```js\nconst count = 2;\n```",
+    "# 文件标题\n\n| 名称 | 数量 |\n| --- | --- |\n| 茶 | 2 |\n\n<script>window.markdownUnsafe = true</script>\n\n```js\n// 中文注释\nconst count = 2;\n```",
   ],
   [
     "page.html",
@@ -142,6 +142,67 @@ try {
     evaluate(
       `(() => { const r=document.querySelector('.pv-photo').getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`,
     );
+  const assertPaperStyle = async (name, label) => {
+    const details = await evaluate(`(() => {
+      const css=selector=>getComputedStyle(document.querySelector(selector));
+      return {
+        label:document.querySelector('.pv-kicker').textContent,
+        name:document.querySelector('.pv-name').textContent,
+        labelFont:css('.pv-kicker').fontFamily,
+        nameFont:css('.pv-name').fontFamily,
+        nameSize:css('.pv-name').fontSize,
+        nameSpacing:css('.pv-name').letterSpacing,
+        hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],
+        date:document.querySelector('.pv-hand').textContent,
+        sheets:Array.from(document.querySelectorAll('.pv-under'),el=>{
+          const style=getComputedStyle(el),matrix=new DOMMatrix(style.transform);
+          return {color:style.backgroundColor,x:matrix.m41,y:matrix.m42,angle:Math.atan2(matrix.b,matrix.a)*180/Math.PI};
+        })
+      };
+    })()`);
+    assert.equal(details.label, label);
+    assert.equal(details.name, name);
+    assert.equal(details.labelFont, 'ZSFT-br, "LXGW Heart Serif", serif');
+    assert.equal(details.nameFont, details.labelFont);
+    assert.equal(details.nameSize, "12px");
+    assert.equal(details.nameSpacing, "1px");
+    assert.deepEqual(details.hand, ["ZSFT-l, cursive", "22px"]);
+    const date = new Date(
+      attachments.find((file) => file.name === name).createdAt,
+    );
+    assert.equal(
+      details.date,
+      [date.getMonth() + 1, date.getDate()]
+        .map((value) => String(value).padStart(2, "0"))
+        .join("."),
+    );
+    assert.deepEqual(
+      details.sheets.map((sheet) => sheet.color),
+      ["rgb(95, 119, 137)", "rgb(127, 149, 165)"],
+    );
+    assert.deepEqual(
+      details.sheets.map((sheet) => [sheet.x, sheet.y]),
+      [
+        [-14, 10],
+        [10, 14],
+      ],
+    );
+    assert.ok(Math.abs(details.sheets[0].angle + 5) < 0.001);
+    assert.ok(Math.abs(details.sheets[1].angle - 3.5) < 0.001);
+  };
+  const assertChineseFont = async (selector) => {
+    await evaluate("document.fonts.ready");
+    const { root } = await call("DOM.getDocument");
+    const { nodeId } = await call("DOM.querySelector", {
+      nodeId: root.nodeId,
+      selector,
+    });
+    const { fonts } = await call("CSS.getPlatformFontsForNode", { nodeId });
+    assert.ok(
+      fonts.some((font) => font.isCustomFont && font.glyphCount >= 4),
+      JSON.stringify(fonts),
+    );
+  };
   const drag = async (point, dx, dy) => {
     await touch("touchStart", [{ ...point, id: 1 }]);
     for (let step = 1; step <= 6; step++) {
@@ -153,6 +214,8 @@ try {
   };
 
   await call("Runtime.enable");
+  await call("DOM.enable");
+  await call("CSS.enable");
   await call("Page.enable");
   await call("Network.enable");
   await call("Emulation.setDeviceMetricsOverride", {
@@ -214,7 +277,7 @@ try {
   const appearance = await evaluate(`(() => {
     const css=selector=>getComputedStyle(document.querySelector(selector)), image=document.querySelector('img.pv-photo');
     const download=document.querySelector('.pv-download');
-    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveHidden:css('.pv-download').visibility==='hidden'&&download.tabIndex===-1&&download.getAttribute('aria-hidden')==='true',removed:!document.querySelector('.pv-clip,.pv-acts'),hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],number:document.querySelector('.pv-hand').textContent,photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
+    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveHidden:css('.pv-download').visibility==='hidden'&&download.tabIndex===-1&&download.getAttribute('aria-hidden')==='true',removed:!document.querySelector('.pv-clip,.pv-acts'),photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
   })()`);
   assert.equal(appearance.mask, "rgba(59, 77, 90, 0.42)");
   assert.equal(appearance.paper, "rgb(251, 250, 246)");
@@ -222,8 +285,7 @@ try {
   assert.ok(Math.abs(appearance.angle + 1.2) < 0.001);
   assert.equal(appearance.saveHidden, true);
   assert.equal(appearance.removed, true);
-  assert.deepEqual(appearance.hand, ["ZSFT-l, cursive", "22px"]);
-  assert.match(appearance.number, /^No\.01\d{2}\.\d{2}$/);
+  await assertPaperStyle(portraitName, "IMAGE · 圖片");
   assert.ok(
     Math.abs(appearance.photo[0] / appearance.photo[1] - 2 / 3) < 0.001,
   );
@@ -409,6 +471,7 @@ try {
 
   await open("example.ts");
   await settle();
+  await assertPaperStyle("example.ts", "FILE · 檔案");
   await waitFor(
     () => evaluate(`!!document.querySelector('.pv-source .hljs-keyword')`),
     "复用代码高亮",
@@ -418,6 +481,8 @@ try {
   );
   assert.equal(textLayout.font, "12px");
   assert.ok(textLayout.mono.includes("monospace"));
+  assert.ok(textLayout.mono.includes('"LXGW Heart Serif"'));
+  await assertChineseFont(".pv-source .hljs-comment");
   assert.equal(textLayout.whiteSpace, "pre");
   assert.ok(textLayout.vertical && textLayout.horizontal);
   assert.ok(Math.abs(textLayout.width - 390 * 0.78) < 1);
@@ -484,6 +549,22 @@ try {
     "文件标题",
   );
   assert.equal(await evaluate(`!!window.markdownUnsafe`), false);
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.pv-markdown h1')).fontFamily`,
+    ),
+    'ZSFT-br, "LXGW Heart Serif", serif',
+  );
+  assert.ok(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.pv-markdown code')).fontFamily.includes('"LXGW Heart Serif"')`,
+    ),
+  );
+  await waitFor(
+    () => evaluate(`!!document.querySelector('.pv-markdown .hljs-comment')`),
+    "Markdown 代码高亮",
+  );
+  await assertChineseFont(".pv-markdown .hljs-comment");
   await close();
   await open("page.html");
   await settle();

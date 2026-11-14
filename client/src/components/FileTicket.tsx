@@ -20,7 +20,6 @@ export default memo(function FileTicket({
   progress,
   pending = false,
   previewUrl,
-  getNumber,
 }: {
   file: ChatFile;
   conversationId: string;
@@ -28,10 +27,9 @@ export default memo(function FileTicket({
   progress?: number;
   pending?: boolean;
   previewUrl?: string;
-  getNumber?: () => number;
 }) {
-  const [viewing, setViewing] = useState<number | null>(null);
-  const closePreview = useCallback(() => setViewing(null), []);
+  const [viewing, setViewing] = useState(false);
+  const closePreview = useCallback(() => setViewing(false), []);
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
   const image = file.mimeType.startsWith("image/");
@@ -41,7 +39,7 @@ export default memo(function FileTicket({
     : "FILE";
   const open = () => {
     if (pending && !image) return;
-    if (kind) setViewing(getNumber?.() ?? 1);
+    if (kind) setViewing(true);
     else download.current!.click();
   };
   const nameAndMeta = (
@@ -128,7 +126,6 @@ export default memo(function FileTicket({
             file={file}
             conversationId={conversationId}
             kind={kind}
-            number={viewing}
             previewUrl={previewUrl}
             onClose={closePreview}
           />

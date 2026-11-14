@@ -23,14 +23,12 @@ export default function FilePreview({
   file,
   conversationId,
   kind,
-  number,
   previewUrl,
   onClose,
 }: {
   file: ChatFile;
   conversationId: string;
   kind: PreviewKind;
-  number: number;
   previewUrl?: string;
   onClose: () => void;
 }) {
@@ -226,8 +224,6 @@ export default function FilePreview({
                 )}
               </div>
               <div className="pv-hand">
-                No.{pad2(number)}
-                <br />
                 {pad2(date.getMonth() + 1)}.{pad2(date.getDate())}
               </div>
             </div>
