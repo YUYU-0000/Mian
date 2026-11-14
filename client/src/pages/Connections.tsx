@@ -11,8 +11,13 @@ import { makeStack, type PaperStack } from "../components/paperStack";
 import ConnectionLayout, { type TagConfig } from "./ConnectionLayout";
 import ApiSheet from "./ConnectionSheet";
 import {
-  blankDraft, readApiDrafts, rememberApiPaper, removeApiDraft,
-  restoreApiDrafts, saveApiDraft, type Draft,
+  blankDraft,
+  readApiDrafts,
+  rememberApiPaper,
+  removeApiDraft,
+  restoreApiDrafts,
+  saveApiDraft,
+  type Draft,
 } from "../apiDrafts";
 
 const providers: {
@@ -32,7 +37,13 @@ type SubState = Subscription & {
   quotaLoading?: boolean;
 };
 
-export default function Connections({ onBack, channel }: { onBack: () => void; channel: Channel }) {
+export default function Connections({
+  onBack,
+  channel,
+}: {
+  onBack: () => void;
+  channel: Channel;
+}) {
   const root = useRef<HTMLElement>(null);
   const subTrack = useRef<HTMLDivElement>(null);
   const apiTrack = useRef<HTMLDivElement>(null);
@@ -41,7 +52,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   const [selected, setSelected] = useState("sub");
   const [open, setOpen] = useState<"sub" | "api" | null>(null);
   const [subIndex, setSubIndex] = useState(0);
-  const [subscriptions, setSubscriptions] = useState<Record<Provider, SubState>>(
+  const [subscriptions, setSubscriptions] = useState<
+    Record<Provider, SubState>
+  >(
     () =>
       Object.fromEntries(
         providers.map((p) => [
@@ -72,7 +85,10 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   const currentOpen = useRef(open);
   currentOpen.current = open;
   const patchSub = (id: Provider, patch: Partial<SubState>) =>
-    setSubscriptions((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
+    setSubscriptions((current) => ({
+      ...current,
+      [id]: { ...current[id], ...patch },
+    }));
   const loadQuota = async (id: Provider) => {
     patchSub(id, { quotaLoading: true });
     try {
@@ -102,10 +118,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   useLayoutEffect(() => {
     subStack.current = makeStack(subTrack.current!, setSubIndex);
     apiStack.current = makeStack(apiTrack.current!, (index) => {
-      if (currentOpen.current === "api") rememberApiPaper(sessionStorage, papers.current[index]);
+      if (currentOpen.current === "api")
+        rememberApiPaper(sessionStorage, papers.current[index]);
     });
-    subStack.current.update();
-    apiStack.current.update();
     return () => {
       subStack.current!.destroy();
       apiStack.current!.destroy();
@@ -113,8 +128,12 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   }, []);
   useLayoutEffect(() => {
     apiStack.current!.index = Math.max(0, Math.min(focus, presets.length));
-    apiStack.current!.update();
+    if (currentOpen.current === "api") apiStack.current!.update();
   }, [revision]);
+  useLayoutEffect(() => {
+    // API 纸片在预设恢复后测量，避免提前把「+」纸记成当前页。
+    if (open === "sub") subStack.current!.update();
+  }, [open]);
   useEffect(() => {
     if (readApiDrafts(sessionStorage).length) {
       setSelected("api");
@@ -123,9 +142,13 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   }, []);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (!currentOpen.current || (event.target as HTMLElement).tagName === "INPUT")
+      if (
+        !currentOpen.current ||
+        (event.target as HTMLElement).tagName === "INPUT"
+      )
         return;
-      const stack = currentOpen.current === "sub" ? subStack.current! : apiStack.current!;
+      const stack =
+        currentOpen.current === "sub" ? subStack.current! : apiStack.current!;
       if (event.key === "ArrowRight") stack.goTo(stack.index + 1);
       if (event.key === "ArrowLeft") stack.goTo(stack.index - 1);
       if (event.key === "Escape") closeAll();
@@ -147,7 +170,11 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
       void api
         .apiPresets()
         .then((data) => {
-          const restored = restoreApiDrafts(sessionStorage, data.presets, data.activeId);
+          const restored = restoreApiDrafts(
+            sessionStorage,
+            data.presets,
+            data.activeId,
+          );
           setPresets(restored.presets);
           setPlus(restored.plus);
           setActiveId(data.activeId);
@@ -173,7 +200,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   const fitRoof = () => {
     const line = root.current!.querySelector<SVGTextElement>("#tagRoofLine")!;
     const room =
-      root.current!.querySelector<SVGPathElement>("#roofLine")!.getTotalLength() - 14;
+      root
+        .current!.querySelector<SVGPathElement>("#roofLine")!
+        .getTotalLength() - 14;
     let size = 6.2;
     line.setAttribute("font-size", String(size));
     while (line.getComputedTextLength() > room && size > 4) {
@@ -200,7 +229,8 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
     const rect = (open === "sub" ? subStack.current! : apiStack.current!)
       .current()
       .getBoundingClientRect();
-    const cardH = root.current!.querySelector<HTMLElement>(".tag-card")!.offsetHeight;
+    const cardH =
+      root.current!.querySelector<HTMLElement>(".tag-card")!.offsetHeight;
     root
       .current!.querySelector<HTMLElement>("#hangTag")!
       .style.setProperty(
@@ -232,7 +262,12 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
         void api
           .subLogout(id)
           .then(() => {
-            patchSub(id, { loggedIn: false, account: "", plan: "", quota: null });
+            patchSub(id, {
+              loggedIn: false,
+              account: "",
+              plan: "",
+              quota: null,
+            });
             notify.ok("已登出");
           })
           .catch((error) => notify.fail("登出失敗", error));
@@ -266,16 +301,22 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
     }
   };
   const useCodex = () => {
-    void api.useCodex().then(() => {
-      setActiveId(null);
-      notify.ok("已切換");
-    }).catch(error => notify.fail("切換失敗", error));
+    void api
+      .useCodex()
+      .then(() => {
+        setActiveId(null);
+        notify.ok("已切換");
+      })
+      .catch((error) => notify.fail("切換失敗", error));
   };
   const editWorkspace = async () => {
     try {
       const config = await api.getConfig();
       setTag({
-        giant: "WORKSPACE", kicker: "CODEX", title: "工作目錄", items: [],
+        giant: "WORKSPACE",
+        kicker: "CODEX",
+        title: "工作目錄",
+        items: [],
         workspace: {
           value: config.workingDirectory,
           onSave: async (workingDirectory) => {
@@ -289,7 +330,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
           },
         },
       });
-    } catch (error) { notify.fail("目錄讀取失敗", error); }
+    } catch (error) {
+      notify.fail("目錄讀取失敗", error);
+    }
   };
   const rearrange = (index: number) => {
     setFocus(index);
@@ -331,14 +374,20 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                 style={{ fontSize: provider.size }}
                 role={provider.id === "codex" ? "button" : undefined}
                 tabIndex={provider.id === "codex" ? 0 : undefined}
-                aria-label={provider.id === "codex" ? "使用 Codex 通道" : undefined}
+                aria-label={
+                  provider.id === "codex" ? "使用 Codex 通道" : undefined
+                }
                 onClick={provider.id === "codex" ? useCodex : undefined}
-                onKeyDown={provider.id === "codex" ? (event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    useCodex();
-                  }
-                } : undefined}
+                onKeyDown={
+                  provider.id === "codex"
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          useCodex();
+                        }
+                      }
+                    : undefined
+                }
               >
                 {provider.giant}
               </div>
@@ -352,9 +401,16 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                     onClick={() => void account(provider.id)}
                   >
                     <span className="cover-link-label">ACCOUNT</span>
-                    <ScrollText className="cover-link-value js-account-v"><AnimatedText className="cover-link-text"
-                      text={s.loggedIn ? (s.plan || "SIGNED IN").toUpperCase() : "未登入"}
-                    /></ScrollText>
+                    <ScrollText className="cover-link-value js-account-v">
+                      <AnimatedText
+                        className="cover-link-text"
+                        text={
+                          s.loggedIn
+                            ? (s.plan || "SIGNED IN").toUpperCase()
+                            : "未登入"
+                        }
+                      />
+                    </ScrollText>
                   </button>
                   <button
                     className="cover-link js-model"
@@ -362,27 +418,35 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                     onClick={() => void subModels(provider.id)}
                   >
                     <span className="cover-link-label">MODEL</span>
-                    <ScrollText className="cover-link-value js-model-v"><AnimatedText className="cover-link-text"
-                      text={s.model || "未設定"}
-                    /></ScrollText>
+                    <ScrollText className="cover-link-value js-model-v">
+                      <AnimatedText
+                        className="cover-link-text"
+                        text={s.model || "未設定"}
+                      />
+                    </ScrollText>
                   </button>
                   <button
                     className="cover-link js-quota"
                     type="button"
                     onClick={() =>
-                      s.loggedIn ? void loadQuota(provider.id) : notify.note("請先登入")
+                      s.loggedIn
+                        ? void loadQuota(provider.id)
+                        : notify.note("請先登入")
                     }
                   >
                     <span className="cover-link-label">QUOTA</span>
-                    <ScrollText className="cover-link-value js-quota-v"><AnimatedText className="cover-link-text"
-                      text={
-                        s.quotaLoading
-                          ? "讀取中"
-                          : s.quota
-                            ? `剩餘 ${s.quota.left}%`
-                            : "—"
-                      }
-                    /></ScrollText>
+                    <ScrollText className="cover-link-value js-quota-v">
+                      <AnimatedText
+                        className="cover-link-text"
+                        text={
+                          s.quotaLoading
+                            ? "讀取中"
+                            : s.quota
+                              ? `剩餘 ${s.quota.left}%`
+                              : "—"
+                        }
+                      />
+                    </ScrollText>
                   </button>
                 </div>
               </div>
@@ -391,7 +455,15 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                   className={`cover-status js-status${s.loggedIn ? " is-connected" : ""}`}
                   text={s.loggedIn ? "CONNECTED" : "NOT CONNECTED"}
                 />
-                {provider.id === "codex" && <button type="button" className="cover-workspace" onClick={() => void editWorkspace()}>WORKSPACE</button>}
+                {provider.id === "codex" && (
+                  <button
+                    type="button"
+                    className="cover-workspace"
+                    onClick={() => void editWorkspace()}
+                  >
+                    WORKSPACE
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -423,7 +495,10 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
           }}
           onSave={(saved) => {
             removeApiDraft(sessionStorage, draft);
-            rememberApiPaper(sessionStorage, { ...saved, paperKey: draft.paperKey });
+            rememberApiPaper(sessionStorage, {
+              ...saved,
+              paperKey: draft.paperKey,
+            });
             if (draft.plus) {
               setPresets((current) => [
                 ...current,
@@ -433,7 +508,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
             } else
               setPresets((current) =>
                 current.map((p) =>
-                  p.paperKey === draft.paperKey ? { ...saved, paperKey: p.paperKey } : p,
+                  p.paperKey === draft.paperKey
+                    ? { ...saved, paperKey: p.paperKey }
+                    : p,
                 ),
               );
             rearrange(index);
@@ -441,7 +518,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
           onUse={() => setActiveId(draft.id)}
           onDeleteStart={() => removeApiDraft(sessionStorage, draft)}
           onDelete={() => {
-            setPresets((current) => current.filter((p) => p.paperKey !== draft.paperKey));
+            setPresets((current) =>
+              current.filter((p) => p.paperKey !== draft.paperKey),
+            );
             if (activeId === draft.id) setActiveId(null);
             rearrange(index);
           }}

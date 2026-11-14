@@ -5,12 +5,7 @@ import {
   useState,
   type AnimationEvent,
 } from "react";
-import {
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import {
   hasCompletedConversation,
@@ -28,6 +23,7 @@ import Chat from "./pages/Chat";
 import Connections from "./pages/Connections";
 import Settings from "./pages/Settings";
 import Notify, { notify } from "./components/Notify";
+import { preloadReplyMarkdown } from "./components/DeferredReplyMarkdown";
 import ErrorBoundary from "./ErrorBoundary";
 import { isTicketArchiveEligible } from "./ticketGestures";
 import {
@@ -81,19 +77,35 @@ type ConversationViewState = {
 };
 
 export default function App() {
+  useEffect(() => {
+    const preload = () => {
+      void preloadReplyMarkdown();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const idle = window.requestIdleCallback(preload);
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = window.setTimeout(preload, 1500);
+    return () => window.clearTimeout(timer);
+  }, []);
   const nav = useNavigate();
   const location = useLocation();
   const [status, setStatus] = useState(initial);
-  const [channel, setChannel] = useState<Channel>({ kind: "codex", name: "CODEX" });
+  const [channel, setChannel] = useState<Channel>({
+    kind: "codex",
+    name: "CODEX",
+  });
   const [transition, setTransition] = useState<RouteTransition | null>(null);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
     defaultConversation,
   ]);
-  const [activeConversationId, setActiveConversationId] = useState(() =>
-    localStorage.getItem(ACTIVE_CONVERSATION_KEY) || DEFAULT_CONVERSATION_ID,
+  const [activeConversationId, setActiveConversationId] = useState(
+    () =>
+      localStorage.getItem(ACTIVE_CONVERSATION_KEY) || DEFAULT_CONVERSATION_ID,
   );
-  const [displayedConversationId, setDisplayedConversationId] = useState(() =>
-    localStorage.getItem(ACTIVE_CONVERSATION_KEY) || DEFAULT_CONVERSATION_ID,
+  const [displayedConversationId, setDisplayedConversationId] = useState(
+    () =>
+      localStorage.getItem(ACTIVE_CONVERSATION_KEY) || DEFAULT_CONVERSATION_ID,
   );
   const [conversationSwitch, setConversationSwitch] =
     useState<ConversationSwitch | null>(null);
@@ -118,56 +130,61 @@ export default function App() {
   conversationsRef.current = conversations;
   displayedConversationIdRef.current = displayedConversationId;
   conversationSwitchRef.current = conversationSwitch;
-  const activityTimersRef = useRef(
-    new Map<string, number>(),
-  );
-  const activityTargetsRef = useRef(
-    new Map<string, ConversationActivity>(),
-  );
-  const recordConversationActivity = useCallback((
-    conversationId: string,
-    patch: ConversationActivity,
-  ) => {
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.conversationId === conversationId
-          ? { ...conversation, ...patch }
-          : conversation,
-      ),
-    );
-    activityTargetsRef.current.set(conversationId, {
-      ...activityTargetsRef.current.get(conversationId),
-      ...patch,
-    });
-    const previous = activityTimersRef.current.get(conversationId);
-    if (previous) window.clearTimeout(previous);
-    activityTimersRef.current.set(
-      conversationId,
-      window.setTimeout(() => {
-        activityTimersRef.current.delete(conversationId);
-        const target = activityTargetsRef.current.get(conversationId);
-        activityTargetsRef.current.delete(conversationId);
-        if (!target) return;
-        void api
-          .updateConversationActivity(conversationId, target)
-          .then(({ conversation }) =>
-            setConversations((current) =>
-              current.map((item) =>
-                item.conversationId === conversationId ? conversation : item,
+  const activityTimersRef = useRef(new Map<string, number>());
+  const activityTargetsRef = useRef(new Map<string, ConversationActivity>());
+  const activityViewTargets = useRef(new Map<string, ConversationActivity>());
+  const activityViewTimer = useRef<number | null>(null);
+  const recordConversationActivity = useCallback(
+    (conversationId: string, patch: ConversationActivity) => {
+      // 票根摘要每 100ms 合并更新，不让每条流式事件重画整页。
+      activityViewTargets.current.set(conversationId, {
+        ...activityViewTargets.current.get(conversationId),
+        ...patch,
+      });
+      if (activityViewTimer.current === null)
+        activityViewTimer.current = window.setTimeout(() => {
+          const updates = activityViewTargets.current;
+          activityViewTargets.current = new Map();
+          activityViewTimer.current = null;
+          setConversations((current) =>
+            current.map((conversation) => {
+              const activity = updates.get(conversation.conversationId);
+              return activity ? { ...conversation, ...activity } : conversation;
+            }),
+          );
+        }, 100);
+      activityTargetsRef.current.set(conversationId, {
+        ...activityTargetsRef.current.get(conversationId),
+        ...patch,
+      });
+      const previous = activityTimersRef.current.get(conversationId);
+      if (previous) window.clearTimeout(previous);
+      activityTimersRef.current.set(
+        conversationId,
+        window.setTimeout(() => {
+          activityTimersRef.current.delete(conversationId);
+          const target = activityTargetsRef.current.get(conversationId);
+          activityTargetsRef.current.delete(conversationId);
+          if (!target) return;
+          void api
+            .updateConversationActivity(conversationId, target)
+            .then(({ conversation }) =>
+              setConversations((current) =>
+                current.map((item) =>
+                  item.conversationId === conversationId ? conversation : item,
+                ),
               ),
-            ),
-          )
-          .catch(console.error);
-      }, 250),
-    );
-  }, []);
+            )
+            .catch(console.error);
+        }, 250),
+      );
+    },
+    [],
+  );
   const conversationSessionsRef = useRef<ConversationSessions | null>(null);
   if (!conversationSessionsRef.current)
     conversationSessionsRef.current = new ConversationSessions({
-      initialConversationIds: [
-        DEFAULT_CONVERSATION_ID,
-        activeConversationId,
-      ],
+      initialConversationIds: [DEFAULT_CONVERSATION_ID, activeConversationId],
       onActivity: recordConversationActivity,
       onSendError: (error) => notify.fail("發送失敗", error),
     });
@@ -176,8 +193,7 @@ export default function App() {
   const displayedConversationRecordRef = useRef(defaultConversation);
   const displayedConversation =
     conversations.find(
-      (conversation) =>
-        conversation.conversationId === displayedConversationId,
+      (conversation) => conversation.conversationId === displayedConversationId,
     ) ?? displayedConversationRecordRef.current;
   if (displayedConversation.conversationId === displayedConversationId)
     displayedConversationRecordRef.current = displayedConversation;
@@ -192,7 +208,9 @@ export default function App() {
     );
     conversationSessions.register(fallback);
     setActiveConversationId((current) => {
-      if (records.some((conversation) => conversation.conversationId === current))
+      if (
+        records.some((conversation) => conversation.conversationId === current)
+      )
         return current;
       localStorage.setItem(ACTIVE_CONVERSATION_KEY, fallback);
       return fallback;
@@ -247,28 +265,34 @@ export default function App() {
   );
   useEffect(() => {
     let alive = true;
-    void api.listConversations().then(({ conversations: records, defaultConversationId }) => {
-      if (!alive) return;
-      conversationSessions.registerAll(records);
-      setConversations(records);
-      for (const record of records) {
-        const store = conversationSessions.get(record.conversationId);
-        const lastMessage = lastVisibleMessageSummary(
-          store.getSnapshot().messages,
-        );
-        if (lastMessage && lastMessage !== record.lastMessage)
-          recordConversationActivity(record.conversationId, {
-            lastMessage,
-          });
-      }
-      applyConversationFallback(records, defaultConversationId);
-    }).catch(console.error);
+    void api
+      .listConversations()
+      .then(({ conversations: records, defaultConversationId }) => {
+        if (!alive) return;
+        conversationSessions.registerAll(records);
+        setConversations(records);
+        for (const record of records) {
+          const store = conversationSessions.get(record.conversationId);
+          const lastMessage = lastVisibleMessageSummary(
+            store.getSnapshot().messages,
+          );
+          if (lastMessage && lastMessage !== record.lastMessage)
+            recordConversationActivity(record.conversationId, {
+              lastMessage,
+            });
+        }
+        applyConversationFallback(records, defaultConversationId);
+      })
+      .catch(console.error);
     return () => {
       alive = false;
     };
   }, []);
   useEffect(
     () => () => {
+      if (activityViewTimer.current !== null)
+        window.clearTimeout(activityViewTimer.current);
+      activityViewTargets.current.clear();
       for (const timer of activityTimersRef.current.values())
         window.clearTimeout(timer);
       activityTimersRef.current.clear();
@@ -425,9 +449,14 @@ export default function App() {
   };
   const updateConversation = async (
     conversationId: string,
-    patch: Partial<Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">>,
+    patch: Partial<
+      Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">
+    >,
   ) => {
-    const { conversation } = await api.updateConversation(conversationId, patch);
+    const { conversation } = await api.updateConversation(
+      conversationId,
+      patch,
+    );
     setConversations((current) => {
       const updated = current.map((item) =>
         item.conversationId === conversationId
@@ -461,6 +490,7 @@ export default function App() {
   };
 
   const navigateWithTransition = (target: string) => {
+    if (target === "/chat") void preloadReplyMarkdown();
     if (target === location.pathname || transitionLocked.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       nav(target);
@@ -502,7 +532,11 @@ export default function App() {
     ? `route-transition-${transition.phase}`
     : "";
   const surface =
-    location.pathname === "/connections" ? "connections" : location.pathname === "/settings" ? "settings" : "paper";
+    location.pathname === "/connections"
+      ? "connections"
+      : location.pathname === "/settings"
+        ? "settings"
+        : "paper";
   const crossfadeReady =
     transition?.phase === "crossfade" &&
     location.pathname === transition.target;
@@ -514,7 +548,11 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Home
-              status={channel.kind === "api" ? { state: "ready", message: channel.name } : status}
+              status={
+                channel.kind === "api"
+                  ? { state: "ready", message: channel.name }
+                  : status
+              }
               channelName={channel.name}
               onChat={() => navigateWithTransition("/chat")}
               onConnections={() => navigateWithTransition("/connections")}
@@ -549,9 +587,8 @@ export default function App() {
               }
               initialScrollTop={
                 conversationSwitch
-                  ? conversationViewStates.current.get(
-                      displayedConversationId,
-                    )?.scrollTop ?? null
+                  ? (conversationViewStates.current.get(displayedConversationId)
+                      ?.scrollTop ?? null)
                   : null
               }
               onViewStateChange={updateConversationViewState}
@@ -570,7 +607,14 @@ export default function App() {
           </ErrorBoundary>
         }
       />
-      <Route path="/settings" element={<ErrorBoundary><Settings onBack={() => navigateWithTransition("/")} /></ErrorBoundary>} />
+      <Route
+        path="/settings"
+        element={
+          <ErrorBoundary>
+            <Settings onBack={() => navigateWithTransition("/")} />
+          </ErrorBoundary>
+        }
+      />
     </Routes>
   );
 
@@ -580,7 +624,9 @@ export default function App() {
           className={`route-transition-layer route-layer-surface-${
             transition.fromLocation.pathname === "/connections"
               ? "connections"
-              : transition.fromLocation.pathname === "/settings" ? "settings" : "paper"
+              : transition.fromLocation.pathname === "/settings"
+                ? "settings"
+                : "paper"
           } route-transition-outgoing`}
           key={transition.fromLocation.key}
         >

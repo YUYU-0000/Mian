@@ -14,7 +14,8 @@ const bundle = await build({
   bundle: true,
   write: false,
   outdir: profile,
-  format: "iife",
+  format: "esm",
+  splitting: true,
   platform: "browser",
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"' },
@@ -24,11 +25,22 @@ const style = builtPage.match(
   /<link rel="stylesheet"[^>]*href="([^"]+\.css)"/,
 )[1];
 const app = express();
-app.get("/fixture.js", (_req, res) =>
+const bundleRequests = [];
+let releaseMarkdown;
+const markdownDownload = new Promise((resolve) => {
+  releaseMarkdown = resolve;
+});
+app.get("/bundle/:name", async (req, res) => {
+  bundleRequests.push(req.params.name);
+  if (req.params.name.startsWith("ReplyMarkdown-")) await markdownDownload;
   res
     .type("js")
-    .send(bundle.outputFiles.find((file) => file.path.endsWith(".js")).text),
-);
+    .send(
+      bundle.outputFiles.find(
+        (file) => path.basename(file.path) === req.params.name,
+      ).text,
+    );
+});
 app.get("/fixture.css", (_req, res) =>
   res
     .type("css")
@@ -36,7 +48,7 @@ app.get("/fixture.css", (_req, res) =>
 );
 app.get("/", (_req, res) =>
   res.send(
-    `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${style}"><link rel="stylesheet" href="/fixture.css"><style>body,#root{width:100%;height:auto;overflow:auto}#root{padding-top:20px}</style><div id="root"></div><script src="/fixture.js"></script>`,
+    `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${style}"><link rel="stylesheet" href="/fixture.css"><style>body,#root{width:100%;height:auto;overflow:auto}#root{padding-top:20px}</style><div id="root"></div><script type="module" src="/bundle/replyRendering.fixture.js"></script>`,
   ),
 );
 app.use(express.static(path.join(workspace, "client/dist")));
@@ -174,6 +186,49 @@ try {
     "Rendering fixture did not load",
   );
 
+  // 模块下载未完成时，气泡保留正文尺寸和原来的排版字体。
+  const loadingText = "第一行原文\n第二行原文\n第三行原文";
+  await render([`<mian-bubble>${loadingText}</mian-bubble><mian-bub`], true);
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.reply-markdown')?.style.whiteSpace === 'pre-wrap'",
+      ),
+    "Loading bubble was empty",
+  );
+  const fallback = await evaluate(`(() => {
+    const node = document.querySelector('.reply-markdown');
+    const style = getComputedStyle(node);
+    return { text:node.textContent, height:node.getBoundingClientRect().height, font:style.fontFamily, size:style.fontSize, line:style.lineHeight, color:style.color };
+  })()`);
+  assert.equal(fallback.text, loadingText);
+  assert.ok(fallback.height >= parseFloat(fallback.line) * 2.9);
+  assert.equal(
+    bundleRequests.some((name) => name.startsWith("CodeHighlight-")),
+    false,
+  );
+  await render(["**排版已就緒**"]);
+  releaseMarkdown();
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.reply-markdown strong')?.textContent === '排版已就緒'",
+      ),
+    "Markdown did not replace the loading text",
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
+    const style = getComputedStyle(document.querySelector('.reply-markdown'));
+    return {font:style.fontFamily,size:style.fontSize,line:style.lineHeight,color:style.color};
+  })()`),
+    {
+      font: fallback.font,
+      size: fallback.size,
+      line: fallback.line,
+      color: fallback.color,
+    },
+  );
+
   const markdown = [
     "# 一級標題",
     "## 二級標題",
@@ -261,12 +316,21 @@ try {
     },
   );
 
+  assert.equal(
+    bundleRequests.some((name) => name.startsWith("CodeHighlight-")),
+    false,
+    "Text-only Markdown loaded the highlighter",
+  );
   const code = `const message = "${"long line ".repeat(60)}";`;
   await render(["```javascript\n" + code + "\n```"]);
   await waitFor(
     () =>
       evaluate("Boolean(document.querySelector('.reply-code .hljs-keyword'))"),
     "Code highlighting missing",
+  );
+  assert.equal(
+    bundleRequests.filter((name) => name.startsWith("CodeHighlight-")).length,
+    1,
   );
   assert.equal(
     await evaluate(
@@ -440,23 +504,46 @@ try {
     "Closed fence swallowed later text",
   );
 
-  const renders = await evaluate(`(async () => {
-    renderFixture(['起'], true);
+  const rendering = await evaluate(`(async () => {
+    const history = '已完成的固定氣泡';
+    const parse = DOMParser.prototype.parseFromString;
+    let historyParses = 0;
+    DOMParser.prototype.parseFromString = function (text, ...args) {
+      if (String(text).includes(history)) historyParses++;
+      return parse.call(this, text, ...args);
+    };
+    renderFixture([history, '起'], true);
     await new Promise(resolve => setTimeout(resolve, 120));
+    const startHistoryParses = historyParses;
+    const historyNode = document.querySelector('.reply-markdown');
     let count = 0;
     const observer = new MutationObserver(() => count++);
-    observer.observe(document.querySelector('.reply-markdown'), { childList: true, subtree: true, characterData: true });
+    observer.observe(document.querySelectorAll('.reply-markdown')[1], { childList: true, subtree: true, characterData: true });
     for (let i = 1; i <= 60; i++) {
-      renderFixture(['起' + '字'.repeat(i)], true);
+      renderFixture([history, '起' + '字'.repeat(i)], true);
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    renderFixture(['最終正文'], false);
+    renderFixture([history, '最終正文'], false);
     await new Promise(resolve => setTimeout(resolve, 60));
-    observer.disconnect(); return count;
+    observer.disconnect();
+    DOMParser.prototype.parseFromString = parse;
+    return { count, startHistoryParses, historyParses, sameNode: historyNode === document.querySelector('.reply-markdown') };
   })()`);
-  assert.ok(renders < 20, `Streaming caused ${renders} DOM updates`);
+  assert.ok(
+    rendering.count < 20,
+    `Streaming caused ${rendering.count} DOM updates`,
+  );
+  assert.ok(rendering.startHistoryParses > 0);
   assert.equal(
-    await evaluate("document.querySelector('.reply-markdown').textContent"),
+    rendering.historyParses,
+    rendering.startHistoryParses,
+    "Streaming reparsed a completed bubble",
+  );
+  assert.equal(rendering.sameNode, true);
+  assert.equal(
+    await evaluate(
+      "document.querySelectorAll('.reply-markdown')[1].textContent",
+    ),
     "最終正文",
   );
   for (const [page, label] of [
@@ -474,6 +561,10 @@ try {
       "Notice page label incorrect",
     );
   }
+  // 先收起复制提示，避免纸条遮住顶部票根的触摸区域。
+  await evaluate("document.querySelector('.mail').click()");
+  await waitFor(() => evaluate("!document.querySelector('.mail.is-in')"), "Copy notice did not close");
+  await evaluate("Promise.all(document.querySelector('.mail').getAnimations().map(animation => animation.finished))");
   const longTitle = "完整的對話名稱".repeat(12);
   await evaluate(`renderTitleFixture(${JSON.stringify(longTitle)})`);
   await waitFor(

@@ -140,6 +140,40 @@ try {
   await call("Page.enable"); await call("Runtime.enable");
   await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await call("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+  const loadedChunk = name => evaluate(`performance.getEntriesByType('resource').some(entry => entry.name.includes('/${name}-') && entry.name.endsWith('.js'))`);
+  const idleScript = await call("Page.addScriptToEvaluateOnNewDocument", { source: `
+    window.requestIdleCallback = callback => { window.markdownIdle = callback; window.idleCalls = (window.idleCalls || 0) + 1; return 1; };
+    window.cancelIdleCallback = () => {};
+  ` });
+  await navigate("/");
+  await waitFor(() => evaluate("typeof window.markdownIdle === 'function'"), "Home did not schedule idle Markdown preload");
+  assert.equal(await loadedChunk("ReplyMarkdown"), false);
+  assert.equal(await evaluate("window.idleCalls"), 1);
+  await evaluate("window.markdownIdle()");
+  await waitFor(() => loadedChunk("ReplyMarkdown"), "Idle callback did not preload Markdown");
+  assert.equal(await loadedChunk("CodeHighlight"), false);
+
+  // 暂停入口动画，确认预载发生在对话组件挂载之前。
+  await navigate("/");
+  await waitFor(() => evaluate("typeof window.markdownIdle === 'function'"), "Home did not reopen");
+  await evaluate(`window.entryPause = document.createElement('style'); entryPause.textContent = '.route-transition-press .icon-1 {animation-play-state:paused!important}'; document.head.append(entryPause); document.querySelector('.icon-1').click()`);
+  await waitFor(() => loadedChunk("ReplyMarkdown"), "Chat entry did not preload Markdown");
+  assert.equal(await evaluate("document.querySelector('.archive-chat') === null"), true);
+  assert.equal(await loadedChunk("CodeHighlight"), false);
+  await evaluate("entryPause.remove()");
+  await call("Page.removeScriptToEvaluateOnNewDocument", { identifier: idleScript.identifier });
+
+  const timerScript = await call("Page.addScriptToEvaluateOnNewDocument", { source: `
+    window.requestIdleCallback = undefined;
+    const timeout = window.setTimeout.bind(window);
+    window.setTimeout = (callback, delay, ...args) => { if (delay === 1500) window.markdownDelay = delay; return timeout(callback, delay, ...args); };
+  ` });
+  await navigate("/");
+  await waitFor(() => evaluate("window.markdownDelay === 1500"), "Missing 1500ms preload fallback");
+  await waitFor(() => loadedChunk("ReplyMarkdown"), "Timer did not preload Markdown");
+  assert.equal(await loadedChunk("CodeHighlight"), false);
+  await call("Page.removeScriptToEvaluateOnNewDocument", { identifier: timerScript.identifier });
+
   await navigate("/connections");
   await waitFor(() => evaluate("Boolean(document.querySelector('#apiTie'))"), "Connections did not render");
   await evaluate("document.querySelector('#apiTie').click()");

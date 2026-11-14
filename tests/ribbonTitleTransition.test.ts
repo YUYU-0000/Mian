@@ -33,9 +33,12 @@ test("title source is the formally displayed conversation and rename updates onl
     chat,
     /<ArchiveRibbonTitle[\s\S]*conversationId=\{displayedConversation\.conversationId\}[\s\S]*title=\{displayedConversation\.title\}/,
   );
-  assert.doesNotMatch(chat, /ArchiveRibbonTitle[\s\S]{0,180}activeConversationId/);
+  assert.doesNotMatch(
+    chat,
+    /ArchiveRibbonTitle[\s\S]{0,180}activeConversationId/,
+  );
   assert.match(
     app,
-    /const \{ conversation \} = await api\.updateConversation\(conversationId, patch\);[\s\S]*setConversations/,
+    /const \{ conversation \} = await api\.updateConversation\(\s*conversationId,\s*patch,?\s*\);[\s\S]*setConversations/,
   );
 });

@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import ReplyMarkdown from "../client/src/components/ReplyMarkdown";
+import ReplyMarkdown from "../client/src/components/DeferredReplyMarkdown";
 import Notify, { notify } from "../client/src/components/Notify";
 import ToolOutput from "../client/src/components/ToolOutput";
 import ArchiveRibbonTitle from "../client/src/components/ArchiveRibbonTitle";

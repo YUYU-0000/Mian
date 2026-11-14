@@ -156,7 +156,7 @@ function withoutRanges(raw: string, ranges: Array<{ start: number; end: number }
   return masked;
 }
 
-function stripProtocolMarkers(value: string): string {
+export function stripProtocolMarkers(value: string): string {
   let stripped = value;
   for (const marker of protocolMarkers) stripped = stripped.split(marker).join("");
   const lastOpen = stripped.lastIndexOf("<");

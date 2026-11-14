@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { readableToolResult } from "../client/src/chatModel.ts";
-import { ToolRow } from "../client/src/pages/Chat.tsx";
+import { ToolRow } from "../client/src/pages/ChatMessage.tsx";
 import type { ToolEvent } from "../client/src/types.ts";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;

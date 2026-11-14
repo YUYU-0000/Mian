@@ -7,6 +7,55 @@ import {
   type PointerEvent,
 } from "react";
 
+const textOwners = new Map<Element, HTMLElement>();
+const pendingText = new Set<HTMLElement>();
+let resizeObserver: ResizeObserver | null = null;
+let measureFrame = 0;
+
+// 先集中读取宽度，再更新遮罩，避免每段文字各触发一次布局。
+export function measureText(text: HTMLElement) {
+  pendingText.add(text);
+  if (measureFrame) return;
+  measureFrame = requestAnimationFrame(() => {
+    measureFrame = 0;
+    const measured = [...pendingText]
+      .filter((element) => !element.closest("[data-content-hidden]"))
+      .map((element) => ({
+        element,
+        overflowing: element.scrollWidth > element.clientWidth,
+      }));
+    pendingText.clear();
+    for (const { element, overflowing } of measured)
+      element.classList.toggle("is-overflowing", overflowing);
+  });
+}
+
+function observeText(text: HTMLElement) {
+  resizeObserver ??= new ResizeObserver((entries) => {
+    for (const { target } of entries) measureText(textOwners.get(target)!);
+  });
+  const elements = text.firstElementChild
+    ? [text, text.firstElementChild]
+    : [text];
+  for (const element of elements) {
+    textOwners.set(element, text);
+    resizeObserver.observe(element);
+  }
+  return () => {
+    for (const element of elements) {
+      resizeObserver!.unobserve(element);
+      textOwners.delete(element);
+    }
+    pendingText.delete(text);
+    if (!textOwners.size) {
+      resizeObserver!.disconnect();
+      resizeObserver = null;
+      cancelAnimationFrame(measureFrame);
+      measureFrame = 0;
+    }
+  };
+}
+
 export function isScrollingText(target: EventTarget | null) {
   const text = (target as Element).closest<HTMLElement>(".scroll-text");
   return !!text && text.scrollWidth > text.clientWidth;
@@ -22,21 +71,9 @@ function useTextScroll<T extends HTMLElement>(content: unknown) {
     left: number;
   } | null>(null);
   const moved = useRef(false);
-  const measure = () => {
-    const text = ref.current!;
-    text.classList.toggle(
-      "is-overflowing",
-      text.scrollWidth > text.clientWidth,
-    );
-  };
-  useLayoutEffect(() => {
-    const text = ref.current!;
-    const observer = new ResizeObserver(measure);
-    observer.observe(text);
-    if (text.firstElementChild) observer.observe(text.firstElementChild);
-    measure();
-    return () => observer.disconnect();
-  }, [content]);
+  const measure = () => measureText(ref.current!);
+  useLayoutEffect(() => observeText(ref.current!), []);
+  useLayoutEffect(measure, [content]);
   const end = () => {
     drag.current = null;
   };
