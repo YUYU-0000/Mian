@@ -114,10 +114,8 @@ function conversationStorage(
 }
 
 function currentTimeLabel() {
-  return new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 function initialChatGroups(storage: StorageLike): ChatGroup[] {

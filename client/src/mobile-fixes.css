@@ -2,7 +2,7 @@
 .home-date,
 .home-time,
 .home-time span {
-  font-family: ZSFT-br, sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-style: normal;
   font-synthesis: none;
 }
@@ -47,7 +47,7 @@
   height: 32px;
   min-height: 32px;
   padding: 5px 0;
-  font-family: "LXGW Heart Serif", sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-size: 14.5px;
   font-style: normal;
   font-weight: 400;
@@ -185,7 +185,7 @@
 }
 /* Paper-only local font and custom stamp selector. */
 .status-chinese {
-  font-family: "LXGW Heart Serif", sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-weight: 400;
 }
 .paper-result {
@@ -262,8 +262,7 @@
   min-height: 18px;
   width: 100%;
   font:
-    13px ZSFT-br,
-    sans-serif;
+    13px "ZSFT-br", "LXGW Heart Serif", sans-serif;
   outline: none;
 }
 .custom-select-trigger:focus {
@@ -333,8 +332,7 @@
 }
 .stamp-option {
   font:
-    500 10px ZSFT-br,
-    sans-serif;
+    500 10px "ZSFT-br", "LXGW Heart Serif", sans-serif;
   color: rgba(241, 239, 233, 0.65);
   padding: 4px 8px;
   cursor: pointer;
@@ -442,7 +440,7 @@
   gap: 6px;
   position: relative;
   min-height: 12px;
-  font-family: "LXGW Heart Serif", sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-size: 11px;
   line-height: 1;
   letter-spacing: 4px;
@@ -471,7 +469,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "LXGW Heart Serif", sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-size: 12px;
   line-height: 1.6;
   cursor: pointer;
@@ -524,7 +522,7 @@
 .archive-thought,
 .archive-step-summary,
 .archive-step-body {
-  font-family: "LXGW Heart Serif", sans-serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
