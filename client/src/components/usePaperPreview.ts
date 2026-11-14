@@ -1,6 +1,10 @@
-import { useLayoutEffect, useRef, type PointerEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 
-export type PreviewOrigin = Pick<DOMRect, "left" | "top" | "width" | "height">;
 type Point = { x: number; y: number };
 type Pose = Point & { scale: number };
 type Gesture =
@@ -12,7 +16,7 @@ type Gesture =
       center: Point;
       scale: number;
     };
-const motion = { duration: 400, easing: "cubic-bezier(.22,.61,.36,1)" };
+const motion = { duration: 320, easing: "cubic-bezier(.22,.8,.3,1)" };
 const transform = ({ x, y, scale }: Pose) =>
   `translate3d(${x}px,${y}px,0) scale(${scale})`;
 const midpoint = (a: Point, b: Point) => ({
@@ -23,10 +27,10 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
 // 手势只更新当前相纸的合成层，不触发聊天记录重渲染。
 export function usePaperPreview(
-  origin: PreviewOrigin,
   ready: boolean,
   image: boolean,
   onClose: () => void,
+  onSave: () => void,
 ) {
   const dialog = useRef<HTMLDialogElement>(null);
   const paper = useRef<HTMLDivElement>(null);
@@ -36,6 +40,14 @@ export function usePaperPreview(
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef<Gesture | null>(null);
   const closing = useRef(false);
+  const hold = useRef<{ id: number; point: Point; timer: number } | null>(null);
+  const saved = useRef(false);
+
+  const cancelHold = () => {
+    window.clearTimeout(hold.current?.timer);
+    hold.current = null;
+    paper.current!.style.scale = "1";
+  };
 
   const opacity = (value: number) => {
     for (const element of [paper.current!, mask.current!, actions.current!])
@@ -46,7 +58,9 @@ export function usePaperPreview(
   };
   const finishAnimations = () => {
     for (const element of [paper.current!, mask.current!, actions.current!])
-      element.getAnimations().forEach((animation) => animation.finish());
+      element
+        .getAnimations({ subtree: true })
+        .forEach((animation) => animation.finish());
   };
 
   useLayoutEffect(() => {
@@ -55,52 +69,67 @@ export function usePaperPreview(
     element.focus({ preventScroll: true });
     for (const layer of [mask.current!, actions.current!])
       layer.animate([{ opacity: 0 }, { opacity: 1 }], motion);
-    return () => element.close();
+    return () => {
+      window.clearTimeout(hold.current?.timer);
+      element.close();
+    };
   }, []);
 
   useLayoutEffect(() => {
     if (!ready) return;
     const element = paper.current!;
-    const rect = element.getBoundingClientRect();
-    const x = origin.left + origin.width / 2 - rect.left - rect.width / 2;
-    const y = origin.top + origin.height / 2 - rect.top - rect.height / 2;
-    const scale = Math.min(1, origin.width / rect.width);
     const animation = element.animate(
       [
         {
-          transform: `translate3d(${x}px,${y}px,0) scale(${scale}) rotate(-6deg)`,
-          opacity: 0.3,
+          transform: "translate3d(0,16px,0) scale(.96) rotate(1.2deg)",
+          opacity: 0,
         },
         { transform: transform(pose.current), opacity: 1 },
       ],
       motion,
     );
-    return () => animation.cancel();
-  }, [ready, origin]);
+    const sheets = Array.from(element.querySelectorAll(".pv-under"), (sheet) =>
+      sheet.animate([{ opacity: 0 }, { opacity: 1 }], {
+        ...motion,
+        delay: 40,
+        fill: "backwards",
+      }),
+    );
+    return () => [animation, ...sheets].forEach((item) => item.cancel());
+  }, [ready]);
 
   const close = () => {
     if (closing.current) return;
     closing.current = true;
-    finishAnimations();
+    cancelHold();
     const element = paper.current!;
+    const before = getComputedStyle(element);
+    const from = { transform: before.transform, opacity: before.opacity };
+    const current = new DOMMatrix(from.transform);
+    element.getAnimations().forEach((animation) => animation.cancel());
     const animation = element.animate(
       [
+        from,
         {
-          transform: transform(pose.current),
-          opacity: getComputedStyle(element).opacity,
-        },
-        {
-          transform: `translate3d(${pose.current.x}px,${pose.current.y + 60}px,0) scale(${pose.current.scale * 0.96}) rotate(2deg)`,
+          transform: transform({
+            x: current.m41,
+            y: current.m42 + 10,
+            scale: Math.hypot(current.a, current.b) * 0.97,
+          }),
           opacity: 0,
         },
       ],
-      { ...motion, duration: 200, fill: "forwards" },
+      { ...motion, duration: 220, fill: "forwards" },
     );
-    for (const layer of [mask.current!, actions.current!])
-      layer.animate(
-        [{ opacity: getComputedStyle(layer).opacity }, { opacity: 0 }],
-        { duration: 200, fill: "forwards" },
-      );
+    for (const layer of [mask.current!, actions.current!]) {
+      const alpha = getComputedStyle(layer).opacity;
+      layer.getAnimations().forEach((item) => item.cancel());
+      layer.animate([{ opacity: alpha }, { opacity: 0 }], {
+        ...motion,
+        duration: 220,
+        fill: "forwards",
+      });
+    }
     animation.onfinish = onClose;
   };
 
@@ -119,25 +148,45 @@ export function usePaperPreview(
         { transform: before, opacity: alpha },
         { transform: transform(pose.current), opacity: 1 },
       ],
-      { ...motion, duration: 240 },
+      { duration: 240, easing: "cubic-bezier(.22,.61,.36,1)" },
     );
     for (const layer of [mask.current!, actions.current!])
       layer.animate([{ opacity: alpha }, { opacity: 1 }], { duration: 240 });
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (closing.current || event.button !== 0) return;
+    finishAnimations();
+    const point = { x: event.clientX, y: event.clientY };
+    pointers.current.set(event.pointerId, point);
+    const target = event.target as Element;
+    cancelHold();
+    if (pointers.current.size === 1) {
+      saved.current = false;
+      if (!target.closest("a, button, input, textarea, select")) {
+        paper.current!.style.scale = ".98";
+        hold.current = {
+          id: event.pointerId,
+          point,
+          timer: window.setTimeout(() => {
+            saved.current = true;
+            onSave();
+          }, 2000),
+        };
+        if (event.pointerType === "mouse" && !target.closest(".scroll-text"))
+          event.currentTarget.setPointerCapture(event.pointerId);
+      }
+    } else {
+      gesture.current = null;
+    }
+    // 正文和长文件名保留自己的滚动，长按仍在捕获阶段计时。
     if (
-      closing.current ||
-      event.button !== 0 ||
-      (event.target as Element).closest(
-        ".scroll-text, .pv-file-content, a, button",
+      target.closest(
+        ".scroll-text, .pv-file-content, a, button, input, textarea, select",
       )
     )
       return;
-    finishAnimations();
     event.currentTarget.setPointerCapture(event.pointerId);
-    const point = { x: event.clientX, y: event.clientY };
-    pointers.current.set(event.pointerId, point);
     if (image && pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       const mid = midpoint(a, b);
@@ -167,16 +216,17 @@ export function usePaperPreview(
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (
-      !pointers.current.has(event.pointerId) ||
-      !gesture.current ||
-      closing.current
-    )
-      return;
-    event.preventDefault();
+    if (!pointers.current.has(event.pointerId) || closing.current) return;
     const point = { x: event.clientX, y: event.clientY };
     pointers.current.set(event.pointerId, point);
+    if (
+      hold.current?.id === event.pointerId &&
+      distance(point, hold.current.point) > 10
+    )
+      cancelHold();
     const start = gesture.current;
+    if (!start) return;
+    event.preventDefault();
     if (start.kind === "pinch") {
       const [a, b] = [...pointers.current.values()];
       const mid = midpoint(a, b);
@@ -204,6 +254,8 @@ export function usePaperPreview(
 
   const end = (event: PointerEvent<HTMLDivElement>) => {
     if (!pointers.current.delete(event.pointerId)) return;
+    cancelHold();
+    if (!gesture.current) return;
     if (pointers.current.size) {
       gesture.current = {
         kind: "pan",
@@ -214,7 +266,7 @@ export function usePaperPreview(
     }
     const dismiss =
       event.type !== "pointercancel" &&
-      gesture.current?.kind === "drag" &&
+      gesture.current.kind === "drag" &&
       pose.current.y > 120;
     gesture.current = null;
     if (dismiss) close();
@@ -228,10 +280,18 @@ export function usePaperPreview(
     actions,
     close,
     gestures: {
-      onPointerDown,
-      onPointerMove,
-      onPointerUp: end,
-      onPointerCancel: end,
+      onPointerDownCapture: onPointerDown,
+      onPointerMoveCapture: onPointerMove,
+      onPointerUpCapture: end,
+      onPointerCancelCapture: end,
+      onContextMenu: (event: MouseEvent) => event.preventDefault(),
+      onDragStart: (event: MouseEvent) => event.preventDefault(),
+      onClickCapture: (event: MouseEvent) => {
+        if (saved.current) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      },
     },
   };
 }

@@ -123,17 +123,16 @@ try {
       `Promise.all(Array.from(document.querySelectorAll('.pv-viewer *')).flatMap(el=>el.getAnimations()).map(animation=>animation.finished))`,
     );
   const open = async (name) => {
-    const origin = await evaluate(
-      `(() => { const ticket=Array.from(document.querySelectorAll('.ft')).find(el=>el.querySelector('.ft-name').textContent===${JSON.stringify(name)}); ticket.scrollIntoView({block:'center'}); const rect=ticket.getBoundingClientRect(); ticket.click(); return {x:rect.left+rect.width/2,y:rect.top+rect.height/2}; })()`,
+    await evaluate(
+      `(() => { const ticket=Array.from(document.querySelectorAll('.ft')).find(el=>el.querySelector('.ft-name').textContent===${JSON.stringify(name)}); ticket.scrollIntoView({block:'center'}); ticket.click(); })()`,
     );
     await waitFor(
       () => evaluate(`!!document.querySelector('.pv.is-ready')`),
       `预览 ${name}`,
     );
-    return origin;
   };
   const close = async () => {
-    await evaluate(`document.querySelector('[aria-label="關閉預覽"]').click()`);
+    await evaluate(`document.querySelector('.pv-mask').click()`);
     await waitFor(
       () => evaluate(`!document.querySelector('.pv-viewer')`),
       "关闭预览",
@@ -198,32 +197,31 @@ try {
       ),
     "载入附件记录",
   );
-  const origin = await open(portraitName);
+  await evaluate(
+    `window.previewSaves=[];document.addEventListener('click',event=>{const link=event.target.closest('.pv-acts a');if(link)previewSaves.push(link.download);});`,
+  );
+  await open(portraitName);
   const entrance = await evaluate(
-    `(() => { const element=document.querySelector('.pv-motion'), animation=element.getAnimations()[0], r=element.parentElement.getBoundingClientRect(); return {duration:animation.effect.getTiming().duration,start:animation.effect.getKeyframes()[0].transform,center:{x:r.left+r.width/2,y:r.top+r.height/2}}; })()`,
+    `(() => { const animation=document.querySelector('.pv-motion').getAnimations()[0]; return {duration:animation.effect.getTiming().duration,easing:animation.effect.getTiming().easing,start:animation.effect.getKeyframes()[0].transform,sheetDelays:Array.from(document.querySelectorAll('.pv-under'),el=>el.getAnimations()[0].effect.getTiming().delay)}; })()`,
   );
-  assert.equal(entrance.duration, 400);
-  const coordinates = entrance.start.match(
-    /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/,
-  );
-  assert.ok(
-    Math.abs(Number(coordinates[1]) + entrance.center.x - origin.x) < 1,
-  );
-  assert.ok(
-    Math.abs(Number(coordinates[2]) + entrance.center.y - origin.y) < 1,
-  );
+  assert.equal(entrance.duration, 320);
+  assert.equal(entrance.easing, "cubic-bezier(0.22, 0.8, 0.3, 1)");
+  assert.match(entrance.start, /translate3d\(0(?:px)?,\s*16px,\s*0(?:px)?\)/);
+  assert.match(entrance.start, /scale\(0?\.96\)/);
+  assert.deepEqual(entrance.sheetDelays, [40, 40]);
   await settle();
   await evaluate("document.fonts.ready");
   const appearance = await evaluate(`(() => {
     const css=selector=>getComputedStyle(document.querySelector(selector)), image=document.querySelector('img.pv-photo');
-    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,gap:css('.pv-acts').gap,clip:[css('.pv-clip').left,css('.pv-clip').top,css('.pv-clip').width,css('.pv-clip').height],hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],number:document.querySelector('.pv-hand').textContent,photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
+    const save=document.querySelector('.pv-acts a').getBoundingClientRect();
+    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveCenter:save.left+save.width/2,removed:!document.querySelector('.pv-clip,.pv-acts button'),hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],number:document.querySelector('.pv-hand').textContent,photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
   })()`);
   assert.equal(appearance.mask, "rgba(59, 77, 90, 0.42)");
   assert.equal(appearance.paper, "rgb(251, 250, 246)");
   assert.equal(appearance.padding, "16px 16px 0px");
   assert.ok(Math.abs(appearance.angle + 1.2) < 0.001);
-  assert.equal(appearance.gap, "72px");
-  assert.deepEqual(appearance.clip, ["40px", "-26px", "30px", "84px"]);
+  assert.ok(Math.abs(appearance.saveCenter - 195) < 1);
+  assert.equal(appearance.removed, true);
   assert.deepEqual(appearance.hand, ["ZSFT-l, cursive", "22px"]);
   assert.match(appearance.number, /^No\.01\d{2}\.\d{2}$/);
   assert.ok(
@@ -253,6 +251,44 @@ try {
   );
 
   const center = await photoCenter();
+  // 提前松手、移动和双指操作都不保存。
+  await touch("touchStart", [{ ...center, id: 1 }]);
+  await sleep(180);
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.pv-motion')).scale`,
+    ),
+    "0.98",
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.pv-photo').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))`,
+    ),
+    false,
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.pv-photo').dispatchEvent(new MouseEvent('dragstart',{bubbles:true,cancelable:true}))`,
+    ),
+    false,
+  );
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.pv-photo')).userSelect`,
+    ),
+    "none",
+  );
+  await touch("touchEnd", []);
+  await sleep(2100);
+  assert.deepEqual(await evaluate(`previewSaves`), []);
+  assert.equal(await evaluate(`!!document.querySelector('.pv-viewer')`), true);
+
+  await drag(center, 11, 0);
+  await sleep(2100);
+  assert.deepEqual(await evaluate(`previewSaves`), []);
+  await touch("touchEnd", []);
+  await settle();
+
   const pinch = async (start, end) => {
     await touch("touchStart", [
       { x: center.x - start, y: center.y, id: 1 },
@@ -265,6 +301,10 @@ try {
         { x: center.x + spread, y: center.y, id: 2 },
       ]);
       await sleep(16);
+    }
+    if (end > start) {
+      await sleep(2100);
+      assert.deepEqual(await evaluate(`previewSaves`), []);
     }
     await touch("touchEnd", []);
     await settle();
@@ -282,6 +322,35 @@ try {
     ),
     1,
   );
+  await touch("touchStart", [{ ...(await photoCenter()), id: 1 }]);
+  await waitFor(
+    () => evaluate(`previewSaves.length===1`),
+    "按住两秒，松手前保存",
+  );
+  assert.deepEqual(await evaluate(`previewSaves`), [portraitName]);
+  await waitFor(
+    () =>
+      evaluate(
+        `document.querySelector('.pv-viewer .mail.is-in .mail-title')?.textContent==='已保存'`,
+      ),
+    "预览上方显示已保存提示",
+  );
+  await waitFor(async () => {
+    try {
+      return (
+        (await readFile(
+          path.join(backend.directory, "downloads", portraitName),
+          "utf8",
+        )) === svg(600, 900)
+      );
+    } catch {
+      return false;
+    }
+  }, "长按保存原图");
+  await sleep(300);
+  await touch("touchEnd", []);
+  await settle();
+  assert.deepEqual(await evaluate(`previewSaves`), [portraitName]);
   await drag(await photoCenter(), 0, 65);
   assert.ok(
     await evaluate(
@@ -298,6 +367,13 @@ try {
   );
   await drag(await photoCenter(), 0, 160);
   await touch("touchEnd", []);
+  const exit = await evaluate(
+    `(() => {const animation=document.querySelector('.pv-motion').getAnimations().find(a=>a.effect.getTiming().duration===220);const frames=animation.effect.getKeyframes();return {duration:animation.effect.getTiming().duration,fromY:new DOMMatrix(frames[0].transform).m42,toY:new DOMMatrix(frames[1].transform).m42,opacity:frames[0].opacity}})()`,
+  );
+  assert.equal(exit.duration, 220);
+  assert.ok(Math.abs(exit.fromY - 160) < 1);
+  assert.ok(Math.abs(exit.toY - 170) < 1);
+  assert.ok(Number(exit.opacity) < 1);
   await waitFor(
     () => evaluate(`!document.querySelector('.pv-viewer')`),
     "下拉关闭",
@@ -316,7 +392,11 @@ try {
       dimensions[0] <= 390 * 0.78 - 32 + 1 && dimensions[1] <= 844 * 0.6 + 1,
     );
     assert.ok(Math.abs(dimensions[0] / dimensions[1] - ratio) < 0.001);
-    await evaluate(`document.querySelector('.pv-mask').click()`);
+    const blank = await evaluate(
+      `(() => {const r=document.querySelector('.pv-acts').getBoundingClientRect();return{x:12,y:r.top+r.height/2}})()`,
+    );
+    await touch("touchStart", [blank]);
+    await touch("touchEnd", []);
     await waitFor(
       () => evaluate(`!document.querySelector('.pv-viewer')`),
       "点遮罩关闭",
@@ -357,6 +437,24 @@ try {
     ),
     0,
   );
+  await touch("touchStart", [{ ...codePoint, id: 1 }]);
+  await waitFor(
+    () => evaluate(`previewSaves.includes('example.ts')`),
+    "信纸正文长按保存",
+  );
+  await touch("touchEnd", []);
+  await waitFor(async () => {
+    try {
+      return (
+        (await readFile(
+          path.join(backend.directory, "downloads/example.ts"),
+          "utf8",
+        )) === cases.find(([name]) => name === "example.ts")[1]
+      );
+    } catch {
+      return false;
+    }
+  }, "信纸保存原文件");
   await close();
 
   assert.equal(
@@ -465,7 +563,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "PASS 390x844: 拍立得样式、票根展开、横竖图、编号、缩放、下拉回弹/关闭、遮罩关闭、长文件名、代码/Markdown/HTML/PDF、原图保存与直接下载。",
+    "PASS 390x844: 共用预览样式、淡入淡出、双指缩放、长按保存与取消、下拉连续关闭、遮罩关闭、长文件名、代码/Markdown/HTML/PDF、原文件保存与直接下载。",
   );
 } finally {
   cdp?.close();

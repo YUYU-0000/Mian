@@ -2,11 +2,12 @@
 <!--
   圖片查看設計稿（點票根「查看」後的全屏預覽）
   - 遮罩：rgba(59,77,90,.42)，後面的聊天隱約可見。
-  - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)，左上角迴紋針；後面墊兩張錯開的紙（#6b8396、#c5d0d8）。
+  - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)；後面墊兩張錯開的紙（#6b8396、#c5d0d8）。
   - 照片長寬比跟著圖片本身：完整顯示不裁切；最寬 78vw（減去相紙內邊距），最高 60vh，超出等比縮小。相紙白邊和底部留白固定。
   - 底部白邊：左邊 IMAGE · 圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫 No.編號 + 日期。
-  - 操作：遮罩上兩個帶下劃線的小字「保存」「關閉」，間距 72px。
-  - 手勢：兩指縮放；下拉時拍立得跟手下滑並淡出，鬆手關閉；點遮罩空白處關閉。打開時從票根位置落到螢幕中間，帶一點旋轉。
+  - 操作：遮罩上帶下劃線的小字「保存」居中；相紙長按兩秒也可保存，移動超過 10px 或提前鬆手取消。
+  - 手勢：兩指縮放；下拉跟手淡出，鬆手繼續下滑關閉；點遮罩空白處關閉，相紙本身不關閉。
+  - 動畫：打開從下方 16px、scale(.96) 淡入並轉到 -1.2deg，320ms，底紙晚 40ms；關閉下移 10px、scale(.97) 淡出，220ms。緩動 cubic-bezier(.22,.8,.3,1)。
 -->
 <html><head><meta charset="utf-8"><style>
 @import url("../client/public/fonts/lxgw/result.css");
@@ -34,8 +35,6 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
   box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 24px rgba(30,40,50,.22);transform:rotate(-1.2deg)}
 .pv-photo{display:block;max-width:calc(78vw - 32px);max-height:60vh;width:var(--w);aspect-ratio:var(--r);background:linear-gradient(170deg,#e6ecef 0%,#c9d5dd 38%,#93a7b5 62%,#6b8396 100%);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
-/* 迴紋針 */
-.pv-clip{position:absolute;left:40px;top:-26px;width:30px;height:84px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
 /* 相紙下方白邊 */
 .pv-foot{width:var(--w);max-width:calc(78vw - 32px);box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-end;padding:14px 2px 16px}
 .pv-info{min-width:0;flex:1;margin-right:12px}
@@ -46,7 +45,7 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
 /* 操作 */
 .pv-hint{position:fixed;left:0;right:0;top:calc(16% + env(safe-area-inset-top));text-align:center;font-family:"ZSFT-br",serif;font-size:7px;letter-spacing:3px;color:rgba(245,242,236,.7)}
 
-.pv-acts{position:fixed;left:0;right:0;bottom:calc(20% + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:72px}
+.pv-acts{position:fixed;left:0;right:0;bottom:calc(20% + env(safe-area-inset-bottom));display:flex;justify-content:center}
 .pv-acts span{font-size:12px;letter-spacing:3px;color:#f5f2ec;border-bottom:1px solid rgba(245,242,236,.8);padding-bottom:2px;cursor:pointer}
 </style></head><body>
 <div class="chat"><div class="u">帮我找张海边的图</div><div>图也找到了，你看看喜不喜欢。</div><div>是早上拍的那种。</div></div>
@@ -61,7 +60,6 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
       <div class="pv-hand">No.02<br>11.14</div>
     </div>
   </div>
-  <svg class="pv-clip" viewBox="0 0 22 64"><path d="M15 16 V8 a4.2 4.2 0 0 0 -8.4 0 V50 a3.6 3.6 0 0 0 7.2 0 V20 a2 2 0 0 0 -4 0 V40" fill="none" stroke="#8e999f" stroke-width="1.5" stroke-linecap="round"/></svg>
 </div>
-<div class="pv-acts"><span>保存</span><span>關閉</span></div>
+<div class="pv-acts"><span>保存</span></div>
 </body></html>

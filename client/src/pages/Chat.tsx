@@ -466,6 +466,7 @@ export default function Chat({
                   conversationId={session.conversationId}
                   mine
                   pending
+                  previewUrl={draft.previewUrl}
                   progress={draft.uploaded ? undefined : draft.progress}
                 />
                 <button

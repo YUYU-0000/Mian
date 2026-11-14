@@ -10,8 +10,12 @@ const backend = await fileTicketServer();
 const filename = "這是一個需要左右滑動才能完整讀出的附件設計稿.md";
 const inputPath = path.join(backend.directory, filename);
 const imagePath = path.join(backend.directory, "照片.png");
+const uploadedImageBytes = Buffer.concat([
+  imageBytes,
+  Buffer.alloc(256 * 1024),
+]);
 await writeFile(inputPath, "# 附件内容\n" + "Mian file test.\n".repeat(8192));
-await writeFile(imagePath, imageBytes);
+await writeFile(imagePath, uploadedImageBytes);
 const browser = spawn(
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   [
@@ -104,6 +108,18 @@ try {
     await evaluate(`document.querySelector('.archive-input textarea').focus()`);
     await call("Input.insertText", { text });
   };
+  const closePreview = async () => {
+    await evaluate(`document.querySelector('.pv-mask').click()`);
+    await waitFor(
+      () => evaluate(`!document.querySelector('.pv-viewer')`),
+      "关闭预览",
+    );
+  };
+  const imageTicket = (selector) =>
+    evaluate(`(() => {
+    const ticket=document.querySelector(${JSON.stringify(selector)}), style=getComputedStyle(ticket);
+    return {width:ticket.offsetWidth,height:ticket.offsetHeight,paper:style.getPropertyValue('--t-paper').trim(),ink:style.getPropertyValue('--t-ink').trim(),kicker:ticket.querySelector('.ft-kicker').textContent,action:ticket.querySelector('.ft-act').textContent,thumb:!!ticket.querySelector('.ft-thumb'),size:ticket.querySelector('.ft-meta').textContent.includes('KB')};
+  })()`);
   await call("Runtime.enable");
   await call("Page.enable");
   await call("Network.enable");
@@ -129,6 +145,16 @@ try {
     ),
     true,
   );
+  const sentImageStyle = {
+    width: 228,
+    height: 74,
+    paper: "#6b8396",
+    ink: "#f5f2ec",
+    kicker: "IMAGE · 圖片",
+    action: "查看",
+    thumb: true,
+    size: true,
+  };
   await call("Network.emulateNetworkConditions", {
     offline: false,
     latency: 0,
@@ -146,6 +172,33 @@ try {
     ),
     true,
   );
+  assert.deepEqual(
+    await imageTicket(".file-draft .ft.is-image"),
+    sentImageStyle,
+  );
+  assert.equal(
+    await evaluate(
+      `!!document.querySelector('.file-draft .ft.is-image .ft-progress')`,
+    ),
+    true,
+  );
+  assert.ok(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.file-draft .ft-thumb')).backgroundImage.includes('blob:')`,
+    ),
+  );
+  await evaluate(`document.querySelector('.file-draft .ft.is-image').click()`);
+  await waitFor(
+    () =>
+      evaluate(`document.querySelector('.pv.is-ready img')?.naturalWidth===1`),
+    "上传期间查看本地图片",
+  );
+  assert.ok(
+    await evaluate(
+      `document.querySelector('.pv-acts a').href.startsWith('blob:')`,
+    ),
+  );
+  await closePreview();
   await waitFor(
     () =>
       evaluate(
@@ -207,11 +260,29 @@ try {
   const parts = backend.received[0].messages.at(-1).content;
   assert.equal(
     parts.find((part) => part.type === "image_url").image_url.url,
-    `data:image/png;base64,${imageBytes.toString("base64")}`,
+    `data:image/png;base64,${uploadedImageBytes.toString("base64")}`,
   );
   assert.ok(
     parts[0].text.includes(filename) && parts[0].text.includes("# 附件内容"),
   );
+  assert.deepEqual(
+    await imageTicket(".archive-msg .ft.is-mine.is-image"),
+    sentImageStyle,
+  );
+  await evaluate(
+    `document.querySelector('.archive-msg .ft.is-mine.is-image').click()`,
+  );
+  await waitFor(
+    () =>
+      evaluate(`document.querySelector('.pv.is-ready img')?.naturalWidth===1`),
+    "已发送图片打开共用拍立得",
+  );
+  assert.ok(
+    await evaluate(
+      `document.querySelector('.pv-viewer img').src.includes('/api/conversations/c1/files/')`,
+    ),
+  );
+  await closePreview();
 
   // 文件名拖动只滚动文字，不打开图片或下载。
   const point = await evaluate(
@@ -274,7 +345,9 @@ try {
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-disposition"), /^attachment/);
   }
-  await evaluate(`document.querySelector('.archive-msg .ft.is-image').click()`);
+  await evaluate(
+    `document.querySelector('.archive-msg .ft.is-image:not(.is-mine)').click()`,
+  );
   await waitFor(
     () =>
       evaluate(`document.querySelector('.pv-viewer img')?.naturalWidth === 1`),
@@ -296,7 +369,7 @@ try {
       return false;
     }
   }, "图片保存");
-  await evaluate(`document.querySelector('[aria-label="關閉預覽"]').click()`);
+  await closePreview();
   const { conversation: branch } = await request(
     "/api/conversations/c1/fork",
     "POST",

@@ -5,6 +5,7 @@ import {
   useMemo,
   useLayoutEffect,
   useState,
+  useRef,
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
@@ -16,21 +17,21 @@ import { HTML_PREVIEW_SANDBOX } from "./HtmlPreview";
 import ReplyMarkdown from "./DeferredReplyMarkdown";
 import ScrollText from "./ScrollText";
 import { notify } from "./Notify";
-import { usePaperPreview, type PreviewOrigin } from "./usePaperPreview";
+import { usePaperPreview } from "./usePaperPreview";
 
 export default function FilePreview({
   file,
   conversationId,
   kind,
   number,
-  origin,
+  previewUrl,
   onClose,
 }: {
   file: ChatFile;
   conversationId: string;
   kind: PreviewKind;
   number: number;
-  origin: PreviewOrigin;
+  previewUrl?: string;
   onClose: () => void;
 }) {
   const [text, setText] = useState<string | null>(null);
@@ -45,7 +46,11 @@ export default function FilePreview({
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
   const loaded = image ? photo !== null : kind === "pdf" || text !== null;
   const ready = loaded && availableHeight !== null;
-  const preview = usePaperPreview(origin, ready, image, onClose);
+  const download = useRef<HTMLAnchorElement>(null);
+  const preview = usePaperPreview(ready, image, onClose, () => {
+    download.current!.click();
+    notify.ok("已保存");
+  });
   useLayoutEffect(() => {
     if (!loaded) return;
     const paper = preview.paper.current!;
@@ -154,7 +159,7 @@ export default function FilePreview({
             {image ? (
               <img
                 className="pv-photo"
-                src={api.fileUrl(conversationId, file.id, true)}
+                src={previewUrl ?? api.fileUrl(conversationId, file.id, true)}
                 alt={file.name}
                 draggable={false}
                 onLoad={(event) =>
@@ -182,12 +187,14 @@ export default function FilePreview({
                       src={api.fileUrl(conversationId, file.id, true)}
                     />
                   ) : kind === "html" ? (
-                    <iframe
-                      className="pv-file-frame"
-                      title={file.name}
-                      srcDoc={text ?? ""}
-                      sandbox={HTML_PREVIEW_SANDBOX}
-                    />
+                    text !== null && (
+                      <iframe
+                        className="pv-file-frame"
+                        title={file.name}
+                        srcDoc={text}
+                        sandbox={HTML_PREVIEW_SANDBOX}
+                      />
+                    )
                   ) : kind === "markdown" ? (
                     <div className="pv-markdown">
                       <ReplyMarkdown text={text ?? ""} typing={false} />
@@ -225,24 +232,16 @@ export default function FilePreview({
               </div>
             </div>
           </div>
-          <svg className="pv-clip" viewBox="0 0 22 64" aria-hidden="true">
-            <path
-              d="M15 16 V8 a4.2 4.2 0 0 0 -8.4 0 V50 a3.6 3.6 0 0 0 7.2 0 V20 a2 2 0 0 0 -4 0 V40"
-              fill="none"
-              stroke="#8e999f"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
         </div>
       </div>
       <div className="pv-acts" ref={preview.actions}>
-        <a href={api.fileUrl(conversationId, file.id)} download={file.name}>
+        <a
+          ref={download}
+          href={previewUrl ?? api.fileUrl(conversationId, file.id)}
+          download={file.name}
+        >
           <span>保存</span>
         </a>
-        <button type="button" onClick={preview.close} aria-label="關閉預覽">
-          <span>關閉</span>
-        </button>
       </div>
     </dialog>,
     document.body,

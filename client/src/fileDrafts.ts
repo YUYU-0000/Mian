@@ -8,6 +8,7 @@ export type FileDraft = {
   file: ChatFile;
   progress: number;
   uploaded: boolean;
+  previewUrl?: string;
 };
 
 // 草稿属于会话，切页时上传继续，完成后只把票根信息写进记录。
@@ -53,6 +54,9 @@ export class FileDrafts {
           },
           progress: 0,
           uploaded: false,
+          previewUrl: file.type.startsWith("image/")
+            ? URL.createObjectURL(file)
+            : undefined,
         },
       ]);
       void api
@@ -79,9 +83,7 @@ export class FileDrafts {
         })
         .catch((error) => {
           if (!controller.signal.aborted) {
-            this.publish(
-              this.drafts.filter((draft) => draft.draftId !== draftId),
-            );
+            this.remove(draftId);
             fail("上傳失敗", error);
           }
         })
@@ -91,17 +93,26 @@ export class FileDrafts {
 
   remove(draftId: string) {
     this.uploads.get(draftId)?.abort();
+    this.release(this.drafts.filter((draft) => draft.draftId === draftId));
     this.publish(this.drafts.filter((draft) => draft.draftId !== draftId));
   }
 
   take() {
     const files = this.drafts.map((draft) => draft.file);
+    this.release(this.drafts);
     this.publish([]);
     return files;
   }
 
   dispose() {
     for (const upload of this.uploads.values()) upload.abort();
+    this.release(this.drafts);
     this.listeners.clear();
+  }
+
+  // 本地缩略图只随草稿存在，不写进记录。
+  private release(drafts: FileDraft[]) {
+    for (const draft of drafts)
+      if (draft.previewUrl) URL.revokeObjectURL(draft.previewUrl);
   }
 }

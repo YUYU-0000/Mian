@@ -60,6 +60,55 @@ test("附件草稿拒绝超大文件并允许取消正在上传的文件", async
   drafts.dispose();
 });
 
+test("图片草稿上传前可预览，发送、移除和离开时释放本地图片", async (t) => {
+  t.mock.method(api, "uploadFile", async (_id, file: File) => ({
+    id: "uploaded-image",
+    name: file.name,
+    size: file.size,
+    mimeType: file.type,
+    createdAt: "2026-11-14T12:00:00Z",
+  }));
+  for (const action of ["take", "remove", "dispose"] as const) {
+    const drafts = new FileDrafts("c1");
+    drafts.add(
+      [new File(["image bytes"], "photo.png", { type: "image/png" })],
+      assert.fail,
+    );
+    const { previewUrl, draftId } = drafts.getSnapshot()[0];
+    assert.equal(drafts.getSnapshot()[0].uploaded, false);
+    assert.equal(await (await fetch(previewUrl!)).text(), "image bytes");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(drafts.getSnapshot()[0].uploaded, true);
+    assert.equal(drafts.getSnapshot()[0].previewUrl, previewUrl);
+    if (action === "take") {
+      const files = drafts.take();
+      assert.equal(files[0].id, "uploaded-image");
+      assert.doesNotMatch(JSON.stringify(files), /blob:|previewUrl/);
+    } else if (action === "remove") drafts.remove(draftId);
+    else drafts.dispose();
+    await assert.rejects(fetch(previewUrl!));
+  }
+});
+
+test("图片上传失败后移除草稿并释放预览地址", async (t) => {
+  t.mock.method(api, "uploadFile", async () => {
+    throw new Error("upload failed");
+  });
+  const failures: unknown[][] = [];
+  const drafts = new FileDrafts("c1");
+  drafts.add(
+    [new File(["image"], "photo.png", { type: "image/png" })],
+    (...args) => failures.push(args),
+  );
+  const { previewUrl } = drafts.getSnapshot()[0];
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(drafts.getSnapshot().length, 0);
+  assert.equal(failures[0][0], "上傳失敗");
+  assert.equal((failures[0][1] as Error).message, "upload failed");
+  await assert.rejects(fetch(previewUrl!));
+  drafts.dispose();
+});
+
 test("Codex 只为成功的文件修改发出收集事件，工具事件保持原样", () => {
   const bridge = new CodexBridge(() => {
     throw new Error("不启动真实 Codex");

@@ -3,7 +3,6 @@ import { api } from "../api";
 import { previewKind } from "../filePreview";
 import type { ChatFile } from "../types";
 import ScrollText from "./ScrollText";
-import type { PreviewOrigin } from "./usePaperPreview";
 
 const FilePreview = lazy(() => import("./FilePreview"));
 
@@ -20,6 +19,7 @@ export default memo(function FileTicket({
   mine = false,
   progress,
   pending = false,
+  previewUrl,
   getNumber,
 }: {
   file: ChatFile;
@@ -27,42 +27,34 @@ export default memo(function FileTicket({
   mine?: boolean;
   progress?: number;
   pending?: boolean;
+  previewUrl?: string;
   getNumber?: () => number;
 }) {
-  const [viewing, setViewing] = useState<{
-    origin: PreviewOrigin;
-    number: number;
-  } | null>(null);
-  const ticket = useRef<HTMLDivElement>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const closePreview = useCallback(() => setViewing(null), []);
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
   const image = file.mimeType.startsWith("image/");
-  const thumbnail = image && !mine;
   const size = fileSize(file.size);
   const extension = file.name.includes(".")
     ? file.name.split(".").at(-1)!.toUpperCase()
     : "FILE";
   const open = () => {
-    if (pending) return;
-    if (kind)
-      setViewing({
-        origin: ticket.current!.getBoundingClientRect(),
-        number: getNumber?.() ?? 1,
-      });
+    if (pending && !image) return;
+    if (kind) setViewing(getNumber?.() ?? 1);
     else download.current!.click();
   };
   const nameAndMeta = (
     <>
       <div className="ft-kicker">
-        {mine ? "SENT · 寄出" : image ? "IMAGE · 圖片" : "FILE · 檔案"}
+        {image ? "IMAGE · 圖片" : mine ? "SENT · 寄出" : "FILE · 檔案"}
       </div>
       <ScrollText className="ft-name">{file.name}</ScrollText>
       <div className="ft-meta">
         <span>
           <b>{size.value}</b> {size.unit}
         </span>
-        {!thumbnail && (
+        {!image && (
           <span>
             {progress !== undefined
               ? `上傳中 ${progress}%`
@@ -75,17 +67,18 @@ export default memo(function FileTicket({
                   })}
           </span>
         )}
-        {!mine && <span className="ft-act">{kind ? "查看" : "下載"}</span>}
+        {(!mine || image) && (
+          <span className="ft-act">{kind ? "查看" : "下載"}</span>
+        )}
       </div>
     </>
   );
   return (
     <>
       <div
-        ref={ticket}
-        className={`ft${mine ? " is-mine" : ""}${thumbnail ? " is-image" : ""}`}
-        role={pending ? undefined : "button"}
-        tabIndex={pending ? undefined : 0}
+        className={`ft${mine ? " is-mine" : ""}${image ? " is-image" : ""}`}
+        role={pending && !image ? undefined : "button"}
+        tabIndex={pending && !image ? undefined : 0}
         aria-label={`${kind ? "查看" : "下載"} ${file.name}`}
         onClick={(event) => {
           if (!(event.target as Element).closest("a")) open();
@@ -99,12 +92,12 @@ export default memo(function FileTicket({
       >
         <div className="ft-body" />
         <div className="ft-main">
-          {thumbnail ? (
+          {image ? (
             <>
               <div
                 className="ft-thumb"
                 style={{
-                  backgroundImage: `url("${api.fileUrl(conversationId, file.id, true)}")`,
+                  backgroundImage: `url("${previewUrl ?? api.fileUrl(conversationId, file.id, true)}")`,
                 }}
               />
               <div className="ft-col">{nameAndMeta}</div>
@@ -135,8 +128,8 @@ export default memo(function FileTicket({
             file={file}
             conversationId={conversationId}
             kind={kind}
-            number={viewing.number}
-            origin={viewing.origin}
+            number={viewing}
+            previewUrl={previewUrl}
             onClose={closePreview}
           />
         </Suspense>
