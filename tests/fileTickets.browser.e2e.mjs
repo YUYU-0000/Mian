@@ -195,7 +195,7 @@ try {
   );
   assert.ok(
     await evaluate(
-      `document.querySelector('.pv-acts a').href.startsWith('blob:')`,
+      `document.querySelector('.pv-download').href.startsWith('blob:')`,
     ),
   );
   await closePreview();
@@ -350,7 +350,9 @@ try {
   );
   await waitFor(
     () =>
-      evaluate(`document.querySelector('.pv-viewer img')?.naturalWidth === 1`),
+      evaluate(
+        `document.querySelector('.pv.is-ready img')?.naturalWidth === 1`,
+      ),
     "查看全屏大图",
   );
   assert.equal(
@@ -359,7 +361,16 @@ try {
     ),
     844,
   );
-  await evaluate(`document.querySelector('.pv-acts a').click()`);
+  await evaluate(
+    `Promise.all(document.querySelector('.pv-motion').getAnimations({subtree:true}).map(animation=>animation.finished))`,
+  );
+  const savePoint = await evaluate(
+    `(() => {const r=document.querySelector('.pv-card').getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`,
+  );
+  await call("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [savePoint],
+  });
   await waitFor(async () => {
     try {
       return (
@@ -368,7 +379,8 @@ try {
     } catch {
       return false;
     }
-  }, "图片保存");
+  }, "长按一秒保存图片");
+  await call("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await closePreview();
   const { conversation: branch } = await request(
     "/api/conversations/c1/fork",

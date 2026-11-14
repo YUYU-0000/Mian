@@ -35,7 +35,6 @@ export function usePaperPreview(
   const dialog = useRef<HTMLDialogElement>(null);
   const paper = useRef<HTMLDivElement>(null);
   const mask = useRef<HTMLDivElement>(null);
-  const actions = useRef<HTMLDivElement>(null);
   const pose = useRef<Pose>({ x: 0, y: 0, scale: 1 });
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef<Gesture | null>(null);
@@ -50,14 +49,14 @@ export function usePaperPreview(
   };
 
   const opacity = (value: number) => {
-    for (const element of [paper.current!, mask.current!, actions.current!])
+    for (const element of [paper.current!, mask.current!])
       element.style.opacity = String(value);
   };
   const draw = () => {
     paper.current!.style.transform = transform(pose.current);
   };
   const finishAnimations = () => {
-    for (const element of [paper.current!, mask.current!, actions.current!])
+    for (const element of [paper.current!, mask.current!])
       element
         .getAnimations({ subtree: true })
         .forEach((animation) => animation.finish());
@@ -67,8 +66,7 @@ export function usePaperPreview(
     const element = dialog.current!;
     element.showModal();
     element.focus({ preventScroll: true });
-    for (const layer of [mask.current!, actions.current!])
-      layer.animate([{ opacity: 0 }, { opacity: 1 }], motion);
+    mask.current!.animate([{ opacity: 0 }, { opacity: 1 }], motion);
     return () => {
       window.clearTimeout(hold.current?.timer);
       element.close();
@@ -121,15 +119,14 @@ export function usePaperPreview(
       ],
       { ...motion, duration: 220, fill: "forwards" },
     );
-    for (const layer of [mask.current!, actions.current!]) {
-      const alpha = getComputedStyle(layer).opacity;
-      layer.getAnimations().forEach((item) => item.cancel());
-      layer.animate([{ opacity: alpha }, { opacity: 0 }], {
-        ...motion,
-        duration: 220,
-        fill: "forwards",
-      });
-    }
+    const layer = mask.current!;
+    const alpha = getComputedStyle(layer).opacity;
+    layer.getAnimations().forEach((item) => item.cancel());
+    layer.animate([{ opacity: alpha }, { opacity: 0 }], {
+      ...motion,
+      duration: 220,
+      fill: "forwards",
+    });
     animation.onfinish = onClose;
   };
 
@@ -150,8 +147,9 @@ export function usePaperPreview(
       ],
       { duration: 240, easing: "cubic-bezier(.22,.61,.36,1)" },
     );
-    for (const layer of [mask.current!, actions.current!])
-      layer.animate([{ opacity: alpha }, { opacity: 1 }], { duration: 240 });
+    mask.current!.animate([{ opacity: alpha }, { opacity: 1 }], {
+      duration: 240,
+    });
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -171,7 +169,7 @@ export function usePaperPreview(
           timer: window.setTimeout(() => {
             saved.current = true;
             onSave();
-          }, 2000),
+          }, 1000),
         };
         if (event.pointerType === "mouse" && !target.closest(".scroll-text"))
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -277,7 +275,6 @@ export function usePaperPreview(
     dialog,
     paper,
     mask,
-    actions,
     close,
     gestures: {
       onPointerDownCapture: onPointerDown,

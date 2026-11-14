@@ -19,9 +19,7 @@
 .pv *,
 .pv *::before,
 .pv *::after,
-.pv-mask,
-.pv-acts,
-.pv-acts * {
+.pv-mask {
   box-sizing: content-box;
 }
 .pv-viewer::backdrop {
@@ -129,22 +127,13 @@
   transform: rotate(-6deg);
   margin-bottom: -2px;
 }
-.pv-acts {
+/* 下载链接不展示，行高保留原有预览下边界。 */
+.pv-download {
   position: fixed;
-  left: 0;
-  right: 0;
   bottom: calc(20% + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: center;
+  height: 1lh;
+  visibility: hidden;
   pointer-events: none;
-}
-.pv-acts span {
-  font-size: 12px;
-  letter-spacing: 3px;
-  color: #f5f2ec;
-  border-bottom: 1px solid rgba(245, 242, 236, 0.8);
-  padding-bottom: 2px;
-  cursor: pointer;
 }
 
 /* 拖动层与设计稿的固定旋转分开。 */
@@ -179,16 +168,6 @@ img.pv-photo {
 }
 .pv-name::-webkit-scrollbar {
   display: none;
-}
-.pv-acts a {
-  display: block;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  text-decoration: none;
-  pointer-events: auto;
 }
 
 /* 文件用信纸替换照片，保留白边和底部编号。 */

@@ -198,7 +198,7 @@ try {
     "载入附件记录",
   );
   await evaluate(
-    `window.previewSaves=[];document.addEventListener('click',event=>{const link=event.target.closest('.pv-acts a');if(link)previewSaves.push(link.download);});`,
+    `window.previewSaves=[];window.previewSaveDelays=[];document.addEventListener('click',event=>{const link=event.target.closest('.pv-download');if(link){previewSaves.push(link.download);previewSaveDelays.push(performance.now()-window.previewPressStart);}});`,
   );
   await open(portraitName);
   const entrance = await evaluate(
@@ -213,14 +213,14 @@ try {
   await evaluate("document.fonts.ready");
   const appearance = await evaluate(`(() => {
     const css=selector=>getComputedStyle(document.querySelector(selector)), image=document.querySelector('img.pv-photo');
-    const save=document.querySelector('.pv-acts a').getBoundingClientRect();
-    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveCenter:save.left+save.width/2,removed:!document.querySelector('.pv-clip,.pv-acts button'),hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],number:document.querySelector('.pv-hand').textContent,photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
+    const download=document.querySelector('.pv-download');
+    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveHidden:css('.pv-download').visibility==='hidden'&&download.tabIndex===-1&&download.getAttribute('aria-hidden')==='true',removed:!document.querySelector('.pv-clip,.pv-acts'),hand:[css('.pv-hand').fontFamily,css('.pv-hand').fontSize],number:document.querySelector('.pv-hand').textContent,photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
   })()`);
   assert.equal(appearance.mask, "rgba(59, 77, 90, 0.42)");
   assert.equal(appearance.paper, "rgb(251, 250, 246)");
   assert.equal(appearance.padding, "16px 16px 0px");
   assert.ok(Math.abs(appearance.angle + 1.2) < 0.001);
-  assert.ok(Math.abs(appearance.saveCenter - 195) < 1);
+  assert.equal(appearance.saveHidden, true);
   assert.equal(appearance.removed, true);
   assert.deepEqual(appearance.hand, ["ZSFT-l, cursive", "22px"]);
   assert.match(appearance.number, /^No\.01\d{2}\.\d{2}$/);
@@ -279,12 +279,12 @@ try {
     "none",
   );
   await touch("touchEnd", []);
-  await sleep(2100);
+  await sleep(1100);
   assert.deepEqual(await evaluate(`previewSaves`), []);
   assert.equal(await evaluate(`!!document.querySelector('.pv-viewer')`), true);
 
   await drag(center, 11, 0);
-  await sleep(2100);
+  await sleep(1100);
   assert.deepEqual(await evaluate(`previewSaves`), []);
   await touch("touchEnd", []);
   await settle();
@@ -303,7 +303,7 @@ try {
       await sleep(16);
     }
     if (end > start) {
-      await sleep(2100);
+      await sleep(1100);
       assert.deepEqual(await evaluate(`previewSaves`), []);
     }
     await touch("touchEnd", []);
@@ -322,11 +322,17 @@ try {
     ),
     1,
   );
-  await touch("touchStart", [{ ...(await photoCenter()), id: 1 }]);
+  const savePoint = await photoCenter();
+  await evaluate(`window.previewPressStart=performance.now()`);
+  await touch("touchStart", [{ ...savePoint, id: 1 }]);
+  await sleep(750);
+  assert.deepEqual(await evaluate(`previewSaves`), []);
   await waitFor(
     () => evaluate(`previewSaves.length===1`),
-    "按住两秒，松手前保存",
+    "按住一秒，松手前保存",
   );
+  const saveDelay = await evaluate(`previewSaveDelays[0]`);
+  assert.ok(saveDelay >= 950 && saveDelay < 1800, `长按耗时 ${saveDelay}ms`);
   assert.deepEqual(await evaluate(`previewSaves`), [portraitName]);
   await waitFor(
     () =>
@@ -392,9 +398,7 @@ try {
       dimensions[0] <= 390 * 0.78 - 32 + 1 && dimensions[1] <= 844 * 0.6 + 1,
     );
     assert.ok(Math.abs(dimensions[0] / dimensions[1] - ratio) < 0.001);
-    const blank = await evaluate(
-      `(() => {const r=document.querySelector('.pv-acts').getBoundingClientRect();return{x:12,y:r.top+r.height/2}})()`,
-    );
+    const blank = { x: 195, y: 844 * 0.8 - 8 };
     await touch("touchStart", [blank]);
     await touch("touchEnd", []);
     await waitFor(

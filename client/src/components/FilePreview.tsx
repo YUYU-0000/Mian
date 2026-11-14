@@ -72,12 +72,12 @@ export default function FilePreview({
         },
       ),
     );
-    // 按既定操作位置留空，白边和底纸保持原尺寸。
+    // 保留原有下边界，移除保存按钮不改变相纸尺寸。
     setAvailableHeight(
       Math.min(
         viewport.height * 0.6,
         2 *
-          (preview.actions.current!.getBoundingClientRect().top -
+          (download.current!.getBoundingClientRect().top -
             bounds.top -
             bounds.height / 2 -
             padding -
@@ -234,15 +234,14 @@ export default function FilePreview({
           </div>
         </div>
       </div>
-      <div className="pv-acts" ref={preview.actions}>
-        <a
-          ref={download}
-          href={previewUrl ?? api.fileUrl(conversationId, file.id)}
-          download={file.name}
-        >
-          <span>保存</span>
-        </a>
-      </div>
+      <a
+        className="pv-download"
+        ref={download}
+        href={previewUrl ?? api.fileUrl(conversationId, file.id)}
+        download={file.name}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
     </dialog>,
     document.body,
   );
