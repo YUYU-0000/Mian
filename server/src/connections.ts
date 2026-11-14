@@ -7,6 +7,8 @@ import { readConfig } from "./config.js";
 
 type ApiPreset = { id: string; note: string; endpoint: string; key: string; model: string };
 type Presets = { presets: ApiPreset[]; activeId: string | null };
+type RateLimitWindow = { usedPercent: number; resetsAt: number | null };
+type RateLimitSnapshot = { primary: RateLimitWindow | null; secondary: RateLimitWindow | null };
 const file = path.resolve("server/data/api-presets.json");
 
 async function readPresets(): Promise<Presets> {
@@ -61,6 +63,26 @@ export function connectionRoutes(bridge: CodexBridge) {
   router.post("/subscriptions/codex/login/cancel", async (req, res, next) => {
     try { res.json(await bridge.request("account/login/cancel", { loginId: req.body.loginId })); }
     catch (error) { next(error); }
+  });
+  router.get("/subscriptions/codex/quota", async (_req, res, next) => {
+    try {
+      await bridge.connect(await readConfig());
+      const response = await bridge.request("account/rateLimits/read") as {
+        rateLimits: RateLimitSnapshot;
+        rateLimitsByLimitId: Record<string, RateLimitSnapshot> | null;
+      };
+      const limits = response.rateLimitsByLimitId?.codex ?? response.rateLimits;
+      const [window] = [limits.primary, limits.secondary]
+        .filter(window => window !== null)
+        .sort((a, b) => b.usedPercent - a.usedPercent);
+      if (!window) throw new Error("Codex 未返回可用的訂閱額度。");
+      res.json({
+        left: Math.max(0, Math.min(100, 100 - window.usedPercent)),
+        resetAt: window.resetsAt === null ? "未提供重置時間" : new Date(window.resetsAt * 1000).toLocaleString("zh-CN", {
+          month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+        }),
+      });
+    } catch (error) { next(error); }
   });
   router.get("/subscriptions/codex/models", async (_req, res, next) => {
     try {

@@ -128,8 +128,9 @@ export const api = {
     await delay(300);
     demoSubscriptions[provider].model = cfg.model;
   },
-  subQuota: async (_provider: Provider): Promise<Quota> => {
-    // 待接后端：保留设计稿的额度演示数据。
+  subQuota: async (provider: Provider): Promise<Quota> => {
+    if (provider === "codex") return request<Quota>("/api/subscriptions/codex/quota");
+    // 待接后端：Gemini / Kimi
     await delay(600);
     return { left: 96, resetAt: "11月20日 01:59" };
   },

@@ -6,17 +6,26 @@ import express from "express";
 import type { AddressInfo } from "node:net";
 import type { CodexBridge } from "../server/src/codex.ts";
 
-test("connection routes persist presets and use the selected endpoint and credentials", async () => {
+test("connection routes persist presets, use provider credentials, and read Codex quota", async () => {
   const workspace = process.cwd();
   const directory = await mkdtemp(path.join(workspace, ".tmp-connection-test-"));
   process.chdir(directory);
   const { connectionRoutes } = await import("../server/src/connections.ts");
   const calls: string[] = [];
+  const primary = { usedPercent: 20, windowDurationMins: 300, resetsAt: new Date(2026, 10, 14, 1, 20).getTime() / 1000 };
+  const secondary = { usedPercent: 75, windowDurationMins: 10080, resetsAt: new Date(2026, 10, 20, 17, 10).getTime() / 1000 };
+  let quotaResponse: unknown = { rateLimits: { primary, secondary }, rateLimitsByLimitId: null };
+  let quotaError: Error | null = null;
   const bridge = {
     connect: async () => {},
     readAccount: async () => ({ loggedIn: true, account: "test@example.com", plan: "plus" }),
     request: async (method: string, params: { cursor?: string }) => {
       calls.push(method);
+      if (method === "account/rateLimits/read") {
+        assert.equal(params, undefined);
+        if (quotaError) throw quotaError;
+        return quotaResponse;
+      }
       if (method === "model/list") return params.cursor
         ? { data: [{ model: "second" }], nextCursor: null }
         : { data: [{ model: "first" }], nextCursor: "next" };
@@ -66,6 +75,25 @@ test("connection routes persist presets and use the selected endpoint and creden
     assert.deepEqual(await request("/api-presets"), { presets: [], activeId: null });
     assert.equal((await request("/subscriptions/codex")).loggedIn, true);
     assert.deepEqual(await request("/subscriptions/codex/models"), ["first", "second"]);
+    assert.deepEqual(await request("/subscriptions/codex/quota"), { left: 25, resetAt: "11月20日 17:10" });
+    quotaResponse = {
+      rateLimits: { primary: { ...primary, usedPercent: 100 }, secondary: null },
+      rateLimitsByLimitId: {
+        codex: { primary: { ...primary, usedPercent: 91 }, secondary },
+        codex_other: { primary: { ...primary, usedPercent: 99 }, secondary: null },
+      },
+    };
+    assert.deepEqual(await request("/subscriptions/codex/quota"), { left: 9, resetAt: "11月14日 01:20" });
+    quotaResponse = { rateLimits: { primary: null, secondary: { ...secondary, usedPercent: 100, resetsAt: null } }, rateLimitsByLimitId: null };
+    assert.deepEqual(await request("/subscriptions/codex/quota"), { left: 0, resetAt: "未提供重置時間" });
+    quotaResponse = { rateLimits: { primary: null, secondary: null }, rateLimitsByLimitId: null };
+    const missingQuota = await fetch(base + "/subscriptions/codex/quota");
+    assert.equal(missingQuota.status, 400);
+    assert.deepEqual(await missingQuota.json(), { error: "Codex 未返回可用的訂閱額度。" });
+    quotaError = new Error("Codex login expired. Please sign in again.");
+    const failedQuota = await fetch(base + "/subscriptions/codex/quota");
+    assert.equal(failedQuota.status, 400);
+    assert.deepEqual(await failedQuota.json(), { error: quotaError.message });
     await request("/subscriptions/codex/login", "POST");
     await request("/subscriptions/codex/logout", "POST");
     assert.ok(calls.includes("account/login/start"));
