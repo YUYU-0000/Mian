@@ -1,0 +1,196 @@
+.reply-markdown {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.reply-markdown
+  :is(
+    p,
+    ul,
+    ol,
+    blockquote,
+    pre,
+    table,
+    details,
+    .reply-code,
+    .reply-table-scroll
+  ) {
+  margin: 0.7em 0;
+}
+.reply-markdown > :first-child {
+  margin-top: 0;
+}
+.reply-markdown > :last-child {
+  margin-bottom: 0;
+}
+.reply-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0.9em 0 0.45em;
+  font-family: inherit;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.reply-markdown h1 {
+  font-size: 1.45em;
+}
+.reply-markdown h2 {
+  font-size: 1.3em;
+}
+.reply-markdown h3 {
+  font-size: 1.15em;
+}
+.reply-markdown :is(h4, h5, h6) {
+  font-size: 1em;
+}
+.reply-markdown :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.reply-markdown li {
+  margin: 0.25em 0;
+}
+.reply-markdown li > p {
+  margin: 0.35em 0;
+}
+.reply-markdown input[type="checkbox"] {
+  margin: 0 0.4em 0 0;
+  accent-color: #7590a3;
+}
+.reply-markdown blockquote {
+  border-left: 2px solid #9baeb9;
+  margin-left: 0;
+  padding-left: 0.9em;
+  color: #697780;
+}
+.reply-markdown blockquote > :first-child {
+  margin-top: 0;
+}
+.reply-markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+.reply-markdown a {
+  color: #527489;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reply-markdown hr {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.reply-markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.reply-markdown :is(code, kbd) {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.9em;
+  letter-spacing: 0;
+}
+.reply-markdown :not(pre) > code,
+.reply-markdown kbd {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: #efede6;
+}
+.reply-markdown kbd {
+  border: 1px solid #d6d4cc;
+}
+.reply-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+  padding: 10px 12px;
+  background: #f1efe9;
+  border-radius: 4px;
+}
+.reply-markdown pre code {
+  font-size: 0.87em;
+}
+.reply-code {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid #dedbd2;
+  border-radius: 5px;
+  background: #f1efe9;
+}
+.reply-code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #e1ded5;
+  color: #7a807d;
+  font-size: 11px;
+}
+.reply-code button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #697f8c;
+  font: inherit;
+  cursor: pointer;
+}
+.reply-code > pre {
+  margin: 0;
+  border-radius: 0;
+}
+.reply-code-preview {
+  padding: 5px 10px 8px;
+  font-size: 12px;
+}
+.reply-code-preview iframe {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  margin-top: 8px;
+  border: 1px solid #d8d5cd;
+  background: #fff;
+}
+.reply-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.reply-markdown table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font: inherit;
+}
+.reply-markdown :is(th, td) {
+  border: 1px solid #d9dbd5;
+  padding: 5px 9px;
+  text-align: left;
+}
+.reply-markdown th {
+  background: #f0f0e9;
+  font-weight: 700;
+}
+.reply-markdown :is(th, td)[align="center"] {
+  text-align: center;
+}
+.reply-markdown :is(th, td)[align="right"] {
+  text-align: right;
+}
+.reply-markdown summary {
+  cursor: pointer;
+}
+/* 沿用纸面色系，不加载高亮库主题。 */
+.reply-code
+  :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in) {
+  color: #786777;
+}
+.reply-code :is(.hljs-string, .hljs-attr, .hljs-template-tag) {
+  color: #617b67;
+}
+.reply-code :is(.hljs-number, .hljs-symbol, .hljs-attribute) {
+  color: #9b7858;
+}
+.reply-code :is(.hljs-title, .hljs-name, .hljs-type) {
+  color: #536f85;
+}
+.reply-code :is(.hljs-comment, .hljs-meta, .hljs-quote) {
+  color: #8c918a;
+}

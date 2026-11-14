@@ -245,11 +245,11 @@ export default function ApiSheet({
               type={showKey ? "text" : "password"}
               autoComplete="off"
               spellCheck={false}
-              placeholder={draft.hasKey ? "已保存，輸入以更換" : "sk-"}
+              placeholder={draft.hasKey ? draft.keyHint : "sk-"}
               value={draft.key ?? ""}
               onChange={(e) => onChange({ key: e.target.value })}
             />
-            <button
+            {draft.key && <button
               className="api-mini js-toggle"
               type="button"
               onClick={(e) => {
@@ -258,7 +258,7 @@ export default function ApiSheet({
               }}
             >
               {showKey ? "HIDE" : "SHOW"}
-            </button>
+            </button>}
           </span>
         </label>
         <div className="api-field">

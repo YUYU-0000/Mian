@@ -2,6 +2,7 @@ export type Sandbox='read-only'|'workspace-write'|'danger-full-access';
 export type ChannelSelection = { kind: "codex" } | { kind: "api"; presetId: string };
 export type Channel = ChannelSelection & { name: string };
 export type ChatMessage = { role: "user" | "assistant"; content: string };
+export type ReplyFormat = "plain" | "api";
 export type Config={workingDirectory:string;sandbox:Sandbox;model:string;channel?:ChannelSelection};
 export type ConnectionStatus={state:'not-connected'|'checking'|'ready'|'login-required'|'error';message:string;version?:string;account?:string};
 export type ConversationRecord={conversationId:string;threadId:string|null;parentConversationId:string|null;rootNumber:number;branchPath:number[];branchCounter:number;abbr:string;title:string;frontName:string;image:string;pinned:boolean;model:string|null;reasoningEffort:string|null;totalTokens:number|null;uncachedTotalTokens:number|null;lastActivityAt:string|null;lastMessage:string|null;collaborationMode:string|null;createdAt:string;updatedAt:string};
@@ -13,14 +14,14 @@ export type Approval={requestId:string;kind:'command'|'file'|'permissions';title
 export type ChatEvent=(
  | {type:'connection';status:ConnectionStatus}
  | {type:'channel';channel:Channel}
- | {type:'turn-started';turnId:string;format?:'plain'}
- | {type:'assistant-delta';turnId:string;delta:string;format?:'plain';immediate?:boolean}
+ | {type:'turn-started';turnId:string;format?:ReplyFormat}
+ | {type:'assistant-delta';turnId:string;delta:string;format?:ReplyFormat;immediate?:boolean}
  | {type:'thinking-started';turnId:string;itemId:string}
  | {type:'thinking-delta';turnId:string;itemId?:string;delta:string}
  | {type:'thinking-completed';turnId:string;itemId:string}
  | {type:'tool';turnId:string;tool:ToolEvent}
  | {type:'approval';turnId:string;approval:Approval}
- | {type:'turn-completed';turnId:string;status:string;error?:string;format?:'plain'}
+ | {type:'turn-completed';turnId:string;status:string;error?:string;format?:ReplyFormat}
  | {type:'conversation-updated';conversation:ConversationRecord}
  | {type:'error';message:string}
 ) & {conversationId?:string};

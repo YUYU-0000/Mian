@@ -5,7 +5,9 @@ export type ProviderConfig = {
   model: string;
   format: ApiFormat;
 };
-export type ChatMessage = { role: "user" | "assistant"; content: string };
+import { VisibleContent } from "./visibleContent.js";
+
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 export type TokenUsage = { totalTokens: number; uncachedTotalTokens: number };
 export type CompletionEvent =
   | { type: "text"; text: string; immediate?: boolean }
@@ -112,10 +114,11 @@ function unsupported(error: unknown, field: string) {
 async function* readCompletion(
   response: Response,
 ): AsyncGenerator<CompletionEvent> {
+  const visible = new VisibleContent();
   if (!response.headers.get("content-type")?.includes("text/event-stream")) {
     const body = await response.json();
     if (body.error) throw responseError(body, response.status);
-    const text = body.choices?.[0]?.message?.content;
+    const text = visible.push(body.choices?.[0]?.message?.content ?? "") + visible.finish();
     if (text) yield { type: "text", text, immediate: true };
     const usage = readUsage(body.usage);
     if (usage) yield { type: "usage", usage };
@@ -142,8 +145,10 @@ async function* readCompletion(
     const choice = body.choices?.[0];
     if (choice?.finish_reason) finished = true;
     // reasoning_content 和 tool_calls 不进入正文。
-    if (choice?.delta?.content)
-      yield { type: "text", text: choice.delta.content };
+    if (choice?.delta?.content) {
+      const text = visible.push(choice.delta.content);
+      if (text) yield { type: "text", text };
+    }
     const usage = readUsage(body.usage);
     if (usage) yield { type: "usage", usage };
   };
@@ -164,6 +169,8 @@ async function* readCompletion(
       }
     }
     if (!done && !finished) throw new Error("服務商連線中斷，回覆尚未完成。");
+    const tail = visible.finish();
+    if (tail) yield { type: "text", text: tail };
   } finally {
     await reader.cancel();
     reader.releaseLock();

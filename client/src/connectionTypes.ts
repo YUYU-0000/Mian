@@ -12,6 +12,7 @@ export type ApiPreset = {
   endpoint: string;
   key?: string;
   hasKey?: boolean;
+  keyHint?: string;
   model: string;
   format: "openai";
 };

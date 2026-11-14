@@ -96,18 +96,18 @@ test("API failures retain the user message and retry the same history", async ()
   store.enqueueEvent({
     type: "turn-started",
     turnId: "turn-1",
-    format: "plain",
+    format: "api",
   });
   store.enqueueEvent({
     type: "assistant-delta",
     turnId: "turn-1",
-    format: "plain",
+    format: "api",
     delta: "没说完",
   });
   store.enqueueEvent({
     type: "turn-completed",
     turnId: "turn-1",
-    format: "plain",
+    format: "api",
     status: "failed",
     error: "Insufficient quota.",
   });

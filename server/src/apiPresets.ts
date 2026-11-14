@@ -30,7 +30,7 @@ export async function writePresets(value: Presets) {
 }
 
 export function publicPreset({ key, ...preset }: ApiPreset) {
-  return { ...preset, hasKey: Boolean(key) };
+  return { ...preset, hasKey: Boolean(key), keyHint: key.slice(0, 7) };
 }
 
 export async function requirePreset(id: string) {

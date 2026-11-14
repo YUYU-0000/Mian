@@ -610,7 +610,7 @@ export default function App() {
       onAnimationEnd={handleTransitionEnd}
     >
       {routeLayers}
-      <Notify />
+      <Notify page={location.pathname} />
     </div>
   );
 }

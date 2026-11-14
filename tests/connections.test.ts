@@ -61,6 +61,7 @@ test("connection routes persist presets, use provider credentials, and read Code
     assert.ok(preset.id);
     assert.equal(preset.key, undefined);
     assert.equal(preset.hasKey, true);
+    assert.equal(preset.keyHint, "test-ke");
     assert.equal(preset.format, "openai");
     await request("/api-presets", "POST", { ...preset, note: "updated" });
     await request(`/api-presets/${preset.id}/use`, "POST");
@@ -73,6 +74,7 @@ test("connection routes persist presets, use provider credentials, and read Code
     const listed = await request("/api-presets");
     assert.equal(listed.activeId, preset.id);
     assert.equal(listed.presets[0].key, undefined);
+    assert.equal(listed.presets[0].keyHint, "test-ke");
     assert.deepEqual(await request("/api-models", "POST", preset), ["example-model"]);
     assert.deepEqual(await request("/api-models", "POST", { ...preset, endpoint: endpoint + "/v1/" }), ["example-model"]);
     assert.deepEqual(await request("/api-models", "POST", { ...preset, endpoint: endpoint + "/gateway" }), ["example-model"]);

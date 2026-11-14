@@ -55,6 +55,9 @@ test("OpenAI stream keeps the exact base, history and UTF-8 chunks, drops reason
     });
     return sse(
       { choices: [{ delta: { reasoning_content: "隐藏推理" } }] },
+      { choices: [{ delta: { content: "<thi" } }] },
+      { choices: [{ delta: { content: "nk>同样隐藏</thi" } }] },
+      { choices: [{ delta: { content: "nk>" } }] },
       { choices: [{ delta: { content: "你好，" } }] },
       { choices: [{ delta: { content: "世界。" }, finish_reason: "stop" }] },
       {

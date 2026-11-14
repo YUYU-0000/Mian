@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { MIAN_API_PUBLIC_REPLY_PROTOCOL } from "./publicReplyProtocol.js";
 import {
   completeChat,
   shortProviderMessage,
@@ -12,7 +13,7 @@ type ApiChatEvent = {
   type: "turn-started" | "assistant-delta" | "turn-completed";
   conversationId: string;
   turnId: string;
-  format: "plain";
+  format: "api";
   delta?: string;
   immediate?: boolean;
   status?: string;
@@ -45,6 +46,7 @@ export class ApiChat {
     conversationId: string,
     config: ProviderConfig,
     messages: ChatMessage[],
+    localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
   ) {
     if (this.isBusy(conversationId))
       throw new Error("当前会话已有正在运行的 turn");
@@ -54,9 +56,12 @@ export class ApiChat {
       type: "turn-started",
       conversationId,
       turnId: turn.turnId,
-      format: "plain",
+      format: "api",
     });
-    void this.run(conversationId, turn, config, messages);
+    void this.run(conversationId, turn, config, [
+      { role: "system", content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${localTime}` },
+      ...messages,
+    ]);
     return { conversationId, turnId: turn.turnId };
   }
 
@@ -80,7 +85,7 @@ export class ApiChat {
     const base = {
       conversationId,
       turnId: turn.turnId,
-      format: "plain" as const,
+      format: "api" as const,
     };
     let status = "completed";
     let error: string | undefined;
@@ -97,7 +102,7 @@ export class ApiChat {
             ...base,
             type: "assistant-delta",
             delta: event.text,
-            immediate: event.immediate,
+            immediate: event.immediate && !event.text.includes("<mian-"),
           });
       }
     } catch (cause) {

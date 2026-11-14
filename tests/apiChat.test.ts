@@ -17,7 +17,7 @@ test("API runtime isolates turns, cancels only the selected conversation and kee
     "fetch",
     (_url, init) =>
       new Promise((resolve, reject) => {
-        const text = JSON.parse(init.body).messages[0].content;
+        const text = JSON.parse(init.body).messages.find((message: { role: string }) => message.role === "user").content;
         signals.set(text, init.signal);
         replies.set(text, resolve);
         init.signal.addEventListener("abort", () => reject(init.signal.reason));

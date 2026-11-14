@@ -23,7 +23,10 @@ export const notify = {
   fail: (title: string, err?: unknown) => show("fail", title, reasonOf(err)),
 };
 
-export default function Notify() {
+export default function Notify({ page }: { page: string }) {
+  const pageLabel = page === "/connections" ? "連接設置"
+    : page === "/settings" ? "檔案館"
+    : page === "/chat" ? "對話" : "主界面";
   const [notice, setNotice] = useState<Notice>({
     kind: "ok",
     title: "",
@@ -89,7 +92,7 @@ export default function Notify() {
             <div className="mail-row">
               <div className="mail-kicker">
                 <b>{notice.kind === "fail" ? "未成功" : mark}</b>
-                <span>連接設置 →</span>
+                <span>{pageLabel} →</span>
               </div>
               <span className="mail-title">{notice.title}</span>
               <span className="mail-time">

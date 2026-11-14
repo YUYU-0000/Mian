@@ -1,3 +1,4 @@
+import { localDateTime } from "./format";
 import type {
   ChatMessage,
   ChatEvent,
@@ -230,7 +231,7 @@ export const api = {
   send: async (text: string, conversationId: string, messages?: ChatMessage[]) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
-      body: JSON.stringify({ text, conversationId, messages }),
+      body: JSON.stringify({ text, conversationId, messages, localTime: localDateTime() }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)
       throw new Error("服务未返回有效的 turnId");

@@ -5,6 +5,8 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  lazy,
+  Suspense,
   type SyntheticEvent,
   type ReactNode,
 } from "react";
@@ -34,6 +36,11 @@ import type {
 import ArchiveRibbonTitle from "../components/ArchiveRibbonTitle";
 import TicketDrawer from "../components/TicketDrawer";
 import type { ConversationRecord } from "../types";
+
+const MarkdownContent = lazy(() => import("../components/ReplyMarkdown"));
+function ReplyMarkdown(props: { text: string; typing: boolean }) {
+  return <Suspense fallback={null}><MarkdownContent {...props} /></Suspense>;
+}
 
 const Hourglass = () => (
   <svg className="status-icon hourglass" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -707,7 +714,7 @@ export default function Chat({
                       </div>
                     </div>
                     <div className="archive-msg-content archive-reply-head-content">
-                      <ArchiveModule
+                      {(!message.format || message.thinking) && <ArchiveModule
                         title="THINKING"
                         running={shouldShowThinkingHourglass(
                           message,
@@ -721,7 +728,7 @@ export default function Chat({
                             kind: "thinking",
                           }) && <span className="cursor-blink" />}
                         </div>
-                      </ArchiveModule>
+                      </ArchiveModule>}
                     </div>
                   </div>
                   <div className="archive-msg-content archive-reply-body">
@@ -733,11 +740,10 @@ export default function Chat({
                         className={`archive-bubble ${historicalAnimationIds.current.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`}
                         data-timeline-kind="ASSISTANT_BUBBLE"
                       >
-                        {visual?.preToolBubbles[index] ?? ""}
-                        {cursorMatches(visual?.cursor ?? null, {
-                          kind: "preToolBubble",
-                          index,
-                        }) && <span className="cursor-blink" />}
+                        <ReplyMarkdown
+                          text={visual?.preToolBubbles[index] ?? ""}
+                          typing={cursorMatches(visual?.cursor ?? null, { kind: "preToolBubble", index })}
+                        />
                       </div>
                     ))}
                   {message.tools.length > 0 && preToolReady && (
@@ -787,11 +793,10 @@ export default function Chat({
                       className={`archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.current.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`}
                       data-timeline-kind="ASSISTANT_BUBBLE"
                     >
-                      {visual?.bubbles[index] ?? ""}
-                      {cursorMatches(visual?.cursor ?? null, {
-                        kind: "bubble",
-                        index,
-                      }) && <span className="cursor-blink" />}
+                      <ReplyMarkdown
+                        text={visual?.bubbles[index] ?? ""}
+                        typing={cursorMatches(visual?.cursor ?? null, { kind: "bubble", index })}
+                      />
                     </div>
                   ))}
                   {message.approvals.map((approval) => (

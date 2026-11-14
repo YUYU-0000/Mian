@@ -363,7 +363,7 @@ app.post("/api/turn", async (request, response) => {
       });
       publishConversation(conversation);
       const messages = request.body.messages ?? [{ role: "user", content: request.body.text.trim() }];
-      response.json(apiChat.startTurn(conversationId, preset, messages));
+      response.json(apiChat.startTurn(conversationId, preset, messages, request.body.localTime));
       return;
     }
     const result = await bridge.startTurn(

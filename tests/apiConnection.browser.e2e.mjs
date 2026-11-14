@@ -18,7 +18,7 @@ const conversation = {
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 };
 let channel = { kind: "codex", name: "CODEX" };
-let preset = { id: "paper", note: "我的中转", endpoint: "https://fake.test/relay", hasKey: true, model: "", format: "openai" };
+let preset = { id: "paper", note: "我的中转", endpoint: "https://fake.test/relay", hasKey: true, keyHint: "sk-abcd", model: "", format: "openai" };
 const calls = [];
 let seq = 0;
 const app = express();
@@ -39,7 +39,7 @@ app.post("/api/api-models", (_req, res) => res.status(400).json({ error: "Model 
 app.post("/api/api-presets", (req, res) => {
   const { key, ...fields } = req.body;
   assert.equal(key, "");
-  preset = { ...fields, hasKey: true };
+  preset = { ...fields, hasKey: true, keyHint: "sk-abcd" };
   res.json(preset);
 });
 app.post("/api/api-presets/paper/use", (_req, res) => {
@@ -116,6 +116,8 @@ try {
   await evaluate("document.querySelector('#apiTie').click()");
   await waitFor(() => evaluate("Boolean(document.querySelector('.api-sheet .js-use'))"), "Saved API paper did not open");
   assert.equal(await evaluate("document.querySelector('.api-sheet .js-key').value"), "");
+  assert.equal(await evaluate("document.querySelector('.api-sheet .js-key').placeholder"), "sk-abcd");
+  assert.equal(await evaluate("document.querySelector('.api-sheet .js-toggle')"), null);
   await evaluate("document.querySelector('.api-sheet .js-model').click()");
   await waitFor(() => evaluate("Boolean(document.querySelector('input.js-model'))"), "MODEL did not allow manual input after listing failed");
   await evaluate(`(() => {
@@ -125,6 +127,12 @@ try {
   })()`);
   await input(`${currentPaper} .js-note`, "原纸片的草稿");
   await input(`${currentPaper} .js-endpoint`, "https://draft.test/custom");
+  await input(`${currentPaper} .js-key`, "key-only-in-memory");
+  await waitFor(() => evaluate(`Boolean(document.querySelector('${currentPaper} .js-toggle'))`), "New Key did not reveal SHOW/HIDE");
+  await evaluate(`document.querySelector('${currentPaper} .js-toggle').click()`);
+  assert.equal(await evaluate(`document.querySelector('${currentPaper} .js-key').type`), "text");
+  await input(`${currentPaper} .js-key`, "");
+  await waitFor(() => evaluate(`!document.querySelector('${currentPaper} .js-toggle')`), "Empty Key still has SHOW/HIDE");
   await input(`${currentPaper} .js-key`, "key-only-in-memory");
   await turnPaper("ArrowRight");
   await waitFor(() => evaluate(`Boolean(document.querySelector('${currentPaper} .js-add'))`), "Plus paper did not become current");
@@ -172,6 +180,23 @@ try {
   await waitFor(() => evaluate("document.querySelector('.capsule-text')?.textContent === '我的中转'"), "Home did not show the current API note");
   await navigate("/chat");
   await waitFor(() => evaluate("document.querySelector('#archiveRibbonTitle')?.textContent === '对话标题'"), "Chat title included the channel or lost its conversation title");
+  const publishReply = (event) => {
+    for (const socket of sockets.clients) socket.send(JSON.stringify({ kind: "event", streamId: "api-browser", seq: ++seq, event: { conversationId: "c1", ...event } }));
+  };
+  publishReply({ type: "turn-started", turnId: "api-protocol", format: "api" });
+  publishReply({ type: "assistant-delta", turnId: "api-protocol", format: "api", delta: "<mian-think" });
+  await sleep(120);
+  assert.doesNotMatch(await evaluate("document.querySelector('.archive-msg[data-role=assistant]')?.textContent ?? ''"), /mian-/);
+  publishReply({ type: "assistant-delta", turnId: "api-protocol", format: "api", delta: "ing>想。</mian-thinking><mian-bubble>**好。**</mian-bubble><mian-bubble>在。</mian-bubble>" });
+  publishReply({ type: "turn-completed", turnId: "api-protocol", format: "api", status: "completed" });
+  await waitFor(() => evaluate("document.querySelectorAll('.archive-msg[data-role=assistant] .archive-bubble').length === 2 && [...document.querySelectorAll('.archive-bubble')].at(-1)?.textContent === '在。'"), "API public bubbles did not play in order");
+  assert.equal(await evaluate("document.querySelector('.archive-thought').textContent"), "想。");
+  assert.equal(await evaluate("document.querySelector('.reply-markdown strong').textContent"), "好。");
+  publishReply({ type: "turn-started", turnId: "api-fallback", format: "api" });
+  publishReply({ type: "assistant-delta", turnId: "api-fallback", format: "api", delta: "普通答复。" });
+  publishReply({ type: "turn-completed", turnId: "api-fallback", format: "api", status: "completed" });
+  await waitFor(() => evaluate("[...document.querySelectorAll('.archive-msg[data-role=assistant]')].at(-1)?.querySelector('.archive-bubble')?.textContent === '普通答复。'"), "Untagged API reply missing");
+  assert.equal(await evaluate("[...document.querySelectorAll('.archive-msg[data-role=assistant]')].at(-1).querySelector('.archive-module')"), null);
   await navigate("/connections");
   await waitFor(() => evaluate("Boolean(document.querySelector('#codexTie'))"), "Connections did not reopen");
   await evaluate("document.querySelector('#codexTie').click()");

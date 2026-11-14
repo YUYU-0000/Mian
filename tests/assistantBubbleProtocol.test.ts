@@ -361,7 +361,7 @@ test("code blocks and their blank lines remain in one explicit bubble", () => {
     "<mian-bubble>```ts\nconst a = 1;\n\n\n\nconst b = 2;\n```</mian-bubble>",
   );
   assert.equal(parsed.bubbles.length, 1);
-  assert.equal(parsed.bubbles[0].includes("const a = 1;\n\nconst b = 2;"), true);
+  assert.equal(parsed.bubbles[0].includes("const a = 1;\n\n\n\nconst b = 2;"), true);
 });
 
 test("multiple pre-tool bubbles use the existing exact 300ms visual pause", () => {

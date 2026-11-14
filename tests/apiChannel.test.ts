@@ -162,7 +162,11 @@ test(
         (event) =>
           event.type === "turn-completed" && event.turnId === turn.turnId,
       );
-      assert.deepEqual(received[0].messages, messages);
+      assert.deepEqual(received[0].messages.slice(1), messages);
+      assert.equal(received[0].messages[0].role, "system");
+      assert.match(received[0].messages[0].content, /現在是/);
+      assert.match(received[0].messages[0].content, /<mian-thinking>/);
+      assert.doesNotMatch(received[0].messages[0].content, /mian-pre-tool|mian-tool-summary/);
       assert.equal(received[0].stream, true);
       assert.equal(
         events.find((event) => event.type === "assistant-delta").delta,
@@ -199,7 +203,7 @@ test(
         (event) =>
           event.type === "assistant-delta" && event.turnId === stopping.turnId,
       );
-      assert.equal(received[1].messages.length, 5);
+      assert.equal(received[1].messages.length, 6);
       await request(
         `/api/conversations/${branch.conversationId}`,
         "DELETE",
