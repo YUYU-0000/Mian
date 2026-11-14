@@ -7,6 +7,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { WebSocket } from "ws";
+import { API_FORMAT_REMINDER } from "../server/src/apiPrompt.ts";
 
 test(
   "API channel routes persist selection, stream history, fork, stop, and return to Codex",
@@ -30,7 +31,7 @@ test(
       response.write(
         `data: ${JSON.stringify({ choices: [{ delta: { content: "API 回答" } }] })}\n\n`,
       );
-      if (body.messages.at(-1).content === "stop") {
+      if (body.messages.at(-1).content === `stop\n\n${API_FORMAT_REMINDER}`) {
         response.on("close", () => providerStopped());
         return;
       }
@@ -162,11 +163,17 @@ test(
         (event) =>
           event.type === "turn-completed" && event.turnId === turn.turnId,
       );
-      assert.deepEqual(received[0].messages.slice(1), messages);
+      assert.deepEqual(received[0].messages.slice(1), [
+        ...messages.slice(0, -1),
+        { role: "user", content: `新问题\n\n${API_FORMAT_REMINDER}` },
+      ]);
       assert.equal(received[0].messages[0].role, "system");
       assert.match(received[0].messages[0].content, /現在是/);
       assert.match(received[0].messages[0].content, /<mian-thinking>/);
-      assert.doesNotMatch(received[0].messages[0].content, /mian-pre-tool|mian-tool-summary/);
+      assert.doesNotMatch(
+        received[0].messages[0].content,
+        /mian-pre-tool|mian-tool-summary/,
+      );
       assert.equal(received[0].stream, true);
       assert.equal(
         events.find((event) => event.type === "assistant-delta").delta,
@@ -204,6 +211,7 @@ test(
           event.type === "assistant-delta" && event.turnId === stopping.turnId,
       );
       assert.equal(received[1].messages.length, 6);
+      assert.deepEqual(received[1].messages.slice(1, 4), messages);
       await request(
         `/api/conversations/${branch.conversationId}`,
         "DELETE",

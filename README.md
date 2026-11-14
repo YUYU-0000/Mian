@@ -32,6 +32,8 @@ A mobile-first chat UI backed by a local Node bridge to `codex app-server` over 
 
 `design-reference/` 里是四张静态 HTML 设计稿（主界面、对话界面、连接中心、设置界面），新做页面时可以照着它的风格来。
 
+正式页面不使用左侧加粗竖线或左侧色条作为装饰。回复排版统一使用 `client/src/components/reply-markdown.css`，保留定稿数值。
+
 ---
 
 ## 运行 / Development

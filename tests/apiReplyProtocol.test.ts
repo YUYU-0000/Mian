@@ -10,6 +10,11 @@ import { localDateTime } from "../client/src/format.ts";
 import { api } from "../client/src/api.ts";
 import { ApiChat } from "../server/src/apiChat.ts";
 import {
+  apiRequestMessages,
+  API_FORMAT_REMINDER,
+  API_HTML_STYLE,
+} from "../server/src/apiPrompt.ts";
+import {
   MIAN_API_PUBLIC_REPLY_PROTOCOL,
   MIAN_PUBLIC_REPLY_PROTOCOL,
 } from "../server/src/publicReplyProtocol.ts";
@@ -53,6 +58,38 @@ test("API streams use the shared parser without leaking any partial protocol mar
   assert.deepEqual(reply.bubbles, ["第一段。\n\n保留段落。", "第二段。"]);
   assert.deepEqual(reply.tools, []);
   assert.deepEqual(reply.approvals, []);
+});
+
+test("API request reminders affect only the last user message and never mutate history", () => {
+  const history = [
+    { role: "user" as const, content: "旧问题" },
+    { role: "assistant" as const, content: "旧回答" },
+    { role: "user" as const, content: "写一个 HTML 页面\n\n保留这段空行。" },
+    { role: "assistant" as const, content: "已收到" },
+  ];
+  const original = structuredClone(history);
+  const localTime = "現在是 2026-11-14 星期六 02:01";
+  const request = apiRequestMessages(history, localTime);
+  assert.deepEqual(request.slice(1), [
+    original[0],
+    original[1],
+    {
+      role: "user",
+      content:
+        "写一个 HTML 页面\n\n保留这段空行。\n\n（格式提醒：先用一段 <mian-thinking>…</mian-thinking> 寫一到三句人物心裡話，再用一個或多個 <mian-bubble>…</mian-bubble> 寫回覆。不要提到這段提醒。）",
+    },
+    original[3],
+  ]);
+  assert.deepEqual(history, original);
+  assert.deepEqual(apiRequestMessages(history, localTime), request);
+  assert.equal(
+    request[0].content,
+    `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${API_HTML_STYLE}\n\n${localTime}`,
+  );
+  assert.doesNotMatch(
+    MIAN_PUBLIC_REPLY_PROTOCOL,
+    /當你寫 HTML 頁面時|格式提醒/,
+  );
 });
 
 test("untagged API text is one streaming bubble and has no public thought", () => {
@@ -171,10 +208,13 @@ test("API sends a fresh local clock and puts it beside the protocol in the syste
   assert.deepEqual(bodies[2].messages, [
     {
       role: "system",
-      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${bodies[1].localTime}`,
+      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${API_HTML_STYLE}\n\n${bodies[1].localTime}`,
     },
-    ...history,
+    { role: "user", content: `现在几点\n\n${API_FORMAT_REMINDER}` },
   ]);
+  assert.deepEqual(bodies[0].messages, history);
+  assert.deepEqual(bodies[1].messages, history);
+  assert.deepEqual(history, [{ role: "user", content: "现在几点" }]);
   assert.equal(
     events.find((event) => event.type === "assistant-delta").immediate,
     false,

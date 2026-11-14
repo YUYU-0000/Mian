@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { MIAN_API_PUBLIC_REPLY_PROTOCOL } from "./publicReplyProtocol.js";
+import { apiRequestMessages } from "./apiPrompt.js";
 import {
   completeChat,
   shortProviderMessage,
@@ -58,10 +58,12 @@ export class ApiChat {
       turnId: turn.turnId,
       format: "api",
     });
-    void this.run(conversationId, turn, config, [
-      { role: "system", content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${localTime}` },
-      ...messages,
-    ]);
+    void this.run(
+      conversationId,
+      turn,
+      config,
+      apiRequestMessages(messages, localTime),
+    );
     return { conversationId, turnId: turn.turnId };
   }
 

@@ -384,16 +384,6 @@
   flex-direction: column;
   padding-bottom: 0;
 }
-.archive-tool-step::before {
-  bottom: calc(-1 * (var(--archive-block-gap) + 7px));
-  transform-origin: top;
-  transform: scaleY(0);
-  transition: transform 240ms ease;
-}
-.archive-module.is-expanded .archive-tool-step::before {
-  transform: scaleY(1);
-  transition: transform 280ms ease 120ms;
-}
 .archive-step-body :where(p, pre) {
   margin: 0;
   font: inherit;

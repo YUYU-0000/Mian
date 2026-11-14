@@ -654,18 +654,6 @@ svg {
   color: var(--line);
   cursor: pointer;
 }
-.archive-tool-step:before {
-  content: "";
-  position: absolute;
-  top: 18px;
-  bottom: -2px;
-  left: 6.5px;
-  width: 1px;
-  background: rgba(107, 98, 86, 0.3);
-}
-.archive-tool-step:last-child:before {
-  display: none;
-}
 .archive-step-body {
   margin: 6px 0 0 22px;
   color: var(--muted);
@@ -684,7 +672,6 @@ svg {
     12px "ZSFT-br",
     "LXGW Heart Serif",
     sans-serif;
-  border-left: 1px solid var(--blue);
   padding-left: 10px;
   max-width: 100%;
 }

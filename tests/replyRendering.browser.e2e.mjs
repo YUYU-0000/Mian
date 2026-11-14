@@ -20,7 +20,9 @@ const bundle = await build({
   define: { "process.env.NODE_ENV": '"production"' },
 });
 const builtPage = await readFile("client/dist/index.html", "utf8");
-const style = builtPage.match(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/)[1];
+const style = builtPage.match(
+  /<link rel="stylesheet"[^>]*href="([^"]+\.css)"/,
+)[1];
 const app = express();
 app.get("/fixture.js", (_req, res) =>
   res
@@ -186,6 +188,39 @@ try {
     },
   );
 
+  assert.deepEqual(
+    await evaluate(`(() => {
+      const root = document.querySelector('.reply-markdown');
+      const style = (selector, pseudo) => getComputedStyle(root.querySelector(selector), pseudo);
+      return {
+        ink: getComputedStyle(root).color,
+        headingUnderline: style('h1').borderBottom,
+        headingWeight: style('h1').fontWeight,
+        listMarker: style('ul > li', '::before').width,
+        taskMarker: style('li:has(> input)', '::before').display,
+        quoteBorder: style('blockquote').borderLeftStyle,
+        quotePaper: style('blockquote').backgroundColor,
+        tableScroll: style('.reply-table-scroll').overflowX,
+        tableHeading: style('th').borderBottomStyle,
+        tableRow: style('td').borderLeftStyle,
+        detailRadius: style('details').borderRadius,
+      };
+    })()`),
+    {
+      ink: "rgb(59, 77, 90)",
+      headingUnderline: "1px solid rgb(59, 77, 90)",
+      headingWeight: "600",
+      listMarker: "4px",
+      taskMarker: "none",
+      quoteBorder: "none",
+      quotePaper: "rgba(147, 167, 181, 0.1)",
+      tableScroll: "auto",
+      tableHeading: "solid",
+      tableRow: "none",
+      detailRadius: "2px",
+    },
+  );
+
   const code = `const message = "${"long line ".repeat(60)}";`;
   await render(["```javascript\n" + code + "\n```"]);
   await waitFor(
@@ -208,6 +243,31 @@ try {
   assert.equal(
     await evaluate("document.documentElement.scrollWidth <= innerWidth"),
     true,
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
+      const style = selector => getComputedStyle(document.querySelector(selector));
+      return {
+        paper: style('.reply-code').backgroundColor,
+        radius: style('.reply-code').borderRadius,
+        header: style('.reply-code-head').borderBottomStyle,
+        padding: style('.reply-code pre').padding,
+        whitespace: style('.reply-code pre').whiteSpace,
+        font: style('.reply-code code').fontSize,
+        mono: style('.reply-code code').fontFamily.includes('ui-monospace'),
+        highlight: style('.reply-code .hljs-keyword').color,
+      };
+    })()`),
+    {
+      paper: "rgb(245, 242, 236)",
+      radius: "2px",
+      header: "dashed",
+      padding: "10px 14px 12px",
+      whitespace: "pre",
+      font: "12px",
+      mono: true,
+      highlight: "rgb(79, 106, 128)",
+    },
   );
   await evaluate(
     `Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }); document.execCommand = command => { window.copiedCode = document.querySelector('textarea').value; return command === 'copy'; }; document.querySelector('.reply-code-head button').click()`,
@@ -247,6 +307,13 @@ try {
       nestedFrame: false,
       xss: false,
     },
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
+      const style = getComputedStyle(document.querySelector('iframe'));
+      return { maxHeight: style.maxHeight, margin: style.marginTop, border: style.borderStyle, radius: style.borderRadius };
+    })()`),
+    { maxHeight: "480px", margin: "10px", border: "none", radius: "2px" },
   );
   await render([htmlBubble + "\n\n後面的文字"], true);
   await waitFor(
@@ -334,17 +401,46 @@ try {
     );
   }
   const command = "python " + "long-argument ".repeat(60);
-  const output = Array.from({ length: 14 }, (_, index) => `output line ${index}`).join("\n");
-  await evaluate(`renderToolFixture(${JSON.stringify(command)}, ${JSON.stringify(output)})`);
-  await waitFor(() => evaluate("Boolean(document.querySelector('.archive-tool-more'))"), "Long tool output did not collapse");
-  assert.deepEqual(await evaluate(`(() => {
+  const output = Array.from(
+    { length: 14 },
+    (_, index) => `output line ${index}`,
+  ).join("\n");
+  await evaluate(
+    `renderToolFixture(${JSON.stringify(command)}, ${JSON.stringify(output)})`,
+  );
+  await waitFor(
+    () => evaluate("Boolean(document.querySelector('.archive-tool-more'))"),
+    "Long tool output did not collapse",
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
     const pre = document.querySelector('.archive-tool-output'); const style = getComputedStyle(pre);
     return { lines: pre.textContent.split('\\n').length, font: style.fontFamily.includes('ui-monospace'), size: style.fontSize, whitespace: style.whiteSpace, scroll: pre.scrollWidth > pre.clientWidth };
-  })()`), { lines: 6, font: true, size: "11px", whitespace: "pre", scroll: true });
+  })()`),
+    { lines: 6, font: true, size: "11px", whitespace: "pre", scroll: true },
+  );
+  assert.equal(
+    await evaluate(
+      "getComputedStyle(document.querySelector('.archive-tool-step'), '::before').content",
+    ),
+    "none",
+  );
   await evaluate("document.querySelector('.archive-tool-more').click()");
-  await waitFor(() => evaluate("document.querySelector('.archive-tool-output').textContent.includes('output line 13')"), "Full tool output did not expand");
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.archive-tool-output').textContent.includes('output line 13')",
+      ),
+    "Full tool output did not expand",
+  );
   await evaluate("document.querySelector('.archive-tool-more').click()");
-  await waitFor(() => evaluate("document.querySelector('.archive-tool-output').textContent.split('\\n').length === 6"), "Tool output did not collapse again");
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.archive-tool-output').textContent.split('\\n').length === 6",
+      ),
+    "Tool output did not collapse again",
+  );
   assert.deepEqual(errors, []);
   console.log(
     "PASS Markdown/GFM, HTML sanitization, highlighting, HTTP copy, isolated adaptive preview, streaming throttle and notice labels (390x844).",
