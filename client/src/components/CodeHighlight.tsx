@@ -37,6 +37,43 @@ for (const [name, language] of Object.entries({
 }))
   hljs.registerLanguage(name, language);
 
+// 文件按扩展名补载语言，聊天页仍只加载原有常用语言。
+const fileLanguages = {
+  ini: () => import("highlight.js/lib/languages/ini"),
+  php: () => import("highlight.js/lib/languages/php"),
+  ruby: () => import("highlight.js/lib/languages/ruby"),
+  lua: () => import("highlight.js/lib/languages/lua"),
+  perl: () => import("highlight.js/lib/languages/perl"),
+  swift: () => import("highlight.js/lib/languages/swift"),
+  kotlin: () => import("highlight.js/lib/languages/kotlin"),
+  dart: () => import("highlight.js/lib/languages/dart"),
+  powershell: () => import("highlight.js/lib/languages/powershell"),
+  dos: () => import("highlight.js/lib/languages/dos"),
+  r: () => import("highlight.js/lib/languages/r"),
+  elixir: () => import("highlight.js/lib/languages/elixir"),
+  erlang: () => import("highlight.js/lib/languages/erlang"),
+  haskell: () => import("highlight.js/lib/languages/haskell"),
+  clojure: () => import("highlight.js/lib/languages/clojure"),
+  scala: () => import("highlight.js/lib/languages/scala"),
+  groovy: () => import("highlight.js/lib/languages/groovy"),
+  protobuf: () => import("highlight.js/lib/languages/protobuf"),
+  graphql: () => import("highlight.js/lib/languages/graphql"),
+  scss: () => import("highlight.js/lib/languages/scss"),
+  less: () => import("highlight.js/lib/languages/less"),
+  diff: () => import("highlight.js/lib/languages/diff"),
+  latex: () => import("highlight.js/lib/languages/latex"),
+  makefile: () => import("highlight.js/lib/languages/makefile"),
+  dockerfile: () => import("highlight.js/lib/languages/dockerfile"),
+};
+
+export async function loadFileLanguage(language: string) {
+  const load = fileLanguages[language as keyof typeof fileLanguages];
+  if (!hljs.getLanguage(language) && load) {
+    const module = await load();
+    hljs.registerLanguage(language, module.default);
+  }
+}
+
 export default memo(function CodeHighlight({ text, language }: ReplyCode) {
   const html = useMemo(
     () =>

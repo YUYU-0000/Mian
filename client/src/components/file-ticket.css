@@ -1,0 +1,295 @@
+/* 票面数值沿用文件票根设计稿。 */
+.ft {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  --soft: #93a7b5;
+  --env1: #6b8396;
+  --paper: #f5f2ec;
+  --line: rgba(59, 77, 90, 0.18);
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.06"/></svg>');
+}
+.ft {
+  --t-paper: var(--paper);
+  --t-ink: var(--ink);
+  --t-muted: var(--muted);
+  --t-line: var(--line);
+  --t-accent: var(--env1);
+  position: relative;
+  width: min(228px, 100%);
+  height: 70px;
+  display: flex;
+  filter: drop-shadow(0 3px 6px rgba(59, 77, 90, 0.12))
+    drop-shadow(0 0 1px rgba(59, 77, 90, 0.18));
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+/* 票面：四角小圓缺口 + 打孔處上下兩個半圓缺口，用遮罩挖出來 */
+.ft-body {
+  position: absolute;
+  inset: 0;
+  background: var(--t-paper);
+  background-image: var(--grain);
+  --cut: 50px; /* 存根寬度 */
+  -webkit-mask:
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
+      top/100% 51% no-repeat,
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 100%, #0000 98%, #000)
+      bottom/100% 51% no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  mask:
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
+      top/100% 51% no-repeat,
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 100%, #0000 98%, #000)
+      bottom/100% 51% no-repeat;
+  border-radius: 3px;
+}
+.ft-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px 5px 13px;
+  display: flex;
+  flex-direction: column;
+}
+.ft-kicker {
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+  font-weight: 500;
+  font-size: 6.5px;
+  letter-spacing: 2.2px;
+  color: var(--t-muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ft-kicker::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--t-line);
+}
+.ft-name {
+  margin-top: 3px;
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: 0.4px;
+  color: var(--t-ink);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
+  mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
+}
+.ft-name::-webkit-scrollbar {
+  display: none;
+}
+.ft-meta {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+  font-size: 8.5px;
+  letter-spacing: 1.2px;
+  color: var(--t-muted);
+}
+.ft-meta b {
+  font-weight: 400;
+  color: var(--t-muted);
+}
+.ft-act {
+  margin-left: auto;
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 8.5px;
+  letter-spacing: 1.5px;
+  color: var(--t-ink);
+  border-bottom: 1px solid var(--t-ink);
+  padding-bottom: 1px;
+}
+/* 打孔虛線 */
+.ft-perf {
+  position: relative;
+  width: 0;
+  margin: 8px 0;
+  border-left: 1px dashed var(--t-line);
+}
+/* 存根：直排副檔名 + 小號編號 */
+.ft-stub {
+  position: relative;
+  width: 50px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.ft-ext {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: "ZSFT-br", serif;
+  font-size: 12.5px;
+  letter-spacing: 2.5px;
+  color: var(--t-ink);
+}
+.ft-stub::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 13px;
+  width: 20px;
+  height: 2px;
+  background: var(--t-accent);
+}
+
+/* 圖片：主票左側放一格縮圖 */
+.ft.is-image .ft-main {
+  flex-direction: row;
+  gap: 9px;
+  padding-right: 10px;
+  align-items: center;
+}
+.ft-thumb {
+  width: 44px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: #a4b8c6 center/cover;
+  box-shadow: 0 0 0 1px var(--t-line);
+}
+.ft-col {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 我發的：灰藍紙、米白字 */
+.ft.is-mine {
+  --t-paper: #6b8396;
+  --t-ink: #f5f2ec;
+  --t-muted: rgba(245, 242, 236, 0.7);
+  --t-line: rgba(245, 242, 236, 0.35);
+  --t-accent: #f5f2ec;
+}
+/* 上傳中：底部一道細進度線 */
+.ft.is-mine:has(.ft-progress) .ft-main {
+  padding-bottom: 9px;
+}
+.ft-progress {
+  position: absolute;
+  left: 16px;
+  right: 62px;
+  bottom: 3px;
+  height: 1px;
+  background: var(--t-line);
+}
+.ft-progress i {
+  display: block;
+  height: 100%;
+  width: 62%;
+  background: var(--t-ink);
+}
+
+/* 两款字体：名字和按钮用霞鹜铭心宋，标注用 ZSFT-br；盒模型不受聊天页全局规则影响。 */
+.ft {
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+  flex-shrink: 0;
+}
+.ft,
+.ft *,
+.ft *::before,
+.ft *::after {
+  box-sizing: content-box;
+}
+.ft.is-image {
+  height: 74px;
+}
+.ft.is-image .ft-name {
+  font-size: 13px;
+}
+
+/* 待发送票根悬在输入框上方。 */
+.file-drafts {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.file-drafts::-webkit-scrollbar {
+  display: none;
+}
+.file-draft {
+  position: relative;
+  flex: 0 0 228px;
+  max-width: 100%;
+}
+.archive-input .file-draft-remove {
+  position: absolute;
+  top: -8px;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  color: #3b4d5a;
+  background: #f5f2ec;
+  border-radius: 50%;
+  font: 16px serif;
+}
+
+/* 大图单独占满屏幕，保留下载入口。 */
+.file-image-viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: #f5f2ec;
+  color: #3b4d5a;
+}
+.file-image-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.file-image-viewer::backdrop {
+  background: #f5f2ec;
+}
+.file-image-viewer > img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}
+.file-image-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.file-image-actions > .scroll-text {
+  flex: 1;
+}
+.file-image-actions a,
+.file-image-actions button {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-decoration: none;
+}

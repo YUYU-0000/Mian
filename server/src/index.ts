@@ -8,6 +8,9 @@ import { WebSocket, WebSocketServer } from "ws";
 import { readConfig, saveConfig } from "./config.js";
 import { connectionRoutes } from "./connections.js";
 import { ApiChat } from "./apiChat.js";
+import { ChatFiles } from "./chatFiles.js";
+import { fileRoutes } from "./fileRoutes.js";
+import { WorkspaceFiles } from "./workspaceFiles.js";
 import { readChannel, requirePreset } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
@@ -30,6 +33,8 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 const bridge = new CodexBridge();
 const conversations = await ConversationRegistry.load();
+const files = new ChatFiles();
+const workspaceFiles = new Map<string, WorkspaceFiles>();
 let channel = await readChannel();
 bridge.restoreConversationThreads(conversations.list());
 const streamId = randomUUID();
@@ -39,11 +44,18 @@ let nextEventSeq = 1;
 let conversationWriteQueue: Promise<void> = Promise.resolve();
 const activityTimers = new Map<string, NodeJS.Timeout>();
 
+app.use(
+  "/api",
+  fileRoutes(files, (id) => conversations.require(id)),
+);
 app.use(express.json({ limit: "4mb" }));
-app.use("/api", connectionRoutes(bridge, async () => {
-  channel = await readChannel();
-  broadcast({ type: "channel", channel });
-}));
+app.use(
+  "/api",
+  connectionRoutes(bridge, async () => {
+    channel = await readChannel();
+    broadcast({ type: "channel", channel });
+  }),
+);
 
 const broadcast = (event: unknown) => {
   const conversationId =
@@ -100,7 +112,10 @@ wss.on("connection", (ws, request) => {
       seq: cursor,
       reset: !canReplay,
       threadId: bridge.getThreadId(defaultConversationId) ?? null,
-      activeTurnId: apiChat.getActiveTurns()[defaultConversationId] ?? bridge.getActiveTurnId(defaultConversationId) ?? null,
+      activeTurnId:
+        apiChat.getActiveTurns()[defaultConversationId] ??
+        bridge.getActiveTurnId(defaultConversationId) ??
+        null,
       defaultConversationId,
       activeTurns: { ...bridge.getActiveTurns(), ...apiChat.getActiveTurns() },
       conversations: conversations.list(),
@@ -136,9 +151,12 @@ const scheduleConversationActivity = (conversationId: string) => {
     setTimeout(() => {
       activityTimers.delete(conversationId);
       queueConversationWrite(async () => {
-        const conversation = await conversations.updateActivity(conversationId, {
-          lastActivityAt: timestamp,
-        });
+        const conversation = await conversations.updateActivity(
+          conversationId,
+          {
+            lastActivityAt: timestamp,
+          },
+        );
         publishConversation(conversation);
       });
     }, 250),
@@ -155,14 +173,37 @@ const apiChat = new ApiChat(
     const current = conversations.require(conversationId);
     const conversation = await conversations.updateRuntime(conversationId, {
       totalTokens: (current.totalTokens ?? 0) + usage.totalTokens,
-      uncachedTotalTokens: (current.uncachedTotalTokens ?? 0) + usage.uncachedTotalTokens,
+      uncachedTotalTokens:
+        (current.uncachedTotalTokens ?? 0) + usage.uncachedTotalTokens,
     });
     publishConversation(conversation);
   },
 );
 
 bridge.on("event", (event: any) => {
-  broadcast(event);
+  const capture = workspaceFiles.get(event.conversationId);
+  if (event.type === "turn-completed" && capture) {
+    workspaceFiles.delete(event.conversationId);
+    void capture
+      .finish(files, event.conversationId, event.turnId)
+      .then((attachments) => {
+        if (attachments.length)
+          broadcast({
+            type: "files",
+            conversationId: event.conversationId,
+            turnId: event.turnId,
+            files: attachments,
+          });
+      })
+      .catch((error) =>
+        broadcast({
+          type: "files-error",
+          conversationId: event.conversationId,
+          message: (error as Error).message,
+        }),
+      )
+      .finally(() => broadcast(event));
+  } else broadcast(event);
   if (
     typeof event?.conversationId === "string" &&
     (event.type === "assistant-delta" || event.type === "turn-completed")
@@ -170,8 +211,18 @@ bridge.on("event", (event: any) => {
     scheduleConversationActivity(event.conversationId);
 });
 bridge.on(
+  "files-changed",
+  ({ conversationId, paths }: { conversationId: string; paths: string[] }) => {
+    workspaceFiles.get(conversationId)?.add(paths);
+  },
+);
+bridge.on(
   "thread",
-  ({ conversationId, threadId, metadata }: ConversationThreadBinding & { conversationId: string }) => {
+  ({
+    conversationId,
+    threadId,
+    metadata,
+  }: ConversationThreadBinding & { conversationId: string }) => {
     queueConversationWrite(async () => {
       const conversation = await conversations.setThread(conversationId, {
         threadId,
@@ -239,7 +290,10 @@ app.post("/api/conversations", async (_request, response) => {
     const config = await readConfig();
     if (config.channel.kind === "api") {
       const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.createRoot({ threadId: null, metadata: { model: preset.model } });
+      const conversation = await conversations.createRoot({
+        threadId: null,
+        metadata: { model: preset.model },
+      });
       bridge.restoreConversationThreads([conversation]);
       publishConversation(conversation);
       response.status(201).json({ conversation });
@@ -264,12 +318,24 @@ app.post("/api/conversations/:id/fork", async (request, response) => {
     conversations.require(request.params.id);
     const config = await readConfig();
     if (config.channel.kind === "api") {
-      if (bridge.isConversationBusy(request.params.id) || apiChat.isBusy(request.params.id))
+      if (
+        bridge.isConversationBusy(request.params.id) ||
+        apiChat.isBusy(request.params.id)
+      )
         throw new Error("当前会话仍在运行或等待权限处理");
       const preset = await requirePreset(config.channel.presetId);
       const conversation = await conversations.createBranch(request.params.id, {
-        threadId: null, metadata: { model: preset.model, reasoningEffort: null, collaborationMode: null },
+        threadId: null,
+        metadata: {
+          model: preset.model,
+          reasoningEffort: null,
+          collaborationMode: null,
+        },
       });
+      await files.copyConversation(
+        request.params.id,
+        conversation.conversationId,
+      );
       bridge.restoreConversationThreads([conversation]);
       publishConversation(conversation);
       response.status(201).json({ conversation });
@@ -280,6 +346,10 @@ app.post("/api/conversations/:id/fork", async (request, response) => {
     const conversation = await conversations.createBranch(
       request.params.id,
       binding,
+    );
+    await files.copyConversation(
+      request.params.id,
+      conversation.conversationId,
     );
     bridge.registerConversationThread(
       conversation.conversationId,
@@ -330,7 +400,10 @@ app.delete("/api/conversations/:id", async (request, response) => {
     if (conversations.list().length <= 1)
       throw new Error("最后一个会话不能归档");
     const conversation = conversations.require(conversationId);
-    if (bridge.isConversationBusy(conversationId) || apiChat.isBusy(conversationId))
+    if (
+      bridge.isConversationBusy(conversationId) ||
+      apiChat.isBusy(conversationId)
+    )
       throw new Error("当前会话仍在运行或等待权限处理");
     if (conversation.threadId) await bridge.connect(await readConfig());
     await bridge.archiveConversationThread(conversationId);
@@ -354,26 +427,57 @@ app.post("/api/turn", async (request, response) => {
     );
     conversations.require(conversationId);
     const config = await readConfig();
-    if (bridge.isConversationBusy(conversationId) || apiChat.isBusy(conversationId))
+    if (
+      bridge.isConversationBusy(conversationId) ||
+      apiChat.isBusy(conversationId)
+    )
       throw new Error("当前会话已有正在运行的 turn");
     if (config.channel.kind === "api") {
       const preset = await requirePreset(config.channel.presetId);
       const conversation = await conversations.updateRuntime(conversationId, {
-        model: preset.model, reasoningEffort: null, collaborationMode: null,
+        model: preset.model,
+        reasoningEffort: null,
+        collaborationMode: null,
       });
       publishConversation(conversation);
-      const messages = request.body.messages ?? [{ role: "user", content: request.body.text.trim() }];
-      response.json(apiChat.startTurn(conversationId, preset, messages, request.body.localTime));
+      const messages = await files.apiMessages(
+        conversationId,
+        request.body.messages ?? [
+          {
+            role: "user",
+            content: request.body.text.trim(),
+            files: (request.body.files ?? []).map((id: string) => ({ id })),
+          },
+        ],
+      );
+      response.json(
+        apiChat.startTurn(
+          conversationId,
+          preset,
+          messages,
+          request.body.localTime,
+        ),
+      );
       return;
     }
     await bridge.connect(config);
-    const result = await bridge.startTurn(
-      request.body.text.trim(),
+    const prompt = await files.codexPrompt(
       conversationId,
+      config.workingDirectory,
+      request.body.text.trim(),
+      request.body.files ?? [],
     );
-    // ensureConversationThread emits before startTurn resolves. Waiting for the
-    // serialized registry write makes the new thread durable before the client
-    // is told that its first turn started.
+    const capture = new WorkspaceFiles(config.workingDirectory);
+    workspaceFiles.set(conversationId, capture);
+    let result;
+    try {
+      result = await bridge.startTurn(prompt, conversationId);
+    } catch (error) {
+      capture.close();
+      workspaceFiles.delete(conversationId);
+      throw error;
+    }
+    // 先保存线程映射，再通知前端已开始回复。
     await conversationWriteQueue;
     if (conversations.require(conversationId).threadId !== result.threadId) {
       const conversation = await conversations.setThread(conversationId, {
@@ -394,7 +498,8 @@ app.post("/api/turn/:id/interrupt", async (request, response) => {
       conversations.defaultConversationId(),
     );
     conversations.require(conversationId);
-    if (apiChat.isBusy(conversationId)) apiChat.interrupt(request.params.id, conversationId);
+    if (apiChat.isBusy(conversationId))
+      apiChat.interrupt(request.params.id, conversationId);
     else await bridge.interrupt(request.params.id, conversationId);
     response.json({ ok: true });
   } catch (error) {
@@ -436,6 +541,7 @@ server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
         console.log(`Mian LAN: http://${address.address}:${port}`);
 });
 const shutdown = () => {
+  for (const capture of workspaceFiles.values()) capture.close();
   apiChat.close();
   bridge.close();
   server.close();

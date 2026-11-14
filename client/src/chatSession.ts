@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { FileDrafts } from "./fileDrafts";
 import {
   CHAT_STORAGE_KEY,
   applyReplyEvent,
@@ -16,7 +17,12 @@ import {
 } from "./chatModel";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
 import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
-import type { ChatEvent, ChatMessage, ConversationActivity } from "./types";
+import type {
+  ChatEvent,
+  ChatFile,
+  ChatMessage,
+  ConversationActivity,
+} from "./types";
 import {
   emptyVisualReply,
   hydrateVisualReply,
@@ -30,7 +36,12 @@ const LEGACY_DEFAULT_CONVERSATION_ID = "c1";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type SessionApi = {
-  send: (text: string, conversationId: string, messages?: ChatMessage[]) => Promise<{ turnId: string }>;
+  send: (
+    text: string,
+    conversationId: string,
+    messages?: ChatMessage[],
+    files?: ChatFile[],
+  ) => Promise<{ turnId: string }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
     requestId: string,
@@ -59,7 +70,10 @@ export type ChatSessionOptions = {
   nowIso?: () => string;
   onActivity?: (activity: ConversationActivity) => void;
   onSendError?: (error: unknown) => void;
-  schedule?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
+  schedule?: (
+    callback: () => void,
+    delay: number,
+  ) => ReturnType<typeof setTimeout>;
   cancelSchedule?: (timer: ReturnType<typeof setTimeout>) => void;
 };
 
@@ -98,12 +112,14 @@ function conversationStorage(
   const isDefault = conversationId === LEGACY_DEFAULT_CONVERSATION_ID;
   return {
     getItem(key) {
-      return storage.getItem(scopedKey(key)) ??
-        (isDefault ? storage.getItem(key) : null);
+      return (
+        storage.getItem(scopedKey(key)) ??
+        (isDefault ? storage.getItem(key) : null)
+      );
     },
     setItem(key, value) {
       storage.setItem(scopedKey(key), value);
-      // Keep the legacy keys current so an older client still opens C-01.
+      // 同步旧存储键，兼容旧版的 C-01。
       if (isDefault) storage.setItem(key, value);
     },
     removeItem(key) {
@@ -142,7 +158,7 @@ function loadActiveTurn(storage: StorageLike): string | null {
     )
       return value.activeTurnId;
   } catch {
-    // Invalid old session metadata is safely replaced on the next update.
+    // 旧会话信息留到下次更新时重写。
   }
   return null;
 }
@@ -177,14 +193,12 @@ export function isToolTimelineVisible(
   message: Extract<ChatGroup, { role: "assistant" }>,
   visual: VisualReply,
 ) {
-  return (
-    message.tools.length > 0 &&
-    visual.visibleToolIds.length > 0
-  );
+  return message.tools.length > 0 && visual.visibleToolIds.length > 0;
 }
 
 export class ChatSessionStore {
   readonly conversationId: string;
+  readonly attachments: FileDrafts;
   private readonly storage: StorageLike;
   private readonly apiClient: SessionApi;
   private readonly nowLabel: () => string;
@@ -212,6 +226,7 @@ export class ChatSessionStore {
   constructor(options: ChatSessionOptions) {
     if (!options.conversationId) throw new Error("conversationId is required");
     this.conversationId = options.conversationId;
+    this.attachments = new FileDrafts(options.conversationId);
     this.storage = conversationStorage(
       options.storage ?? window.localStorage,
       this.conversationId,
@@ -222,7 +237,8 @@ export class ChatSessionStore {
     this.nowIso = options.nowIso ?? (() => new Date().toISOString());
     this.onActivity = options.onActivity;
     this.onSendError = options.onSendError;
-    this.schedule = options.schedule ?? ((callback, delay) => setTimeout(callback, delay));
+    this.schedule =
+      options.schedule ?? ((callback, delay) => setTimeout(callback, delay));
     this.cancelSchedule =
       options.cancelSchedule ?? ((timer) => clearTimeout(timer));
     this.messages = initialChatGroups(this.storage);
@@ -236,8 +252,7 @@ export class ChatSessionStore {
       : new Promise<void>((resolve) => {
           this.resolveRemoteTurnSynchronization = resolve;
         });
-    // Reading C-01 through the compatibility adapter immediately materializes
-    // the legacy single-session history under its conversation-scoped key.
+    // 把旧 C-01 记录迁入按会话保存的存储键。
     saveChatGroups(this.storage, this.messages);
     this.storage.setItem(
       SESSION_STORAGE_KEY,
@@ -293,8 +308,7 @@ export class ChatSessionStore {
       this.schedulePlayback();
       return;
     }
-    // The server session snapshot is authoritative even when the stream cursor
-    // can be resumed. A locally persisted turn absent from activeTurns is stale.
+    // 用服务端快照清除本地已经结束的回复状态。
     if (this.activeTurnId) {
       this.flushTurn(this.activeTurnId);
       this.activeTurnId = null;
@@ -307,18 +321,21 @@ export class ChatSessionStore {
     this.markRemoteTurnSynchronized();
   }
 
-  saveUserRecord(text: string) {
+  saveUserRecord(text: string, files: ChatFile[] = []) {
     const value = text.trim();
-    if (!value) return;
+    if (!value && !files.length) return;
     this.messages = appendUserRecord(
       this.messages,
       value,
       this.nowLabel(),
+      undefined,
+      undefined,
+      files,
     );
     this.commit(true, false);
     this.onActivity?.({
       lastActivityAt: this.nowIso(),
-      lastMessage: value,
+      lastMessage: value || files.map((file) => file.name).join("、"),
     });
   }
 
@@ -344,8 +361,13 @@ export class ChatSessionStore {
         buildPublicReplyPrompt(userText),
         this.conversationId,
         chatHistory(this.messages.slice(0, this.messages.indexOf(group) + 1)),
+        group.records.flatMap((record) => record.files ?? []),
       );
-      const reply = this.messages.find(message => message.role === "assistant" && message.replyGroupId === result.turnId);
+      const reply = this.messages.find(
+        (message) =>
+          message.role === "assistant" &&
+          message.replyGroupId === result.turnId,
+      );
       // 快速返回的 API 可能先收到结束事件，再收到 HTTP 响应。
       if (reply?.role !== "assistant" || !reply.status) {
         this.activeTurnId = result.turnId;
@@ -367,17 +389,11 @@ export class ChatSessionStore {
   }
 
   async stopCurrentTurn() {
-    // A persisted turn id is only provisional until the server session
-    // snapshot confirms it. Waiting here prevents a reload-time click from
-    // interrupting a stale id instead of submitting recovered pending text.
+    // 先同步服务端状态，再判断是停止回复还是发送待发记录。
     if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
     const turnId = this.activeTurnId;
     if (!turnId) return this.startPendingTurn();
-    const finalized = finalizeReplyGroup(
-      this.messages,
-      turnId,
-      "interrupted",
-    );
+    const finalized = finalizeReplyGroup(this.messages, turnId, "interrupted");
     const messagesChanged = finalized !== this.messages;
     this.messages = finalized;
     this.flushTurn(turnId);
@@ -410,8 +426,7 @@ export class ChatSessionStore {
     requestId: string,
     allow: boolean,
   ) {
-    if (!this.apiClient.decide)
-      throw new Error("Approval API is unavailable");
+    if (!this.apiClient.decide) throw new Error("Approval API is unavailable");
     await this.apiClient.decide(requestId, allow, this.conversationId);
     this.dismissApproval(replyGroupId, requestId);
   }
@@ -442,6 +457,7 @@ export class ChatSessionStore {
   }
 
   dispose() {
+    this.attachments.dispose();
     if (this.playbackTimer !== null) {
       this.cancelSchedule!(this.playbackTimer);
       this.playbackTimer = null;
@@ -470,9 +486,17 @@ export class ChatSessionStore {
     if ("turnId" in event) {
       this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
       messagesChanged = true;
-      const message = this.messages.find(group => group.role === "assistant" && group.replyGroupId === event.turnId) as Extract<ChatGroup, { role: "assistant" }>;
-      const queue = this.playbackQueues.get(event.turnId) ?? new ReplyPlaybackQueue();
-      queue.enqueue(event.type === "tool" ? `tool:${event.tool.id}` : event.type, visualTarget(message), this.nowMs());
+      const message = this.messages.find(
+        (group) =>
+          group.role === "assistant" && group.replyGroupId === event.turnId,
+      ) as Extract<ChatGroup, { role: "assistant" }>;
+      const queue =
+        this.playbackQueues.get(event.turnId) ?? new ReplyPlaybackQueue();
+      queue.enqueue(
+        event.type === "tool" ? `tool:${event.tool.id}` : event.type,
+        visualTarget(message),
+        this.nowMs(),
+      );
       this.playbackQueues.set(event.turnId, queue);
     }
     if (event.type === "turn-completed") {
@@ -530,25 +554,28 @@ export class ChatSessionStore {
   private schedulePlayback(delay = 0) {
     if (!this.activeTurnId) return;
     if (this.playbackTimer !== null) this.cancelSchedule!(this.playbackTimer);
-    this.playbackTimer = this.schedule!(() => {
-      this.playbackTimer = null;
-      this.pumpPlayback();
-    }, Math.max(0, delay));
+    this.playbackTimer = this.schedule!(
+      () => {
+        this.playbackTimer = null;
+        this.pumpPlayback();
+      },
+      Math.max(0, delay),
+    );
   }
 
   private pumpPlayback() {
     const turnId = this.activeTurnId;
     if (!turnId) return;
     const message = this.messages.find(
-      (
-        group,
-      ): group is Extract<ChatGroup, { role: "assistant" }> =>
+      (group): group is Extract<ChatGroup, { role: "assistant" }> =>
         group.role === "assistant" && group.replyGroupId === turnId,
     );
     if (!message) return;
     const target = visualTarget(message);
     const current = this.visualReplies[turnId] ?? emptyVisualReply();
-    const tick = this.playbackQueues.get(turnId)?.tick(current, this.nowMs()) ?? tickVisualReply(current, target, this.nowMs());
+    const tick =
+      this.playbackQueues.get(turnId)?.tick(current, this.nowMs()) ??
+      tickVisualReply(current, target, this.nowMs());
     if (tick.changed) {
       this.visualReplies = {
         ...this.visualReplies,
@@ -571,9 +598,7 @@ export class ChatSessionStore {
   private flushTurn(turnId: string) {
     this.playbackQueues.delete(turnId);
     const message = this.messages.find(
-      (
-        group,
-      ): group is Extract<ChatGroup, { role: "assistant" }> =>
+      (group): group is Extract<ChatGroup, { role: "assistant" }> =>
         group.role === "assistant" && group.replyGroupId === turnId,
     );
     if (!message) return;

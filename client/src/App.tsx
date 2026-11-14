@@ -233,6 +233,8 @@ export default function App() {
         (event) => {
           if (event.type === "connection") setStatus(event.status);
           else if (event.type === "channel") setChannel(event.channel);
+          else if (event.type === "files-error")
+            notify.fail("文件讀取失敗", event.message);
           else if (event.type === "conversation-updated")
             setConversations((current) => {
               conversationSessions.register(event.conversation);

@@ -19,7 +19,16 @@ export function apiRequestMessages(
       index === lastUser
         ? {
             ...message,
-            content: `${message.content}\n\n${API_FORMAT_REMINDER}`,
+            content:
+              typeof message.content === "string"
+                ? `${message.content}\n\n${API_FORMAT_REMINDER}`
+                : [
+                    ...message.content,
+                    {
+                      type: "text" as const,
+                      text: `\n\n${API_FORMAT_REMINDER}`,
+                    },
+                  ],
           }
         : message,
     ),

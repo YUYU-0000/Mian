@@ -7,7 +7,13 @@ export type ProviderConfig = {
 };
 import { VisibleContent } from "./visibleContent.js";
 
-export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | ContentPart[];
+};
 export type TokenUsage = { totalTokens: number; uncachedTotalTokens: number };
 export type CompletionEvent =
   | { type: "text"; text: string; immediate?: boolean }
@@ -111,7 +117,9 @@ async function* readCompletion(
   if (!response.headers.get("content-type")?.includes("text/event-stream")) {
     const body = await response.json();
     if (body.error) throw responseError(body, response.status);
-    const text = visible.push(body.choices?.[0]?.message?.content ?? "") + visible.finish();
+    const text =
+      visible.push(body.choices?.[0]?.message?.content ?? "") +
+      visible.finish();
     if (text) yield { type: "text", text, immediate: true };
     const usage = readUsage(body.usage);
     if (usage) yield { type: "usage", usage };

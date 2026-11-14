@@ -4,8 +4,8 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import type { AppConfig, Sandbox } from "./types.js";
 
-const root = path.resolve(process.cwd(), "server", "data");
-const file = path.join(root, "config.json");
+export const dataDirectory = path.resolve(process.cwd(), "server", "data");
+const file = path.join(dataDirectory, "config.json");
 export const projectDirectory = fileURLToPath(
   new URL("../..", import.meta.url),
 );
@@ -47,7 +47,7 @@ export async function readConfig(): Promise<AppConfig> {
 }
 
 async function writeConfig(config: AppConfig) {
-  await mkdir(root, { recursive: true });
+  await mkdir(dataDirectory, { recursive: true });
   await writeFile(file, JSON.stringify(config, null, 2), "utf8");
 }
 

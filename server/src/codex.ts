@@ -1,7 +1,4 @@
-import {
-  spawn,
-  type ChildProcessWithoutNullStreams,
-} from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
 import type {
@@ -33,12 +30,7 @@ type ConnectionStatus = {
 };
 
 export type AppServerLifecycleState =
-  | "idle"
-  | "starting"
-  | "ready"
-  | "stopping"
-  | "exited"
-  | "failed";
+  "idle" | "starting" | "ready" | "stopping" | "exited" | "failed";
 
 export type AppServerSpawner = (
   config: AppConfig,
@@ -82,7 +74,9 @@ export class CodexBridge extends EventEmitter {
   version = "";
   config?: AppConfig;
 
-  constructor(private readonly spawnAppServer: AppServerSpawner = defaultSpawner) {
+  constructor(
+    private readonly spawnAppServer: AppServerSpawner = defaultSpawner,
+  ) {
     super();
   }
 
@@ -91,18 +85,26 @@ export class CodexBridge extends EventEmitter {
   }
 
   async readAccount() {
-    const { account } = await this.request("account/read", { refreshToken: false }) as {
+    const { account } = (await this.request("account/read", {
+      refreshToken: false,
+    })) as {
       account: { type: string; email?: string; planType?: string } | null;
     };
     const status: ConnectionStatus = {
       state: account ? "ready" : "login-required",
-      message: account ? "Codex app-server 已连接" : "app-server 已连接，但 Codex 尚未登录",
+      message: account
+        ? "Codex app-server 已连接"
+        : "app-server 已连接，但 Codex 尚未登录",
       version: this.version,
       account: account?.email || account?.type,
     };
     this.lastStatus = status;
     this.emit("event", { type: "connection", status });
-    return { loggedIn: !!account, account: account?.email || account?.type || "", plan: account?.planType || "" };
+    return {
+      loggedIn: !!account,
+      account: account?.email || account?.type || "",
+      plan: account?.planType || "",
+    };
   }
 
   getActiveTurnId(conversationId: string) {
@@ -339,7 +341,11 @@ export class CodexBridge extends EventEmitter {
       .clearTransientState()
       .map(([conversationId]) => conversationId);
     for (const conversationId of interruptedConversations)
-      this.emit("event", { type: "error", conversationId, message: error.message });
+      this.emit("event", {
+        type: "error",
+        conversationId,
+        message: error.message,
+      });
     this.emit("event", {
       type: "connection",
       status: { state: "error", message: error.message },
@@ -409,7 +415,11 @@ export class CodexBridge extends EventEmitter {
     const requestId = String(msg.id);
     const conversationId = this.resolveConversationId(params);
     if (!conversationId) {
-      this.respondError(msg.id!, -32602, "无法确定权限请求所属的 conversationId");
+      this.respondError(
+        msg.id!,
+        -32602,
+        "无法确定权限请求所属的 conversationId",
+      );
       return;
     }
     const turnId = String(
@@ -492,6 +502,17 @@ export class CodexBridge extends EventEmitter {
         delta: params.delta,
       });
     else if (method === "item/started" || method === "item/completed") {
+      if (
+        method === "item/completed" &&
+        params.item?.type === "fileChange" &&
+        params.item.status === "completed"
+      )
+        this.emit("files-changed", {
+          conversationId,
+          paths: (params.item.changes ?? []).map(
+            (change: { path: string }) => change.path,
+          ),
+        });
       if (params.item?.type === "reasoning") {
         this.emit("event", {
           type:
@@ -667,8 +688,7 @@ export class CodexBridge extends EventEmitter {
       metadata.model = result.model;
     if (typeof result?.reasoningEffort === "string")
       metadata.reasoningEffort = result.reasoningEffort;
-    else if (result?.reasoningEffort === null)
-      metadata.reasoningEffort = null;
+    else if (result?.reasoningEffort === null) metadata.reasoningEffort = null;
     return {
       threadId: String(result.thread.id),
       metadata,
@@ -684,8 +704,7 @@ export class CodexBridge extends EventEmitter {
       if (!this.current || this.lifecycleState !== "ready" || !this.config)
         throw new Error("尚未连接 Codex");
       const existingThreadId = runtime.threadId;
-      if (existingThreadId && runtime.loaded)
-        return existingThreadId;
+      if (existingThreadId && runtime.loaded) return existingThreadId;
 
       let result: any;
       if (existingThreadId) {
@@ -698,9 +717,7 @@ export class CodexBridge extends EventEmitter {
         } catch (error) {
           if (!/no rollout found for thread id/i.test((error as Error).message))
             throw error;
-          // Empty threads created by older Mian builds could be persisted before
-          // Codex wrote a rollout. They have no context to recover, so replace
-          // only that conversation's unusable binding and continue its first turn.
+          // 旧空线程尚无记录，只替换当前会话的失效绑定。
           result = await this.request("thread/start", {
             ...this.threadOptions(),
             ephemeral: false,
@@ -743,9 +760,8 @@ export class CodexBridge extends EventEmitter {
   }
 
   async forkConversationThread(parentConversationId: string) {
-    const parentThreadId = await this.ensureConversationThread(
-      parentConversationId,
-    );
+    const parentThreadId =
+      await this.ensureConversationThread(parentConversationId);
     const result = (await this.request("thread/fork", {
       threadId: parentThreadId,
       ...this.threadOptions(),
@@ -781,10 +797,7 @@ export class CodexBridge extends EventEmitter {
     } catch (error) {
       if (!/no rollout found for thread id/i.test((error as Error).message))
         throw error;
-      // Codex can issue a thread id before the empty thread has a rollout.
-      // In that exact state there is no remote record left to archive, so the
-      // registry commit may safely remove this conversation. Other archive
-      // errors still abort deletion and leave the ticket untouched.
+      // 空线程尚无远程记录，可以直接归档本地票根。
     }
     return { conversationId, threadId };
   }

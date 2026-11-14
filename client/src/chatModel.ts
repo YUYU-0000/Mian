@@ -1,9 +1,21 @@
 import { createId } from "./id";
-import type { Approval, ChatEvent, ChatMessage, ReplyFormat, ToolEvent } from "./types";
+import type {
+  Approval,
+  ChatEvent,
+  ChatFile,
+  ChatMessage,
+  ReplyFormat,
+  ToolEvent,
+} from "./types";
 
 export const CHAT_STORAGE_KEY = "mian.chat-groups.v2";
 
-export type UserRecord = { messageId: string; text: string; time: string };
+export type UserRecord = {
+  messageId: string;
+  text: string;
+  time: string;
+  files?: ChatFile[];
+};
 export type UserGroup = {
   groupId: string;
   role: "user";
@@ -29,6 +41,7 @@ export type ReplyGroup = {
   tools: ToolEvent[];
   approvals: Approval[];
   status?: string;
+  files?: ChatFile[];
 };
 export type ChatGroup = UserGroup | ReplyGroup;
 
@@ -37,22 +50,40 @@ export function chatHistory(groups: ChatGroup[]): ChatMessage[] {
   const messages: ChatMessage[] = [];
   for (const group of groups) {
     if (group.role === "assistant" && group.status === "failed") continue;
-    const content = group.role === "user"
-      ? group.records.map(record => record.text).join("\n\n")
-      : [...group.preToolBubbles, ...group.bubbles].join("\n\n");
-    if (!content) continue;
+    const content =
+      group.role === "user"
+        ? group.records.map((record) => record.text).join("\n\n")
+        : [...group.preToolBubbles, ...group.bubbles].join("\n\n");
+    const files =
+      group.role === "user"
+        ? group.records.flatMap((record) => record.files ?? [])
+        : [];
+    if (!content && !files.length) continue;
     const previous = messages.at(-1);
-    if (previous?.role === group.role) previous.content += `\n\n${content}`;
-    else messages.push({ role: group.role, content });
+    if (previous?.role === group.role) {
+      previous.content += `\n\n${content}`;
+      if (files.length) previous.files = [...(previous.files ?? []), ...files];
+    } else
+      messages.push({
+        role: group.role,
+        content,
+        ...(files.length ? { files } : {}),
+      });
   }
   return messages;
 }
 
 function parseReply(raw: string, format?: ReplyFormat, final = false) {
-  if (format !== "plain") return parsePublicReply(raw, { final, plainStreaming: format === "api" });
+  if (format !== "plain")
+    return parsePublicReply(raw, { final, plainStreaming: format === "api" });
   return {
-    thinking: "", preToolBubbles: [], preToolBubbleComplete: [], preToolComplete: false,
-    toolSummaries: [], bubbles: raw ? [raw] : [], bubbleComplete: raw ? [final] : [],
+    thinking: "",
+    preToolBubbles: [],
+    preToolBubbleComplete: [],
+    preToolComplete: false,
+    toolSummaries: [],
+    bubbles: raw ? [raw] : [],
+    bubbleComplete: raw ? [final] : [],
   };
 }
 
@@ -89,17 +120,29 @@ function normalizeBubbleBody(value: string): string {
   let fence = "";
   let blanks = 0;
   // 聊天段落收拢空行，代码围栏里的空白原样保留。
-  const normalized = value.replace(/\r\n?/g, "\n").split("\n").filter(line => {
-    const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
-    if (fence) {
-      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = "";
-      return true;
-    }
-    if (marker) fence = marker[1];
-    blanks = line.trim() ? 0 : blanks + 1;
-    return blanks <= 1;
-  }).join("\n");
-  return /^( {4}|\t)/.test(normalized) ? normalized.trimEnd() : normalized.trim();
+  const normalized = value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .filter((line) => {
+      const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+      if (fence) {
+        if (
+          marker &&
+          marker[1][0] === fence[0] &&
+          marker[1].length >= fence.length &&
+          !marker[2].trim()
+        )
+          fence = "";
+        return true;
+      }
+      if (marker) fence = marker[1];
+      blanks = line.trim() ? 0 : blanks + 1;
+      return blanks <= 1;
+    })
+    .join("\n");
+  return /^( {4}|\t)/.test(normalized)
+    ? normalized.trimEnd()
+    : normalized.trim();
 }
 
 function hideTrailingPartialMarker(value: string, final: boolean): string {
@@ -147,18 +190,22 @@ function taggedSegments(
   return segments;
 }
 
-function withoutRanges(raw: string, ranges: Array<{ start: number; end: number }>) {
+function withoutRanges(
+  raw: string,
+  ranges: Array<{ start: number; end: number }>,
+) {
   let masked = raw;
-  for (const range of [...ranges].sort((left, right) => right.start - left.start))
-    masked =
-      masked.slice(0, range.start) +
-      masked.slice(range.end);
+  for (const range of [...ranges].sort(
+    (left, right) => right.start - left.start,
+  ))
+    masked = masked.slice(0, range.start) + masked.slice(range.end);
   return masked;
 }
 
 export function stripProtocolMarkers(value: string): string {
   let stripped = value;
-  for (const marker of protocolMarkers) stripped = stripped.split(marker).join("");
+  for (const marker of protocolMarkers)
+    stripped = stripped.split(marker).join("");
   const lastOpen = stripped.lastIndexOf("<");
   if (lastOpen >= 0) {
     const fragment = stripped.slice(lastOpen);
@@ -208,12 +255,9 @@ export function parsePublicReply(
       }
       continue;
     }
-    // Compatibility with already persisted replies using the original
-    // <mian-pre-tool>text</mian-pre-tool> shape.
+    // 兼容旧记录里直接写在 pre-tool 标签中的正文。
     const legacy = normalizeBubbleBody(
-      stripProtocolMarkers(
-        hideTrailingPartialMarker(container.content, final),
-      ),
+      stripProtocolMarkers(hideTrailingPartialMarker(container.content, final)),
     );
     if (legacy) {
       preToolBubbles.push(legacy);
@@ -239,7 +283,9 @@ export function parsePublicReply(
       ...summarySegments,
     ];
     const fallback = normalizeBubbleBody(
-      stripProtocolMarkers(hideTrailingPartialMarker(withoutRanges(raw, controlRanges), final)),
+      stripProtocolMarkers(
+        hideTrailingPartialMarker(withoutRanges(raw, controlRanges), final),
+      ),
     );
     if (fallback) {
       bubbles.push(fallback);
@@ -262,12 +308,17 @@ export function parsePublicReply(
 }
 
 export function visibleToolSummary(tool: ToolEvent): string {
-  if (tool.summary && /^[\u3400-\u9fff]{4,12}$/.test(tool.summary)) return tool.summary;
+  if (tool.summary && /^[\u3400-\u9fff]{4,12}$/.test(tool.summary))
+    return tool.summary;
   const kind = (tool.kind || tool.rawName || "").toLowerCase();
-  if (kind.includes("read_file") || kind.includes("readfile")) return "读取文件";
-  if (kind.includes("write_file") || kind.includes("filechange")) return "修改文件";
-  if (kind.includes("list_directory") || kind.includes("listdirectory")) return "查看目录";
-  if (kind.includes("mcp") || kind.includes("dynamictool")) return "调用外部工具";
+  if (kind.includes("read_file") || kind.includes("readfile"))
+    return "读取文件";
+  if (kind.includes("write_file") || kind.includes("filechange"))
+    return "修改文件";
+  if (kind.includes("list_directory") || kind.includes("listdirectory"))
+    return "查看目录";
+  if (kind.includes("mcp") || kind.includes("dynamictool"))
+    return "调用外部工具";
   if (kind.includes("websearch")) return "搜索网页";
   if (kind.includes("imageview")) return "查看图片";
   return "执行命令";
@@ -312,9 +363,10 @@ export function appendUserRecord(
   time: string,
   messageId = createId(),
   groupId = createId(),
+  files: ChatFile[] = [],
 ): ChatGroup[] {
   const last = groups.at(-1);
-  const record = { messageId, text, time };
+  const record = { messageId, text, time, ...(files.length ? { files } : {}) };
   if (last?.role === "user" && last.pending)
     return [
       ...groups.slice(0, -1),
@@ -334,10 +386,17 @@ export function pendingUserGroup(groups: ChatGroup[]): UserGroup | undefined {
   return undefined;
 }
 
-export function recoverLastUnansweredUserGroup(groups: ChatGroup[]): ChatGroup[] {
+export function recoverLastUnansweredUserGroup(
+  groups: ChatGroup[],
+): ChatGroup[] {
   const last = groups.at(-1);
   const user = groups.at(-2);
-  if (last?.role === "assistant" && last.format && last.status === "failed" && user?.role === "user")
+  if (
+    last?.role === "assistant" &&
+    last.format &&
+    last.status === "failed" &&
+    user?.role === "user"
+  )
     return [...groups.slice(0, -2), { ...user, pending: true }];
   let lastAssistantIndex = -1;
   for (let index = groups.length - 1; index >= 0; index -= 1) {
@@ -450,17 +509,43 @@ export function applyReplyEvent(
         summary: parsed.toolSummaries[toolIndex] || tool.summary,
       })),
     };
-  } else if (event.type === "tool") {
-    const toolIndex = group.tools.findIndex((tool) => tool.id === event.tool.id);
-    const parsedSummaries = parsePublicReply(group.raw).toolSummaries;
-    const normalized = { ...event.tool, rawName: event.tool.rawName || event.tool.name, result: event.tool.result ?? event.tool.detail, summary: event.tool.summary || parsedSummaries[toolIndex < 0 ? group.tools.length : toolIndex] };
+  } else if (event.type === "files") {
     updated = {
       ...group,
-      tools: toolIndex >= 0
-        ? group.tools.map((tool) =>
-            tool.id === event.tool.id ? { ...tool, ...normalized, summary: normalized.summary || tool.summary } : tool,
-          )
-        : [...group.tools, normalized],
+      files: [
+        ...(group.files ?? []).filter(
+          (file) => !event.files.some((incoming) => incoming.id === file.id),
+        ),
+        ...event.files,
+      ],
+    };
+  } else if (event.type === "tool") {
+    const toolIndex = group.tools.findIndex(
+      (tool) => tool.id === event.tool.id,
+    );
+    const parsedSummaries = parsePublicReply(group.raw).toolSummaries;
+    const normalized = {
+      ...event.tool,
+      rawName: event.tool.rawName || event.tool.name,
+      result: event.tool.result ?? event.tool.detail,
+      summary:
+        event.tool.summary ||
+        parsedSummaries[toolIndex < 0 ? group.tools.length : toolIndex],
+    };
+    updated = {
+      ...group,
+      tools:
+        toolIndex >= 0
+          ? group.tools.map((tool) =>
+              tool.id === event.tool.id
+                ? {
+                    ...tool,
+                    ...normalized,
+                    summary: normalized.summary || tool.summary,
+                  }
+                : tool,
+            )
+          : [...group.tools, normalized],
     };
   } else if (event.type === "approval")
     updated = { ...group, approvals: [...group.approvals, event.approval] };
@@ -490,13 +575,13 @@ export function applyReplyEvent(
       status: event.status,
       ...(needsCompatibilityBridge
         ? {
-          preToolBubbles: ["我先确认一下。"],
-          preToolBubbleIds:
-            group.preToolBubbleIds.length > 0
-              ? [group.preToolBubbleIds[0]]
-              : [createId()],
-          preToolBubbleComplete: [true],
-          preToolComplete: true,
+            preToolBubbles: ["我先确认一下。"],
+            preToolBubbleIds:
+              group.preToolBubbleIds.length > 0
+                ? [group.preToolBubbleIds[0]]
+                : [createId()],
+            preToolBubbleComplete: [true],
+            preToolComplete: true,
           }
         : {}),
     };
@@ -568,9 +653,7 @@ export function loadChatGroups(storage: Pick<Storage, "getItem">): ChatGroup[] {
               ),
         preToolBubbles,
         preToolBubbleIds: alignIds(
-          Array.isArray(group.preToolBubbleIds)
-            ? group.preToolBubbleIds
-            : [],
+          Array.isArray(group.preToolBubbleIds) ? group.preToolBubbleIds : [],
           preToolBubbles.length,
         ),
         preToolBubbleComplete: alignCompletion(

@@ -107,6 +107,7 @@ export default function Notify({ page }: { page: string }) {
         <span className="mail-tape" />
       </div>
     </div>,
-    document.body,
+    // 预览是顶层弹窗，保存提示也放到这一层。
+    document.querySelector(".pv-viewer[open]") ?? document.body,
   );
 }
