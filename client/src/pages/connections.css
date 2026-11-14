@@ -1,25 +1,5 @@
 
         /* ================= 基礎 ================= */
-        @font-face {
-            font-family: "ZSFT-br"; src: url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");
-            font-style: normal; font-weight: 300; font-display: swap;
-        }
-        @font-face {
-            font-family: "ZSFT-br"; src: url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");
-            font-style: normal; font-weight: 400; font-display: swap;
-        }
-        @font-face {
-            font-family: "ZSFT-br"; src: url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");
-            font-style: normal; font-weight: 500; font-display: swap;
-        }
-        @font-face {
-            font-family: "ZSFT-br"; src: url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");
-            font-style: normal; font-weight: 600; font-display: swap;
-        }
-        @font-face {
-            font-family: "ZSFT-br"; src: url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");
-            font-style: normal; font-weight: 700; font-display: swap;
-        }
 
         .connections-page {
             --env-h: 440px;

@@ -1,16 +1,5 @@
 
         /* 引入 ZSFT-br 字体 */
-        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/bold.woff2") format("woff2");font-style:normal;font-weight:700;font-display:swap;}
-        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/light.woff2") format("woff2");font-style:normal;font-weight:300;font-display:swap;}
-        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/medium.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;}
-        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/main.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;}
-        @font-face{font-family:"ZSFT-br";src:url("https://fontsapi.zeoseven.com/br/semi-bold.woff2") format("woff2");font-style:normal;font-weight:600;font-display:swap;}
-
-        @font-face {
-            font-family: 'ZSFT-l';
-            src: url('https://fontsapi.zeoseven.com/l/main.woff2') format('woff2');
-            font-display: swap;
-        }
 
         /* 主题颜色 & 字體設定 */
         .settings-page {

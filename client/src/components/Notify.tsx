@@ -60,7 +60,7 @@ export default function Notify() {
           <div className="mail-row">
             <div className="mail-kicker"><b>{notice.kind === "fail" ? "未成功" : mark}</b><span>連接設置 →</span></div>
             <span className="mail-title">{notice.title}</span>
-            <span className="mail-time"><small>{pad(notice.time.getMonth() + 1)}.{pad(notice.time.getDate())}</small><span>{pad(notice.time.getHours())}:{pad(notice.time.getMinutes())}</span></span>
+            <span className="mail-time"><small>{`${pad(notice.time.getMonth() + 1)}.${pad(notice.time.getDate())}`}</small><span>{`${pad(notice.time.getHours())}:${pad(notice.time.getMinutes())}`}</span></span>
           </div>
           <div className="mail-reason">{notice.reason}</div>
         </div>

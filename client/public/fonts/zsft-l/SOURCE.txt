@@ -1,0 +1,4 @@
+Qwigley Regular, Robert Leuschke.
+Design reference family: ZSFT-l (https://fonts.zeoseven.com/items/l/).
+Source: https://github.com/google/fonts/tree/main/ofl/qwigley
+License: SIL Open Font License 1.1, included in OFL.txt.
