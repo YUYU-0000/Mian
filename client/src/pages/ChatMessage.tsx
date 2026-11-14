@@ -1,4 +1,5 @@
 import {
+  Fragment,
   memo,
   useEffect,
   useRef,
@@ -21,6 +22,7 @@ import {
 import { shouldShowThinkingHourglass } from "../thinkingStatus";
 import ToolOutput from "../components/ToolOutput";
 import ReplyMarkdown from "../components/DeferredReplyMarkdown";
+import FileTicket from "../components/FileTicket";
 
 const Hourglass = () => (
   <svg
@@ -317,12 +319,23 @@ export default memo(function ChatMessage({
           </div>
           <div className="archive-msg-content">
             {message.records.map((record) => (
-              <div
-                key={record.messageId}
-                className={`archive-bubble ${historicalAnimationIds.has(userAnimationId(record.messageId)) ? "" : "archive-pop-in"}`}
-              >
-                {record.text}
-              </div>
+              <Fragment key={record.messageId}>
+                {record.files?.map((file) => (
+                  <FileTicket
+                    key={file.id}
+                    file={file}
+                    conversationId={session.conversationId}
+                    mine
+                  />
+                ))}
+                {record.text && (
+                  <div
+                    className={`archive-bubble ${historicalAnimationIds.has(userAnimationId(record.messageId)) ? "" : "archive-pop-in"}`}
+                  >
+                    {record.text}
+                  </div>
+                )}
+              </Fragment>
             ))}
           </div>
         </>
@@ -427,6 +440,15 @@ export default memo(function ChatMessage({
                     })}
                   />
                 </div>
+              ))}
+            {message.status &&
+              activeTurnId !== message.replyGroupId &&
+              message.files?.map((file) => (
+                <FileTicket
+                  key={file.id}
+                  file={file}
+                  conversationId={session.conversationId}
+                />
               ))}
             {message.approvals.map((approval) => (
               <ApprovalCard

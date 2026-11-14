@@ -1,6 +1,8 @@
 import { localDateTime } from "./format";
+import { conversationExport } from "./chatExport";
 import type {
   ChatMessage,
+  ChatFile,
   ChatEvent,
   Config,
   ConnectionStatus,
@@ -67,7 +69,9 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
 
 function loadStreamCursor(): StreamCursor | null {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(STREAM_CURSOR_KEY) ?? "null");
+    const value: unknown = JSON.parse(
+      localStorage.getItem(STREAM_CURSOR_KEY) ?? "null",
+    );
     if (
       typeof value === "object" &&
       value !== null &&
@@ -94,7 +98,9 @@ export const api = {
     provider === "codex"
       ? request<Subscription>("/api/subscriptions/codex")
       : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
-  subLogin: async (provider: Provider): Promise<{ account: string; plan: string }> => {
+  subLogin: async (
+    provider: Provider,
+  ): Promise<{ account: string; plan: string }> => {
     if (provider !== "codex") {
       // 待接后端：保留设计稿的演示登录。
       await delay(900);
@@ -163,40 +169,68 @@ export const api = {
     demoSubscriptions[provider].model = cfg.model;
   },
   subQuota: async (provider: Provider): Promise<Quota> => {
-    if (provider === "codex") return request<Quota>("/api/subscriptions/codex/quota");
+    if (provider === "codex")
+      return request<Quota>("/api/subscriptions/codex/quota");
     // 待接后端：Gemini / Kimi
     await delay(600);
     return { left: 96, resetAt: "11月20日 01:59" };
   },
   apiPresets: () =>
-    request<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
+    request<{ presets: ApiPreset[]; activeId: string | null }>(
+      "/api/api-presets",
+    ),
   saveApiPreset: (preset: ApiPreset) =>
     request<ApiPreset>("/api/api-presets", {
       method: "POST",
       body: JSON.stringify(preset),
     }),
   deleteApiPreset: (id: string) =>
-    request<void>(`/api/api-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    request<void>(`/api/api-presets/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   useApiPreset: (id: string) =>
-    request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
-  useCodex: () => request<void>("/api/subscriptions/codex/use", { method: "POST" }),
+    request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, {
+      method: "POST",
+    }),
+  useCodex: () =>
+    request<void>("/api/subscriptions/codex/use", { method: "POST" }),
   apiModels: (cfg: ApiPreset) =>
-    request<string[]>("/api/api-models", { method: "POST", body: JSON.stringify(cfg) }),
+    request<string[]>("/api/api-models", {
+      method: "POST",
+      body: JSON.stringify(cfg),
+    }),
   apiTest: (cfg: ApiPreset) =>
-    request<void>("/api/api-test", { method: "POST", body: JSON.stringify(cfg) }),
+    request<void>("/api/api-test", {
+      method: "POST",
+      body: JSON.stringify(cfg),
+    }),
   // 待接后端：以下设置接口保留设计稿的预留实现。
   saveFontStyle: async (_page: HTMLElement) => {},
   testFontStyle: async (_page: HTMLElement) => {},
   testVoice: (_cfg: VoiceConfig) => new Promise<void>(() => {}),
-  exportData: () => delay(300),
   importData: (_file: File) => delay(300),
+  exportData: async () => {
+    const { conversations } = await api.listConversations();
+    const content = conversationExport(conversations, localStorage);
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(content, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mian-conversations-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
   getConfig: () => request<Config>("/api/config"),
   saveConfig: (config: Config) =>
     request<Config>("/api/config", {
       method: "PUT",
       body: JSON.stringify(config),
     }),
-  test: () => request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
+  test: () =>
+    request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
   listConversations: () =>
     request<{
       defaultConversationId: string;
@@ -213,13 +247,18 @@ export const api = {
     ),
   updateConversation: (
     conversationId: string,
-    patch: Partial<Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">>,
+    patch: Partial<
+      Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">
+    >,
   ) =>
     request<{ conversation: ConversationRecord }>(
       `/api/conversations/${encodeURIComponent(conversationId)}`,
       { method: "PATCH", body: JSON.stringify(patch) },
     ),
-  updateConversationActivity: (conversationId: string, patch: ConversationActivity) =>
+  updateConversationActivity: (
+    conversationId: string,
+    patch: ConversationActivity,
+  ) =>
     request<{ conversation: ConversationRecord }>(
       `/api/conversations/${encodeURIComponent(conversationId)}/activity`,
       { method: "PATCH", body: JSON.stringify(patch) },
@@ -228,10 +267,58 @@ export const api = {
     request<void>(`/api/conversations/${encodeURIComponent(conversationId)}`, {
       method: "DELETE",
     }),
-  send: async (text: string, conversationId: string, messages?: ChatMessage[]) => {
+  fileUrl: (conversationId: string, fileId: string, inline = false) =>
+    `/api/conversations/${encodeURIComponent(conversationId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`,
+  uploadFile: (
+    conversationId: string,
+    file: File,
+    progress: (percent: number) => void,
+    signal: AbortSignal,
+  ) =>
+    new Promise<ChatFile>((resolve, reject) => {
+      const upload = new XMLHttpRequest();
+      upload.open(
+        "POST",
+        `/api/conversations/${encodeURIComponent(conversationId)}/files?${new URLSearchParams({ name: file.name, type: file.type })}`,
+      );
+      upload.setRequestHeader("Content-Type", "application/octet-stream");
+      upload.upload.onprogress = (event) => {
+        if (event.lengthComputable)
+          progress(Math.round((event.loaded / event.total) * 100));
+      };
+      const abort = () => upload.abort();
+      signal.addEventListener("abort", abort, { once: true });
+      upload.onloadend = () => signal.removeEventListener("abort", abort);
+      upload.onerror = () => reject(new Error("文件上傳連線中斷。"));
+      upload.onabort = () =>
+        reject(new DOMException("已取消上傳", "AbortError"));
+      upload.onload = () => {
+        void readResponse<ChatFile>(
+          new Response(upload.responseText, {
+            status: upload.status,
+            headers: {
+              "Content-Type": upload.getResponseHeader("Content-Type") ?? "",
+            },
+          }),
+        ).then(resolve, reject);
+      };
+      upload.send(file);
+    }),
+  send: async (
+    text: string,
+    conversationId: string,
+    messages?: ChatMessage[],
+    files?: ChatFile[],
+  ) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
-      body: JSON.stringify({ text, conversationId, messages, localTime: localDateTime() }),
+      body: JSON.stringify({
+        text,
+        conversationId,
+        messages,
+        files: files?.map((file) => file.id),
+        localTime: localDateTime(),
+      }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)
       throw new Error("服务未返回有效的 turnId");
@@ -307,7 +394,8 @@ export const api = {
           if (envelope.seq <= cursor.seq) return;
           onEvent({
             ...envelope.event,
-            conversationId: envelope.event.conversationId ?? envelope.conversationId,
+            conversationId:
+              envelope.event.conversationId ?? envelope.conversationId,
           });
           cursor = { streamId: envelope.streamId, seq: envelope.seq };
           saveStreamCursor(cursor);

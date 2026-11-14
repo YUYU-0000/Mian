@@ -17,6 +17,8 @@ import type {
 import ArchiveRibbonTitle from "../components/ArchiveRibbonTitle";
 import TicketDrawer from "../components/TicketDrawer";
 import ChatMessage, { collectHistoricalAnimationIds } from "./ChatMessage";
+import FileTicket from "../components/FileTicket";
+import { notify } from "../components/Notify";
 
 export default function Chat({
   session,
@@ -78,6 +80,13 @@ export default function Chat({
     session.getSnapshot,
   );
   const { messages, visualReplies, activeTurnId, turnPhase } = snapshot;
+  const attachments = useSyncExternalStore(
+    session.attachments.subscribe,
+    session.attachments.getSnapshot,
+    session.attachments.getSnapshot,
+  );
+  const uploading = attachments.some((draft) => !draft.uploaded);
+  const fileInput = useRef<HTMLInputElement>(null);
   const active = turnPhase !== "idle";
   const historicalAnimationIds = useMemo(
     () => collectHistoricalAnimationIds(session.getSnapshot().messages),
@@ -179,14 +188,20 @@ export default function Chat({
     const updateNow = (forceBottom = false) => {
       const streamRect = streamElement.getBoundingClientRect();
       const inputRect = inputElement.getBoundingClientRect();
+      const draftRect = inputElement
+        .querySelector(".file-drafts")
+        ?.getBoundingClientRect();
       const top = Math.max(
         53,
-        Math.min(streamElement.clientHeight, inputRect.top - streamRect.top),
+        Math.min(
+          streamElement.clientHeight,
+          (draftRect?.top ?? inputRect.top) - streamRect.top,
+        ),
       );
       streamElement.style.setProperty("--input-top-y", `${top}px`);
       streamElement.style.setProperty(
         "--input-area-height",
-        `${inputRect.height + 30}px`,
+        `${inputRect.bottom - (draftRect?.top ?? inputRect.top) + 30}px`,
       );
       if (forceBottom || shouldFollowBottom.current)
         streamElement.scrollTop = streamElement.scrollHeight;
@@ -312,7 +327,7 @@ export default function Chat({
   }, [session.conversationId]);
   const saveRecord = (value: string) => {
     shouldFollowBottom.current = true;
-    session.saveUserRecord(value);
+    session.saveUserRecord(value, session.attachments.take());
     setText("");
     onViewStateChange(session.conversationId, { draft: "" });
     requestAnimationFrame(() => {
@@ -320,10 +335,14 @@ export default function Chat({
       requestViewportSync.current(true);
     });
   };
+  useLayoutEffect(() => {
+    requestViewportSync.current();
+  }, [attachments.length]);
   const act = () => {
     if (active) return session.stopCurrentTurn();
+    if (uploading) return;
     const value = text.trim();
-    if (value) {
+    if (value || attachments.length) {
       saveRecord(value);
       return;
     }
@@ -438,7 +457,47 @@ export default function Chat({
           void act();
         }}
       >
-        <button type="button" disabled aria-label="附件稍后开放">
+        {attachments.length > 0 && (
+          <div className="file-drafts">
+            {attachments.map((draft) => (
+              <div className="file-draft" key={draft.draftId}>
+                <FileTicket
+                  file={draft.file}
+                  conversationId={session.conversationId}
+                  mine
+                  pending
+                  progress={draft.uploaded ? undefined : draft.progress}
+                />
+                <button
+                  type="button"
+                  className="file-draft-remove"
+                  aria-label={`移除 ${draft.file.name}`}
+                  onClick={() => session.attachments.remove(draft.draftId)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(event) => {
+            session.attachments.add(
+              Array.from(event.currentTarget.files ?? []),
+              notify.fail,
+            );
+            event.currentTarget.value = "";
+          }}
+        />
+        <button
+          type="button"
+          aria-label="添加附件"
+          onClick={() => fileInput.current!.click()}
+        >
           <svg viewBox="0 0 24 24">
             <path d="M12 5v14M5 12h14" />
           </svg>
@@ -478,6 +537,7 @@ export default function Chat({
         <button
           className={active ? "is-streaming" : ""}
           type="submit"
+          disabled={!active && uploading}
           aria-label={active ? "停止" : "发送"}
         >
           <span className="send-icon">
