@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { stripProtocolMarkers } from "../chatModel";
+import ChineseText from "./ChineseText";
 
 let markdownModule: Promise<typeof import("./ReplyMarkdown")> | null = null;
 
@@ -18,7 +19,7 @@ export default function DeferredReplyMarkdown(props: {
     <Suspense
       fallback={
         <div className="reply-markdown" style={{ whiteSpace: "pre-wrap" }}>
-          {stripProtocolMarkers(props.text)}
+          <ChineseText text={stripProtocolMarkers(props.text)} />
           {props.typing && <span className="cursor-blink" />}
         </div>
       }

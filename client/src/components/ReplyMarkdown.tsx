@@ -10,6 +10,7 @@ import {
 } from "react";
 import { replyMarkup, type ReplyCode as Code } from "../replyMarkup";
 import ReplyCode from "./ReplyCode";
+import ChineseText from "./ChineseText";
 import "./reply-markdown.css";
 
 const attributeNames: Record<string, string> = {
@@ -34,7 +35,7 @@ function renderNodes(
     if (node.nodeType === Node.TEXT_NODE)
       return (
         <Fragment key={key}>
-          {node.textContent}
+          <ChineseText text={node.textContent ?? ""} />
           {cursor}
         </Fragment>
       );

@@ -1,5 +1,3 @@
-/* 引入 ZSFT-br 字体 */
-
 /* 主题颜色 & 字體設定 */
 .settings-page {
   --bg-color: #f1efe9;
@@ -21,7 +19,6 @@
   --paper-layer-bot: #e1ddd2;
 }
 
-.settings-page,
 .settings-page {
   margin: 0;
   padding: 0;
@@ -384,12 +381,14 @@
 .settings-page .has-paper-stack > .paper-layer-mid {
   background: #ebe7de;
 }
-.settings-page .has-paper-stack > .paper-main {
+.settings-page .has-paper-stack > .paper-main,
+.settings-page .has-avatar-stack > .paper-main {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
 }
-.settings-page .has-paper-stack > .paper-main > .paper-holes {
+.settings-page .has-paper-stack > .paper-main > .paper-holes,
+.settings-page .has-avatar-stack > .paper-main > .paper-holes {
   display: none;
 }
 
@@ -518,7 +517,8 @@
   user-select: text;
 }
 
-.settings-page .api-page {
+.settings-page .api-page,
+.settings-page .avatar-page {
   width: 100%;
   height: 100%;
   background-color: var(--paper-layer-top);
@@ -527,6 +527,20 @@
   border: 1px solid rgba(255, 255, 255, 0.8);
   box-sizing: border-box;
   opacity: 0;
+}
+.settings-page .avatar-page {
+  box-shadow:
+    -1px 3px 10px rgba(0, 0, 0, 0.05),
+    inset 0 0 40px rgba(160, 150, 130, 0.04);
+}
+.settings-page .font-status {
+  position: absolute;
+  left: 32px;
+  bottom: 12px;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: var(--btn, #6b8396);
+  font-weight: 600;
 }
 
 .settings-page .api-polaroid-container {
@@ -847,7 +861,7 @@
   border-radius: 1px;
 }
 
-/* ===== 壁纸设置 ===== */
+/* 头像沿用标本卡排版。 */
 .settings-page .wallpaper-wrapper {
   position: absolute;
   inset: 0;

@@ -1,5 +1,12 @@
 import { localDateTime } from "./format";
-import { conversationExport } from "./chatExport";
+import {
+  backupFilename,
+  completeBackup,
+  restoreBrowserBackup,
+  type Backup,
+  type ServerBackup,
+} from "./settingsBackup";
+import type { FontPreset, FontSettings } from "./settingsTypes";
 import type {
   ChatMessage,
   ChatFile,
@@ -204,14 +211,30 @@ export const api = {
       method: "POST",
       body: JSON.stringify(cfg),
     }),
-  // 待接后端：以下设置接口保留设计稿的预留实现。
-  saveFontStyle: async (_page: HTMLElement) => {},
-  testFontStyle: async (_page: HTMLElement) => {},
+  fontPresets: () => request<FontSettings>("/api/font-presets"),
+  saveFontPreset: (preset: FontPreset, use = false) =>
+    request<FontSettings>("/api/font-presets", {
+      method: "POST",
+      body: JSON.stringify({ preset, use }),
+    }),
+  deleteFontPreset: (id: string) =>
+    request<FontSettings>(`/api/font-presets/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  // 待接后端：语音试听保留设计稿的预留实现。
   testVoice: (_cfg: VoiceConfig) => new Promise<void>(() => {}),
-  importData: (_file: File) => delay(300),
+  importData: async (backup: Backup) => {
+    await request("/api/backup", {
+      method: "POST",
+      body: JSON.stringify(backup),
+    });
+    restoreBrowserBackup(backup, localStorage);
+  },
   exportData: async () => {
-    const { conversations } = await api.listConversations();
-    const content = conversationExport(conversations, localStorage);
+    const content = completeBackup(
+      await request<ServerBackup>("/api/backup"),
+      localStorage,
+    );
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(content, null, 2)], {
         type: "application/json",
@@ -219,7 +242,7 @@ export const api = {
     );
     const link = document.createElement("a");
     link.href = url;
-    link.download = `mian-conversations-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = backupFilename();
     link.click();
     URL.revokeObjectURL(url);
   },

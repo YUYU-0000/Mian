@@ -1,4 +1,5 @@
-import { openMediaDatabase } from "../mediaStorage";
+import { openMediaDatabase, writeMedia } from "../mediaStorage";
+import { applyAvatar, cropAvatar, type AvatarRole } from "../avatars";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { notify } from "./Notify";
 
@@ -7,10 +8,12 @@ export default function Media({
   storageKey,
   cover = false,
   active = true,
+  avatar,
 }: {
   storageKey: string;
   cover?: boolean;
   active?: boolean;
+  avatar?: AvatarRole;
 }) {
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,10 @@ export default function Media({
     urls.current.add(url);
     setPictures((current) =>
       animate
-        ? [...current, { url, video: file.type.startsWith("video/"), developing: true }]
+        ? [
+            ...current,
+            { url, video: file.type.startsWith("video/"), developing: true },
+          ]
         : [{ url, video: file.type.startsWith("video/"), developing: false }],
     );
     setLoading(false);
@@ -84,7 +90,9 @@ export default function Media({
           requestAnimationFrame(() => {
             setPictures((current) =>
               current.map((item) =>
-                item.url === picture.url ? { ...item, developing: false } : item,
+                item.url === picture.url
+                  ? { ...item, developing: false }
+                  : item,
               ),
             );
           }),
@@ -130,23 +138,28 @@ export default function Media({
       <input
         type="file"
         className={cover ? "cover-art-file js-file" : "file-input"}
-        accept={cover ? "image/*" : "image/*, video/*"}
+        accept={cover || avatar ? "image/*" : "image/*, video/*"}
         onChange={async (event) => {
           const file = event.currentTarget.files?.[0];
           if (!file) return;
           event.currentTarget.value = "";
-          if (!cover && file.size > 5 * 1024 * 1024) {
+          if (!cover && !avatar && file.size > 5 * 1024 * 1024) {
             notify.fail("文件太大", "請選擇小於 5MB 的文件。");
             return;
           }
-          show(file, true);
           try {
-            const db = await openMediaDatabase(name, store);
-            const tx = db.transaction(store, "readwrite");
-            tx.onerror = () => notify.fail(cover ? "封面存失敗" : "保存失敗", tx.error);
-            tx.objectStore(store).put(file, key);
+            const picture = avatar ? await cropAvatar(file) : file;
+            show(picture, true);
+            await writeMedia(name, store, key, picture);
+            if (avatar) {
+              applyAvatar(avatar, picture);
+              notify.ok("已更換");
+            }
           } catch (error) {
-            notify.fail("保存失敗", error);
+            notify.fail(
+              avatar ? "上傳失敗" : cover ? "封面存失敗" : "保存失敗",
+              error,
+            );
           }
         }}
       />

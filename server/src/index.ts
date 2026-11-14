@@ -10,6 +10,7 @@ import { connectionRoutes } from "./connections.js";
 import { ApiChat } from "./apiChat.js";
 import { ChatFiles } from "./chatFiles.js";
 import { fileRoutes } from "./fileRoutes.js";
+import { settingsRoutes } from "./settingsRoutes.js";
 import { WorkspaceFiles } from "./workspaceFiles.js";
 import { readChannel, requirePreset } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
@@ -48,7 +49,34 @@ app.use(
   "/api",
   fileRoutes(files, (id) => conversations.require(id)),
 );
+app.use("/api/backup", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
+app.use(
+  "/api",
+  settingsRoutes(
+    conversations,
+    async () => {
+      if (
+        Object.keys({ ...bridge.getActiveTurns(), ...apiChat.getActiveTurns() })
+          .length
+      )
+        throw new Error("請先停止正在進行的回覆，再導入。");
+      for (const timer of activityTimers.values()) clearTimeout(timer);
+      activityTimers.clear();
+      await conversationWriteQueue;
+    },
+    async (previous) => {
+      for (const record of previous)
+        bridge.forgetConversation(record.conversationId);
+      bridge.restoreConversationThreads(conversations.list());
+      for (const capture of workspaceFiles.values()) capture.close();
+      workspaceFiles.clear();
+      eventBuffer.length = 0;
+      channel = await readChannel();
+      broadcast({ type: "channel", channel });
+    },
+  ),
+);
 app.use(
   "/api",
   connectionRoutes(bridge, async () => {

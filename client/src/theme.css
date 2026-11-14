@@ -260,9 +260,9 @@ svg {
   container-type: inline-size;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: auto auto var(--home-size) auto var(--home-size) auto var(
-      --home-size
-    ) auto var(--home-size) auto;
+  grid-template-rows:
+    auto auto var(--home-size) auto var(--home-size) auto var(--home-size)
+    auto var(--home-size) auto;
   column-gap: var(--home-gap);
   padding: 30px var(--home-pad) 0;
   width: 100%;
@@ -544,10 +544,14 @@ svg {
   height: 34px;
   border-radius: 50%;
   background: #7590a3;
+  background-image: var(--avatar-assistant, none);
+  background-size: cover;
+  background-position: center;
   position: relative;
 }
 .archive-avatar.user {
-  background: #d8d0c5;
+  background-color: #d8d0c5;
+  background-image: var(--avatar-user, none);
 }
 .archive-avatar time {
   position: absolute;
@@ -590,6 +594,11 @@ svg {
 }
 .archive-msg[data-role="user"] .archive-bubble {
   background: #ebe7de;
+}
+.archive-bubble .bubble-chinese {
+  font-family:
+    "ZSFT-br", var(--bubble-chinese-family, "LXGW Heart Serif"), sans-serif;
+  font-size: calc(1em * var(--bubble-chinese-scale, 1));
 }
 .archive-bubble.stopped {
   border-color: #7590a3;

@@ -1,6 +1,10 @@
-import type { RefObject, ReactNode, ChangeEventHandler, CSSProperties } from "react";
-import Media from "../components/Media";
-import { storageHeart, wallpaperFlower } from "./SettingsArt";
+import type {
+  RefObject,
+  ReactNode,
+  ChangeEventHandler,
+  CSSProperties,
+} from "react";
+import { storageHeart } from "./SettingsArt";
 type Props = {
   rootRef: RefObject<HTMLElement | null>;
   active: number | null;
@@ -8,12 +12,16 @@ type Props = {
   onFolder: (id: number) => void;
   onClose: () => void;
   fontPages: ReactNode;
+  avatarPages: ReactNode;
   voicePages: ReactNode;
   storageRef: RefObject<HTMLDivElement | null>;
   importRef: RefObject<HTMLInputElement | null>;
   onExport: () => void;
   exporting: boolean;
   onImport: ChangeEventHandler<HTMLInputElement>;
+  confirmingImport: boolean;
+  importing: boolean;
+  onImportClick: () => void;
 };
 export default function SettingsLayout({
   rootRef,
@@ -22,12 +30,16 @@ export default function SettingsLayout({
   onFolder,
   onClose,
   fontPages,
+  avatarPages,
   voicePages,
   storageRef,
   importRef,
   onExport,
   exporting,
   onImport,
+  confirmingImport,
+  importing,
+  onImportClick,
 }: Props) {
   return (
     <main
@@ -45,7 +57,9 @@ export default function SettingsLayout({
         }
       }}
       onAnimationEnd={(event) => {
-        (event.target as Element).closest(".clickable-flora")?.classList.remove("wobble");
+        (event.target as Element)
+          .closest(".clickable-flora")
+          ?.classList.remove("wobble");
       }}
     >
       <div className="settings-header">
@@ -107,7 +121,7 @@ export default function SettingsLayout({
         >
           <div className="tab-wrapper">
             <div className="tab-bg"></div>
-            <div className="tab-text">壁紙設置</div>
+            <div className="tab-text">頭像設置</div>
           </div>
           <div className="folder-body"></div>
         </div>
@@ -145,7 +159,10 @@ export default function SettingsLayout({
         className={`paper-overlay${active ? " active" : ""}`}
         onClick={onClose}
       >
-        <div className={`paper-stack-container${active === 1 || active === 3 ? " has-paper-stack" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`paper-stack-container${active === 1 || active === 3 ? " has-paper-stack" : active === 2 ? " has-avatar-stack" : ""}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="paper-layer-bot"></div>
           <div className="paper-layer-mid"></div>
           <div className="paper-main">
@@ -181,7 +198,9 @@ export default function SettingsLayout({
               <div className="st-layout">
                 <div className="st-head">
                   <div className="st-title">KEPT</div>
-                  <div className="st-sub">Two halves&nbsp;&nbsp;one archive</div>
+                  <div className="st-sub">
+                    Two halves&nbsp;&nbsp;one archive
+                  </div>
                 </div>
                 <div className="st-hearts">{storageHeart}</div>
                 <div className="st-actions">
@@ -193,11 +212,12 @@ export default function SettingsLayout({
                     EXPORT
                   </button>
                   <button
-                    className="st-btn"
+                    className={`st-btn${importing ? " busy" : ""}`}
                     id="stImportBtn"
-                    onClick={() => importRef.current!.click()}
+                    onClick={onImportClick}
+                    disabled={importing}
                   >
-                    IMPORT
+                    {confirmingImport ? "CONFIRM" : "IMPORT"}
                   </button>
                   <input
                     type="file"
@@ -216,62 +236,7 @@ export default function SettingsLayout({
               style={{ display: active === 2 ? "block" : "none" }}
               className="wallpaper-wrapper"
             >
-              <div className="wp-layout">
-                <div className="wp-backing-wrapper">
-                  <div className="wp-backing"></div>
-                </div>
-                <div className="wp-photo-container">
-                  <div className="wp-tape"></div>
-                  <div className="polaroid">
-                    <div className="polaroid-img-placeholder" id="mediaContainer_wp">
-                      <Media storageKey="wp" active={active === 2} />
-                    </div>
-                  </div>
-                </div>
-                <div className="wp-typography">
-                  <div className="wp-typo-title">壁紙選集</div>
-                  <div className="wp-typo-divider"></div>
-                  <div className="wp-typo-subtitle">
-                    Collected & Preserved
-                    <br />
-                    For Our Little Corner
-                  </div>
-                </div>
-                <div className="wp-typo-vertical">
-                  <span>COLLECTION</span>
-                  <span>DETAIL</span>
-                </div>
-                <div className="wp-flower-container">
-                  <div className="wp-flower-tape"></div>
-                  {wallpaperFlower}
-                </div>
-                <div className="wp-note-card">
-                  <svg
-                    className="wp-note-clip"
-                    viewBox="0 0 24 60"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M 8,14 L 8,6 A 4,4 0 0,1 16,6 L 16,42 A 3,3 0 0,1 10,42 L 10,20"
-                      stroke="#8ba5b8"
-                      strokeWidth="1.5"
-                      fill="none"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="wp-note-text">
-                    Species: Crab &amp; Fish
-                    <br />
-                    Habitat: The Drain
-                    <br />
-                    Status: Together
-                    <br />
-                    Notes: Stay close,
-                    <br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stay warm.
-                  </div>
-                </div>
-              </div>
+              {avatarPages}
             </div>
           </div>
         </div>
