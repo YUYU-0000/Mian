@@ -26,8 +26,13 @@ const style = builtPage.match(
 )[1];
 const app = express();
 const bundleRequests = [];
-app.get("/bundle/:name", (req, res) => {
+let releaseMarkdown;
+const markdownDownload = new Promise((resolve) => {
+  releaseMarkdown = resolve;
+});
+app.get("/bundle/:name", async (req, res) => {
   bundleRequests.push(req.params.name);
+  if (req.params.name.startsWith("ReplyMarkdown-")) await markdownDownload;
   res
     .type("js")
     .send(
@@ -179,6 +184,49 @@ try {
   await waitFor(
     () => evaluate("typeof renderFixture === 'function'"),
     "Rendering fixture did not load",
+  );
+
+  // 模块下载未完成时，气泡保留正文尺寸和原来的排版字体。
+  const loadingText = "第一行原文\n第二行原文\n第三行原文";
+  await render([`<mian-bubble>${loadingText}</mian-bubble><mian-bub`], true);
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.reply-markdown')?.style.whiteSpace === 'pre-wrap'",
+      ),
+    "Loading bubble was empty",
+  );
+  const fallback = await evaluate(`(() => {
+    const node = document.querySelector('.reply-markdown');
+    const style = getComputedStyle(node);
+    return { text:node.textContent, height:node.getBoundingClientRect().height, font:style.fontFamily, size:style.fontSize, line:style.lineHeight, color:style.color };
+  })()`);
+  assert.equal(fallback.text, loadingText);
+  assert.ok(fallback.height >= parseFloat(fallback.line) * 2.9);
+  assert.equal(
+    bundleRequests.some((name) => name.startsWith("CodeHighlight-")),
+    false,
+  );
+  await render(["**排版已就緒**"]);
+  releaseMarkdown();
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.reply-markdown strong')?.textContent === '排版已就緒'",
+      ),
+    "Markdown did not replace the loading text",
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
+    const style = getComputedStyle(document.querySelector('.reply-markdown'));
+    return {font:style.fontFamily,size:style.fontSize,line:style.lineHeight,color:style.color};
+  })()`),
+    {
+      font: fallback.font,
+      size: fallback.size,
+      line: fallback.line,
+      color: fallback.color,
+    },
   );
 
   const markdown = [
@@ -513,6 +561,10 @@ try {
       "Notice page label incorrect",
     );
   }
+  // 先收起复制提示，避免纸条遮住顶部票根的触摸区域。
+  await evaluate("document.querySelector('.mail').click()");
+  await waitFor(() => evaluate("!document.querySelector('.mail.is-in')"), "Copy notice did not close");
+  await evaluate("Promise.all(document.querySelector('.mail').getAnimations().map(animation => animation.finished))");
   const longTitle = "完整的對話名稱".repeat(12);
   await evaluate(`renderTitleFixture(${JSON.stringify(longTitle)})`);
   await waitFor(

@@ -1,7 +1,5 @@
 import {
-  lazy,
   memo,
-  Suspense,
   useEffect,
   useRef,
   useState,
@@ -22,15 +20,7 @@ import {
 } from "../visualPlayback";
 import { shouldShowThinkingHourglass } from "../thinkingStatus";
 import ToolOutput from "../components/ToolOutput";
-
-const MarkdownContent = lazy(() => import("../components/ReplyMarkdown"));
-function ReplyMarkdown(props: { text: string; typing: boolean }) {
-  return (
-    <Suspense fallback={null}>
-      <MarkdownContent {...props} />
-    </Suspense>
-  );
-}
+import ReplyMarkdown from "../components/DeferredReplyMarkdown";
 
 const Hourglass = () => (
   <svg

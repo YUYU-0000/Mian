@@ -23,6 +23,7 @@ import Chat from "./pages/Chat";
 import Connections from "./pages/Connections";
 import Settings from "./pages/Settings";
 import Notify, { notify } from "./components/Notify";
+import { preloadReplyMarkdown } from "./components/DeferredReplyMarkdown";
 import ErrorBoundary from "./ErrorBoundary";
 import { isTicketArchiveEligible } from "./ticketGestures";
 import {
@@ -76,6 +77,17 @@ type ConversationViewState = {
 };
 
 export default function App() {
+  useEffect(() => {
+    const preload = () => {
+      void preloadReplyMarkdown();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const idle = window.requestIdleCallback(preload);
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = window.setTimeout(preload, 1500);
+    return () => window.clearTimeout(timer);
+  }, []);
   const nav = useNavigate();
   const location = useLocation();
   const [status, setStatus] = useState(initial);
@@ -478,6 +490,7 @@ export default function App() {
   };
 
   const navigateWithTransition = (target: string) => {
+    if (target === "/chat") void preloadReplyMarkdown();
     if (target === location.pathname || transitionLocked.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       nav(target);
