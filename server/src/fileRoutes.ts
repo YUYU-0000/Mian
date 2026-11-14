@@ -33,6 +33,16 @@ export function fileRoutes(
       requireConversation(request.params.id);
       const stored = await files.get(request.params.id, request.params.fileId);
       response.setHeader("X-Content-Type-Options", "nosniff");
+      if (
+        request.query.inline === "1" &&
+        (stored.file.mimeType === "application/pdf" ||
+          /\.pdf$/i.test(stored.file.name))
+      ) {
+        response
+          .type("application/pdf")
+          .sendFile(stored.path, { dotfiles: "allow" });
+        return;
+      }
       response.setHeader("Content-Security-Policy", "sandbox");
       if (
         request.query.inline === "1" &&
@@ -54,12 +64,10 @@ export function fileRoutes(
       response: express.Response,
       _next: express.NextFunction,
     ) => {
-      response
-        .status(error.type === "entity.too.large" ? 413 : 400)
-        .json({
-          error:
-            error.type === "entity.too.large" ? FILE_TOO_LARGE : error.message,
-        });
+      response.status(error.type === "entity.too.large" ? 413 : 400).json({
+        error:
+          error.type === "entity.too.large" ? FILE_TOO_LARGE : error.message,
+      });
     },
   );
   return router;

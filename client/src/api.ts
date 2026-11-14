@@ -269,6 +269,17 @@ export const api = {
     }),
   fileUrl: (conversationId: string, fileId: string, inline = false) =>
     `/api/conversations/${encodeURIComponent(conversationId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`,
+  fileText: async (
+    conversationId: string,
+    fileId: string,
+    signal: AbortSignal,
+  ) => {
+    const response = await fetch(api.fileUrl(conversationId, fileId), {
+      signal,
+    });
+    if (!response.ok) await readResponse(response);
+    return response.text();
+  },
   uploadFile: (
     conversationId: string,
     file: File,

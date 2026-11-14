@@ -1,8 +1,11 @@
-import { memo, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
+import { previewKind } from "../filePreview";
 import type { ChatFile } from "../types";
 import ScrollText from "./ScrollText";
+import type { PreviewOrigin } from "./usePaperPreview";
+
+const FilePreview = lazy(() => import("./FilePreview"));
 
 export function fileSize(size: number) {
   if (size < 1024) return { value: String(size), unit: "B" };
@@ -11,58 +14,29 @@ export function fileSize(size: number) {
   return { value: (size / (1024 * 1024)).toFixed(1), unit: "MB" };
 }
 
-function ImageViewer({
-  file,
-  conversationId,
-  onClose,
-}: {
-  file: ChatFile;
-  conversationId: string;
-  onClose: () => void;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const element = dialog.current!;
-    element.showModal();
-    return () => element.close();
-  }, []);
-  return createPortal(
-    <dialog
-      ref={dialog}
-      className="file-image-viewer"
-      aria-label={file.name}
-      onClose={onClose}
-    >
-      <div className="file-image-actions">
-        <ScrollText>{file.name}</ScrollText>
-        <a href={api.fileUrl(conversationId, file.id)} download={file.name}>
-          保存
-        </a>
-        <button type="button" onClick={onClose} aria-label="關閉圖片">
-          關閉
-        </button>
-      </div>
-      <img src={api.fileUrl(conversationId, file.id, true)} alt={file.name} />
-    </dialog>,
-    document.body,
-  );
-}
-
 export default memo(function FileTicket({
   file,
   conversationId,
   mine = false,
   progress,
   pending = false,
+  getNumber,
 }: {
   file: ChatFile;
   conversationId: string;
   mine?: boolean;
   progress?: number;
   pending?: boolean;
+  getNumber?: () => number;
 }) {
-  const [viewing, setViewing] = useState(false);
+  const [viewing, setViewing] = useState<{
+    origin: PreviewOrigin;
+    number: number;
+  } | null>(null);
+  const ticket = useRef<HTMLDivElement>(null);
+  const closePreview = useCallback(() => setViewing(null), []);
   const download = useRef<HTMLAnchorElement>(null);
+  const kind = previewKind(file, navigator.pdfViewerEnabled);
   const image = file.mimeType.startsWith("image/");
   const thumbnail = image && !mine;
   const size = fileSize(file.size);
@@ -71,7 +45,11 @@ export default memo(function FileTicket({
     : "FILE";
   const open = () => {
     if (pending) return;
-    if (image) setViewing(true);
+    if (kind)
+      setViewing({
+        origin: ticket.current!.getBoundingClientRect(),
+        number: getNumber?.() ?? 1,
+      });
     else download.current!.click();
   };
   const nameAndMeta = (
@@ -97,17 +75,18 @@ export default memo(function FileTicket({
                   })}
           </span>
         )}
-        {!mine && <span className="ft-act">{image ? "查看" : "下載"}</span>}
+        {!mine && <span className="ft-act">{kind ? "查看" : "下載"}</span>}
       </div>
     </>
   );
   return (
     <>
       <div
+        ref={ticket}
         className={`ft${mine ? " is-mine" : ""}${thumbnail ? " is-image" : ""}`}
         role={pending ? undefined : "button"}
         tabIndex={pending ? undefined : 0}
-        aria-label={`${image ? "查看" : "下載"} ${file.name}`}
+        aria-label={`${kind ? "查看" : "下載"} ${file.name}`}
         onClick={(event) => {
           if (!(event.target as Element).closest("a")) open();
         }}
@@ -150,12 +129,17 @@ export default memo(function FileTicket({
           hidden
         />
       </div>
-      {viewing && (
-        <ImageViewer
-          file={file}
-          conversationId={conversationId}
-          onClose={() => setViewing(false)}
-        />
+      {viewing && kind && (
+        <Suspense fallback={null}>
+          <FilePreview
+            file={file}
+            conversationId={conversationId}
+            kind={kind}
+            number={viewing.number}
+            origin={viewing.origin}
+            onClose={closePreview}
+          />
+        </Suspense>
       )}
     </>
   );

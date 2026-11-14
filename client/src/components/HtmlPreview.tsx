@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+export const HTML_PREVIEW_SANDBOX =
+  "allow-scripts allow-forms allow-modals allow-popups";
+
 // 预览保留原始页面，在独立 sandbox 中执行，并回报内容高度。
 const resizeScript = `<script>
 (() => {
@@ -47,7 +50,7 @@ export default function HtmlPreview({ source }: { source: string }) {
     <iframe
       ref={frame}
       title="HTML 預覽"
-      sandbox="allow-scripts allow-forms allow-modals allow-popups"
+      sandbox={HTML_PREVIEW_SANDBOX}
       srcDoc={srcDoc}
       style={{ height }}
     />

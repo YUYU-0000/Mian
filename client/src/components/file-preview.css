@@ -1,0 +1,257 @@
+/* 拍立得沿用设计稿，局部恢复字体和盒模型。 */
+.pv-viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  overflow: hidden;
+  background: transparent;
+  font-family: "LXGW Heart Serif", serif;
+}
+.pv-viewer,
+.pv-viewer *,
+.pv-viewer *::before,
+.pv-viewer *::after {
+  box-sizing: content-box;
+}
+.pv-viewer::backdrop {
+  background: transparent;
+}
+.pv-viewer {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  --line: rgba(59, 77, 90, 0.18);
+  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
+}
+.pv-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(59, 77, 90, 0.42);
+}
+.pv {
+  position: fixed;
+  left: 50%;
+  top: 46%;
+  width: fit-content;
+  transform: translate(-50%, -50%);
+}
+/* 两张底纸。 */
+.pv-under {
+  position: absolute;
+  inset: 0;
+  border-radius: 1px;
+  background-image: var(--grain);
+}
+.pv-under.a {
+  background-color: #6b8396;
+  transform: translate(-14px, 10px) rotate(-5deg);
+}
+.pv-under.b {
+  background-color: #c5d0d8;
+  transform: translate(10px, 14px) rotate(3.5deg);
+}
+.pv-card {
+  position: relative;
+  background: #fbfaf6;
+  background-image: var(--grain);
+  padding: 16px 16px 0;
+  border-radius: 1px;
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 10px 24px rgba(30, 40, 50, 0.22);
+  transform: rotate(-1.2deg);
+}
+.pv-photo {
+  display: block;
+  max-width: calc(78vw - 32px);
+  max-height: 60vh;
+  width: var(--w);
+  aspect-ratio: var(--r);
+  background: linear-gradient(
+    170deg,
+    #e6ecef 0%,
+    #c9d5dd 38%,
+    #93a7b5 62%,
+    #6b8396 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.pv-clip {
+  position: absolute;
+  left: 40px;
+  top: -26px;
+  width: 30px;
+  height: 84px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+/* 相纸底部白边。 */
+.pv-foot {
+  width: var(--w);
+  max-width: calc(78vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 14px 2px 16px;
+}
+.pv-info {
+  min-width: 0;
+  flex: 1;
+  margin-right: 12px;
+}
+.pv-kicker {
+  font-family: "ZSFT-br", serif;
+  font-weight: 500;
+  font-size: 6.5px;
+  letter-spacing: 2.2px;
+  color: var(--muted);
+}
+.pv-name {
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
+  mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
+}
+.pv-hand {
+  flex-shrink: 0;
+  font-family: "ZSFT-l", cursive;
+  font-size: 22px;
+  line-height: 0.9;
+  color: #4a5560;
+  text-align: right;
+  transform: rotate(-6deg);
+  margin-bottom: -2px;
+}
+.pv-acts {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(20% + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  gap: 72px;
+}
+.pv-acts span {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #f5f2ec;
+  border-bottom: 1px solid rgba(245, 242, 236, 0.8);
+  padding-bottom: 2px;
+  cursor: pointer;
+}
+
+/* 拖动层与设计稿的固定旋转分开。 */
+.pv:not(.is-ready) {
+  visibility: hidden;
+}
+.pv-motion {
+  position: relative;
+  will-change: transform, opacity;
+}
+.pv.is-image,
+.pv-foot,
+.pv-clip,
+.pv-under,
+.pv-file-head {
+  touch-action: none;
+}
+img.pv-photo {
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+}
+.pv-name {
+  overflow-y: hidden;
+}
+.pv-name:not(.is-overflowing) {
+  mask: none;
+  -webkit-mask: none;
+}
+.pv-name::-webkit-scrollbar {
+  display: none;
+}
+.pv-acts a,
+.pv-acts button {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: none;
+}
+
+/* 文件用信纸替换照片，保留白边和底部编号。 */
+.pv-document {
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: auto;
+  background: #fbfaf6;
+  max-height: var(--preview-height);
+}
+.pv-file-head {
+  flex-shrink: 0;
+  padding: 12px;
+}
+.pv-file-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+}
+.pv-source.reply-code {
+  all: unset;
+  display: contents;
+}
+.pv-document .pv-source pre {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 12px 12px;
+  overflow: visible;
+  white-space: pre;
+}
+.pv-document .pv-source pre,
+.pv-document .pv-source code {
+  font:
+    12px/1.5 ui-monospace,
+    "SF Mono",
+    Consolas,
+    monospace;
+  color: var(--ink);
+}
+.pv-markdown {
+  padding: 0 12px 12px;
+  font:
+    14.5px/1.45 "ZSFT-br",
+    "LXGW Heart Serif",
+    sans-serif;
+  letter-spacing: 1px;
+}
+.pv-document:has(.pv-file-frame) {
+  height: 60vh;
+}
+.pv-document:has(.pv-file-frame) .pv-file-content {
+  flex: 1;
+  overflow: hidden;
+}
+.pv-file-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fbfaf6;
+}

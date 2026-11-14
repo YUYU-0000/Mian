@@ -12,6 +12,7 @@ import "./pages/settings.css";
 import "./components/scroll-text.css";
 import "./components/reply-markdown.css";
 import "./components/file-ticket.css";
+import "./components/file-preview.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -168,7 +168,7 @@ try {
       width: 228,
       height: 70,
       paper: "#6b8396",
-      nameSize: "13.5px",
+      nameSize: "14px",
       stub: 50,
       overflow: true,
       mask: true,
@@ -277,18 +277,16 @@ try {
   await evaluate(`document.querySelector('.archive-msg .ft.is-image').click()`);
   await waitFor(
     () =>
-      evaluate(
-        `document.querySelector('.file-image-viewer img')?.naturalWidth === 1`,
-      ),
+      evaluate(`document.querySelector('.pv-viewer img')?.naturalWidth === 1`),
     "查看全屏大图",
   );
   assert.equal(
     await evaluate(
-      `document.querySelector('.file-image-viewer').getBoundingClientRect().height`,
+      `document.querySelector('.pv-viewer').getBoundingClientRect().height`,
     ),
     844,
   );
-  await evaluate(`document.querySelector('.file-image-actions a').click()`);
+  await evaluate(`document.querySelector('.pv-acts a').click()`);
   await waitFor(async () => {
     try {
       return (
@@ -298,7 +296,7 @@ try {
       return false;
     }
   }, "图片保存");
-  await evaluate(`document.querySelector('[aria-label="關閉圖片"]').click()`);
+  await evaluate(`document.querySelector('[aria-label="關閉預覽"]').click()`);
   const { conversation: branch } = await request(
     "/api/conversations/c1/fork",
     "POST",
