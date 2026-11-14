@@ -20,6 +20,7 @@ const conversation = {
 let channel = { kind: "codex", name: "CODEX" };
 let preset = { id: "paper", note: "我的中转", endpoint: "https://fake.test/relay", hasKey: true, keyHint: "sk-abcd", model: "", format: "openai" };
 const calls = [];
+let workspaceConfig = { workingDirectory: "C:\\Users\\Example\\MianWorkspace", sandbox: "workspace-write", model: "test", channel: { kind: "codex" } };
 let seq = 0;
 const app = express();
 const server = createServer(app);
@@ -34,6 +35,13 @@ sockets.on("connection", socket => socket.send(JSON.stringify({
 app.use(express.json());
 app.use((req, _res, next) => { if (req.path.startsWith("/api/")) calls.push({ path: req.path, body: req.body }); next(); });
 app.get("/api/conversations", (_req, res) => res.json({ conversations: [conversation], defaultConversationId: "c1" }));
+app.get("/api/config", (_req, res) => res.json(workspaceConfig));
+app.put("/api/config", (req, res) => {
+  if (req.body.workingDirectory === "C:\\Mian" || req.body.workingDirectory.startsWith("C:\\Mian\\")) {
+    res.status(400).json({ error: "工作目錄不能設在 Mian 專案裡面，請換一個資料夾。" }); return;
+  }
+  workspaceConfig = req.body; res.json(workspaceConfig);
+});
 app.get("/api/api-presets", (_req, res) => res.json({ presets: [preset], activeId: channel.kind === "api" ? "paper" : null }));
 app.post("/api/api-models", (_req, res) => res.status(400).json({ error: "Model listing is unavailable." }));
 app.post("/api/api-presets", (req, res) => {
@@ -102,7 +110,7 @@ try {
   const navigate = route => call("Page.navigate", { url: base + route });
   const input = (selector, value) => evaluate(`(() => {
     const field = document.querySelector(${JSON.stringify(selector)});
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(field, ${JSON.stringify(value)});
+    Object.getOwnPropertyDescriptor(field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value').set.call(field, ${JSON.stringify(value)});
     field.dispatchEvent(new Event('input', { bubbles: true }));
   })()`);
   const turnPaper = async key => {
@@ -202,8 +210,39 @@ try {
   await evaluate("document.querySelector('#codexTie').click()");
   await evaluate("document.querySelector('[data-p=codex] .cover-giant').click()");
   await waitFor(() => channel.kind === "codex", "Codex cover did not switch the current channel");
+  await evaluate("document.querySelector('.cover-workspace').click()");
+  await waitFor(() => evaluate("Boolean(document.querySelector('.workspace-editor textarea'))"), "Workspace editor did not open");
+  assert.equal(await evaluate("document.querySelector('.workspace-editor textarea').value"), workspaceConfig.workingDirectory);
+  await input(".workspace-editor textarea", "C:\\Mian\\server");
+  await evaluate("document.querySelector('.workspace-editor button').click()");
+  await waitFor(() => evaluate("document.querySelector('.mail-title')?.textContent === '目錄不能用'"), "Project directory rejection notice missing");
+  assert.equal(await evaluate("document.querySelector('.mail-reason').textContent"), "工作目錄不能設在 Mian 專案裡面，請換一個資料夾。");
+  assert.equal(workspaceConfig.workingDirectory, "C:\\Users\\Example\\MianWorkspace");
+  await input(".workspace-editor textarea", "C:\\Users\\Example\\Writing");
+  await evaluate("document.querySelector('.workspace-editor button').click()");
+  await waitFor(() => workspaceConfig.workingDirectory.endsWith("Writing"), "Workspace did not save");
   await navigate("/");
   await waitFor(() => evaluate("document.querySelector('.capsule-text')?.textContent === 'CODEX'"), "Home did not switch back to CODEX");
+  await navigate("/chat");
+  await waitFor(() => evaluate("Boolean(document.querySelector('.archive-chat'))"), "Chat did not reopen for tool ordering");
+  await evaluate(`window.toolOrderFrames = []; window.toolOrderObserver = new MutationObserver(() => {
+    const reply = [...document.querySelectorAll('.archive-msg[data-role=assistant]')].at(-1);
+    if (!reply) return;
+    window.toolOrderFrames.push({ thought: reply.querySelector('.archive-thought')?.textContent, preface: reply.querySelector('.archive-bubble')?.textContent, ids: [...reply.querySelectorAll('[data-tool-id]')].map(el => el.dataset.toolId), first: reply.querySelector('[data-tool-id="ordered-first"] .archive-tool-output')?.textContent });
+  }); window.toolOrderObserver.observe(document.querySelector('.archive-chat'), { childList: true, subtree: true, characterData: true });`);
+  publishReply({ type: "turn-started", turnId: "tool-order" });
+  publishReply({ type: "assistant-delta", turnId: "tool-order", delta: "<mian-thinking>想好。</mian-thinking><mian-pre-tool><mian-bubble>先看。</mian-bubble></mian-pre-tool>" });
+  publishReply({ type: "tool", turnId: "tool-order", tool: { id: "ordered-first", name: "read_file", kind: "read_file", state: "success", detail: "第一步。", result: "第一步。" } });
+  publishReply({ type: "tool", turnId: "tool-order", tool: { id: "ordered-second", name: "read_file", kind: "read_file", state: "success", detail: "第二步。", result: "第二步。" } });
+  publishReply({ type: "assistant-delta", turnId: "tool-order", delta: "<mian-bubble>好了。</mian-bubble>" });
+  publishReply({ type: "turn-completed", turnId: "tool-order", status: "completed" });
+  await waitFor(() => evaluate("[...document.querySelectorAll('.archive-msg[data-role=assistant]')].at(-1)?.querySelectorAll('.archive-bubble')[1]?.textContent === '好了。'"), "Queued tool reply did not finish");
+  const orderFrames = await evaluate("window.toolOrderObserver.disconnect(); window.toolOrderFrames");
+  assert.ok(orderFrames.some(frame => frame.ids.includes("ordered-second")));
+  for (const frame of orderFrames) {
+    if (frame.ids.includes("ordered-first")) { assert.equal(frame.thought, "想好。"); assert.equal(frame.preface, "先看。"); }
+    if (frame.ids.includes("ordered-second")) assert.equal(frame.first, "第一步。");
+  }
   assert.equal(calls.find(call => call.path === "/api/api-models").body.key, "");
   assert.deepEqual(errors, []);
   console.log("PASS API draft reload, paper position, key exclusion, save/delete cleanup, manual model, USE and Codex selection (390x844).");

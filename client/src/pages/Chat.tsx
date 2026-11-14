@@ -35,6 +35,7 @@ import type {
 } from "../conversationTransition";
 import ArchiveRibbonTitle from "../components/ArchiveRibbonTitle";
 import TicketDrawer from "../components/TicketDrawer";
+import ToolOutput from "../components/ToolOutput";
 import type { ConversationRecord } from "../types";
 
 const MarkdownContent = lazy(() => import("../components/ReplyMarkdown"));
@@ -222,11 +223,10 @@ export function ToolRow({
           {visibleToolSummary(tool)}
         </span>
       </div>
-      {result && (
+      {(result || tool.command) && (
         <div className="step-body-wrap">
           <div className="archive-step-body step-body">
-            {displayedResult}
-            {streamingResult && <span className="cursor-blink" />}
+            <ToolOutput command={tool.command} result={displayedResult} streaming={streamingResult} />
           </div>
         </div>
       )}
@@ -676,6 +676,10 @@ export default function Chat({
               message,
               visual ?? emptyVisualReply(),
             );
+          const displayedTools = message.role === "assistant"
+            ? message.tools.filter(tool => visual!.visibleToolIds.includes(tool.id))
+              .map(tool => visual!.toolStates[tool.id] ?? tool)
+            : [];
           return (
           <article
             key={
@@ -751,12 +755,12 @@ export default function Chat({
                       className="tool-calls-module"
                       timelineKind="TOOL_CALLS"
                       title="TOOL CALLS"
-                      running={message.tools.some(
+                      running={displayedTools.some(
                         (tool) => tool.state === "running",
                       )}
                     >
                       <div className="archive-tool-path tool-path-block">
-                            {message.tools.map((tool) => (
+                            {displayedTools.map((tool) => (
                               <ToolRow
                                 key={tool.id}
                                 tool={tool}

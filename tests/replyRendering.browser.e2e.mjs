@@ -20,7 +20,7 @@ const bundle = await build({
   define: { "process.env.NODE_ENV": '"production"' },
 });
 const builtPage = await readFile("client/dist/index.html", "utf8");
-const style = builtPage.match(/href="([^"]+\.css)"/)[1];
+const style = builtPage.match(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/)[1];
 const app = express();
 app.get("/fixture.js", (_req, res) =>
   res
@@ -333,6 +333,18 @@ try {
       "Notice page label incorrect",
     );
   }
+  const command = "python " + "long-argument ".repeat(60);
+  const output = Array.from({ length: 14 }, (_, index) => `output line ${index}`).join("\n");
+  await evaluate(`renderToolFixture(${JSON.stringify(command)}, ${JSON.stringify(output)})`);
+  await waitFor(() => evaluate("Boolean(document.querySelector('.archive-tool-more'))"), "Long tool output did not collapse");
+  assert.deepEqual(await evaluate(`(() => {
+    const pre = document.querySelector('.archive-tool-output'); const style = getComputedStyle(pre);
+    return { lines: pre.textContent.split('\\n').length, font: style.fontFamily.includes('ui-monospace'), size: style.fontSize, whitespace: style.whiteSpace, scroll: pre.scrollWidth > pre.clientWidth };
+  })()`), { lines: 6, font: true, size: "11px", whitespace: "pre", scroll: true });
+  await evaluate("document.querySelector('.archive-tool-more').click()");
+  await waitFor(() => evaluate("document.querySelector('.archive-tool-output').textContent.includes('output line 13')"), "Full tool output did not expand");
+  await evaluate("document.querySelector('.archive-tool-more').click()");
+  await waitFor(() => evaluate("document.querySelector('.archive-tool-output').textContent.split('\\n').length === 6"), "Tool output did not collapse again");
   assert.deepEqual(errors, []);
   console.log(
     "PASS Markdown/GFM, HTML sanitization, highlighting, HTTP copy, isolated adaptive preview, streaming throttle and notice labels (390x844).",

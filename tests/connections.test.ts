@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import express from "express";
 import type { AddressInfo } from "node:net";
 import type { CodexBridge } from "../server/src/codex.ts";
 
 test("connection routes persist presets, use provider credentials, and read Codex quota", async () => {
   const workspace = process.cwd();
-  const directory = await mkdtemp(path.join(workspace, ".tmp-connection-test-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "mian-connection-test-"));
   process.chdir(directory);
   const { connectionRoutes } = await import("../server/src/connections.ts");
   const calls: string[] = [];
@@ -115,7 +116,7 @@ test("connection routes persist presets, use provider credentials, and read Code
   } finally {
     await Promise.all([new Promise<void>(resolve => server.close(() => resolve())), new Promise<void>(resolve => providerServer.close(() => resolve()))]);
     process.chdir(workspace);
-    assert.equal(path.dirname(directory), workspace);
+    assert.equal(path.dirname(directory), tmpdir());
     await rm(directory, { recursive: true });
   }
 });

@@ -113,7 +113,7 @@ function useThrottledText(text: string, typing: boolean) {
     const timer = window.setTimeout(publish, delay);
     return () => window.clearTimeout(timer);
   }, [text, typing]);
-  return visible;
+  return typing ? visible : text;
 }
 
 export default memo(function ReplyMarkdown({

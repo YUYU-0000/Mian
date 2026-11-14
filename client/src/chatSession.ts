@@ -15,6 +15,7 @@ import {
   type ChatGroup,
 } from "./chatModel";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
+import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
 import type { ChatEvent, ChatMessage, ConversationActivity } from "./types";
 import {
   emptyVisualReply,
@@ -161,6 +162,7 @@ export function visualTarget(
       ? message.tools.map((tool) => ({
           id: tool.id,
           text: tool.state === "running" ? "" : readableToolResult(tool),
+          tool,
         }))
       : [],
     bubbles: toolTimelineReady ? message.bubbles : [],
@@ -180,11 +182,7 @@ export function isToolTimelineVisible(
 ) {
   return (
     message.tools.length > 0 &&
-    hasCompletedPreToolBubble(message) &&
-    visual.visiblePreToolBubbleCount >= message.preToolBubbles.length &&
-    message.preToolBubbles.every(
-      (bubble, index) => visual.preToolBubbles[index] === bubble,
-    )
+    visual.visibleToolIds.length > 0
   );
 }
 
@@ -206,6 +204,7 @@ export class ChatSessionStore {
   private playbackTimer: ReturnType<typeof setTimeout> | null = null;
   private messages: ChatGroup[];
   private visualReplies: Record<string, VisualReply>;
+  private playbackQueues = new Map<string, ReplyPlaybackQueue>();
   private activeTurnId: string | null;
   private turnPhase: TurnPhase;
   private remoteTurnSynchronized: boolean;
@@ -474,6 +473,10 @@ export class ChatSessionStore {
     if ("turnId" in event) {
       this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
       messagesChanged = true;
+      const message = this.messages.find(group => group.role === "assistant" && group.replyGroupId === event.turnId) as Extract<ChatGroup, { role: "assistant" }>;
+      const queue = this.playbackQueues.get(event.turnId) ?? new ReplyPlaybackQueue();
+      queue.enqueue(event.type === "tool" ? `tool:${event.tool.id}` : event.type, visualTarget(message), this.nowMs());
+      this.playbackQueues.set(event.turnId, queue);
     }
     if (event.type === "turn-completed") {
       if (event.error) this.onSendError?.(new Error(event.error));
@@ -548,7 +551,7 @@ export class ChatSessionStore {
     if (!message) return;
     const target = visualTarget(message);
     const current = this.visualReplies[turnId] ?? emptyVisualReply();
-    const tick = tickVisualReply(current, target, this.nowMs());
+    const tick = this.playbackQueues.get(turnId)?.tick(current, this.nowMs()) ?? tickVisualReply(current, target, this.nowMs());
     if (tick.changed) {
       this.visualReplies = {
         ...this.visualReplies,
@@ -557,6 +560,7 @@ export class ChatSessionStore {
       this.commit(false, false);
     }
     if (tick.settled) {
+      this.playbackQueues.delete(turnId);
       if (this.activeTurnId === turnId) {
         this.activeTurnId = null;
         this.turnPhase = "idle";
@@ -568,6 +572,7 @@ export class ChatSessionStore {
   }
 
   private flushTurn(turnId: string) {
+    this.playbackQueues.delete(turnId);
     const message = this.messages.find(
       (
         group,

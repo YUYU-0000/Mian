@@ -366,6 +366,7 @@ app.post("/api/turn", async (request, response) => {
       response.json(apiChat.startTurn(conversationId, preset, messages, request.body.localTime));
       return;
     }
+    await bridge.connect(config);
     const result = await bridge.startTurn(
       request.body.text.trim(),
       conversationId,

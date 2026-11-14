@@ -270,6 +270,26 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
       notify.ok("已切換");
     }).catch(error => notify.fail("切換失敗", error));
   };
+  const editWorkspace = async () => {
+    try {
+      const config = await api.getConfig();
+      setTag({
+        giant: "WORKSPACE", kicker: "CODEX", title: "工作目錄", items: [],
+        workspace: {
+          value: config.workingDirectory,
+          onSave: async (workingDirectory) => {
+            try {
+              await api.saveConfig({ ...config, workingDirectory });
+              setTagVisible(false);
+              notify.ok("已保存");
+            } catch (error) {
+              notify.fail("目錄不能用", error);
+            }
+          },
+        },
+      });
+    } catch (error) { notify.fail("目錄讀取失敗", error); }
+  };
   const rearrange = (index: number) => {
     setFocus(index);
     setRevision((value) => value + 1);
@@ -373,6 +393,7 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                   className={`cover-status js-status${s.loggedIn ? " is-connected" : ""}`}
                   text={s.loggedIn ? "CONNECTED" : "NOT CONNECTED"}
                 />
+                {provider.id === "codex" && <button type="button" className="cover-workspace" onClick={() => void editWorkspace()}>WORKSPACE</button>}
               </div>
             </div>
           </div>
