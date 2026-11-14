@@ -1,6 +1,7 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
+import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
@@ -424,9 +425,15 @@ app.get("*splat", (_request, response) =>
   response.sendFile(path.join(clientDist, "index.html")),
 );
 
-server.listen(8787, "127.0.0.1", () =>
-  console.log("Mian backend: http://127.0.0.1:8787"),
-);
+const lan = process.argv.includes("--lan");
+const port = lan ? 5173 : 8787;
+server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
+  console.log(`Mian: http://127.0.0.1:${port}`);
+  if (lan)
+    for (const address of Object.values(networkInterfaces()).flat())
+      if (address?.family === "IPv4" && !address.internal)
+        console.log(`Mian LAN: http://${address.address}:${port}`);
+});
 const shutdown = () => {
   apiChat.close();
   bridge.close();

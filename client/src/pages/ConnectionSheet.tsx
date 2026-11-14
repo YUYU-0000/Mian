@@ -2,22 +2,11 @@ import { pad2 } from "../format";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import type { ApiPreset } from "../connectionTypes";
-import { createId } from "../id";
+import type { Draft } from "../apiDrafts";
 import AnimatedText from "../components/AnimatedText";
 import { notify } from "../components/Notify";
 import type { TagConfig } from "./ConnectionLayout";
 
-export type Draft = ApiPreset & { paperKey: string; plus?: boolean };
-export const blankDraft = (): Draft => ({
-  id: "",
-  note: "",
-  endpoint: "",
-  key: "",
-  model: "",
-  format: "openai",
-  paperKey: createId(),
-  plus: true,
-});
 function apiAccent(i: number, count: number) {
   const t = count === 1 ? 0 : i / (count - 1);
   return `rgb(${Math.round(81 + 83 * t)}, ${Math.round(101 + 83 * t)}, ${Math.round(117 + 81 * t)})`;
@@ -31,6 +20,7 @@ export default function ApiSheet({
   onAdd,
   onSave,
   onUse,
+  onDeleteStart,
   onDelete,
   onTag,
 }: {
@@ -42,6 +32,7 @@ export default function ApiSheet({
   onAdd: () => void;
   onSave: (preset: ApiPreset) => void;
   onUse: () => void;
+  onDeleteStart: () => void;
   onDelete: () => void;
   onTag: (tag: TagConfig) => void;
 }) {
@@ -144,6 +135,7 @@ export default function ApiSheet({
     }
     try {
       if (draft.id) await api.deleteApiPreset(draft.id);
+      onDeleteStart();
       const sheet = ref.current!;
       sheet.inert = true;
       const fromTransform = sheet.style.transform;

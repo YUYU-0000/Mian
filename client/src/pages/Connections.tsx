@@ -8,7 +8,11 @@ import Media from "../components/Media";
 import { notify } from "../components/Notify";
 import { makeStack, type PaperStack } from "../components/paperStack";
 import ConnectionLayout, { type TagConfig } from "./ConnectionLayout";
-import ApiSheet, { blankDraft, type Draft } from "./ConnectionSheet";
+import ApiSheet from "./ConnectionSheet";
+import {
+  blankDraft, readApiDrafts, rememberApiPaper, removeApiDraft,
+  restoreApiDrafts, saveApiDraft, type Draft,
+} from "../apiDrafts";
 
 const providers: {
   id: Provider;
@@ -54,6 +58,8 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   );
   const [presets, setPresets] = useState<Draft[]>([]);
   const [plus, setPlus] = useState<Draft>(blankDraft);
+  const papers = useRef<Draft[]>([]);
+  papers.current = [...presets, plus];
   const [activeId, setActiveId] = useState<string | null>(null);
   useEffect(() => {
     setActiveId(channel.kind === "api" ? channel.presetId : null);
@@ -94,7 +100,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
   }, [open, subIndex]);
   useLayoutEffect(() => {
     subStack.current = makeStack(subTrack.current!, setSubIndex);
-    apiStack.current = makeStack(apiTrack.current!, () => {});
+    apiStack.current = makeStack(apiTrack.current!, (index) => {
+      if (currentOpen.current === "api") rememberApiPaper(sessionStorage, papers.current[index]);
+    });
     subStack.current.update();
     apiStack.current.update();
     return () => {
@@ -106,6 +114,12 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
     apiStack.current!.index = Math.max(0, Math.min(focus, presets.length));
     apiStack.current!.update();
   }, [revision]);
+  useEffect(() => {
+    if (readApiDrafts(sessionStorage).length) {
+      setSelected("api");
+      openStack("api");
+    }
+  }, []);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (!currentOpen.current || (event.target as HTMLElement).tagName === "INPUT")
@@ -132,15 +146,11 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
       void api
         .apiPresets()
         .then((data) => {
-          setPresets(data.presets.map((p) => ({ ...p, paperKey: p.id })));
-          setPlus(blankDraft());
+          const restored = restoreApiDrafts(sessionStorage, data.presets, data.activeId);
+          setPresets(restored.presets);
+          setPlus(restored.plus);
           setActiveId(data.activeId);
-          setFocus(
-            Math.max(
-              0,
-              data.presets.findIndex((p) => p.id === data.activeId),
-            ),
-          );
+          setFocus(restored.focus);
           setRevision((value) => value + 1);
         })
         .catch((error) => notify.fail("預設讀取失敗", error));
@@ -377,6 +387,7 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
           activeId={activeId}
           onTag={setTag}
           onChange={(patch) => {
+            saveApiDraft(sessionStorage, { ...draft, ...patch });
             if (draft.plus) setPlus((current) => ({ ...current, ...patch }));
             else
               setPresets((current) =>
@@ -386,11 +397,14 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
               );
           }}
           onAdd={() => {
+            saveApiDraft(sessionStorage, { ...plus, plus: false });
             setPresets((current) => [...current, { ...plus, plus: false }]);
             setPlus(blankDraft());
             rearrange(index);
           }}
           onSave={(saved) => {
+            removeApiDraft(sessionStorage, draft);
+            rememberApiPaper(sessionStorage, { ...saved, paperKey: draft.paperKey });
             if (draft.plus) {
               setPresets((current) => [
                 ...current,
@@ -406,6 +420,7 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
             rearrange(index);
           }}
           onUse={() => setActiveId(draft.id)}
+          onDeleteStart={() => removeApiDraft(sessionStorage, draft)}
           onDelete={() => {
             setPresets((current) => current.filter((p) => p.paperKey !== draft.paperKey));
             if (activeId === draft.id) setActiveId(null);
