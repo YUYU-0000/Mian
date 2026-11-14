@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import ScrollText from "./ScrollText";
 
 type RibbonTitleValue = {
@@ -12,7 +12,7 @@ type RibbonTitleTransition = {
   generation: number;
 };
 
-export default function ArchiveRibbonTitle({
+export default memo(function ArchiveRibbonTitle({
   conversationId,
   title,
 }: {
@@ -24,8 +24,9 @@ export default function ArchiveRibbonTitle({
     text: title || "ARCHIVE CHAT",
   };
   const [displayed, setDisplayed] = useState<RibbonTitleValue>(target);
-  const [transition, setTransition] =
-    useState<RibbonTitleTransition | null>(null);
+  const [transition, setTransition] = useState<RibbonTitleTransition | null>(
+    null,
+  );
   const generation = useRef(0);
   const targetIdentity = `${target.conversationId}\u0000${target.text}`;
   const visibleTarget = transition?.to ?? displayed;
@@ -79,4 +80,4 @@ export default function ArchiveRibbonTitle({
       )}
     </div>
   );
-}
+});

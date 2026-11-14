@@ -1,6 +1,7 @@
 import type { RefObject, ReactNode } from "react";
 import WorkspaceEditor from "./WorkspaceEditor";
 import ScrollText from "../components/ScrollText";
+import { useHiddenLayer } from "../components/useHiddenLayer";
 export type TagConfig = {
   giant: string;
   giantY?: number;
@@ -8,7 +9,12 @@ export type TagConfig = {
   title: string;
   titleY?: number;
   titleAction?: () => void;
-  items: { label: string; value?: string; selected?: boolean; static?: boolean }[];
+  items: {
+    label: string;
+    value?: string;
+    selected?: boolean;
+    static?: boolean;
+  }[];
   onPick?: (value: string) => void;
   workspace?: { value: string; onSave: (directory: string) => Promise<void> };
 };
@@ -46,6 +52,8 @@ export default function ConnectionLayout({
   subPages,
   apiPages,
 }: Props) {
+  const subLayer = useHiddenLayer(open === "sub", "transform");
+  const apiLayer = useHiddenLayer(open === "api", "transform");
   return (
     <main className="connections-page" ref={rootRef}>
       <div className="settings-header">
@@ -190,6 +198,7 @@ export default function ConnectionLayout({
         id="paperOverlay"
       ></div>
       <div
+        {...subLayer}
         className={`stack${open === "sub" ? " is-visible" : ""}`}
         id="subStack"
         role="dialog"
@@ -204,6 +213,7 @@ export default function ConnectionLayout({
         </div>
       </div>
       <div
+        {...apiLayer}
         className={`stack${open === "api" ? " is-visible" : ""}`}
         id="apiStack"
         role="dialog"
@@ -232,10 +242,18 @@ export default function ConnectionLayout({
         <div className="tag-card">
           <svg className="tag-roof" viewBox="0 0 188 150" aria-hidden="true">
             <defs>
-              <path id="roofLine" d="M 24 90 L 84 52 Q 94 45.5 104 52 L 164 90" />
+              <path
+                id="roofLine"
+                d="M 24 90 L 84 52 Q 94 45.5 104 52 L 164 90"
+              />
             </defs>
 
-            <g fill="#f5f2ec" stroke="#f5f2ec" strokeWidth="8" strokeLinejoin="round">
+            <g
+              fill="#f5f2ec"
+              stroke="#f5f2ec"
+              strokeWidth="8"
+              strokeLinejoin="round"
+            >
               <circle cx="94" cy="15" r="5" strokeWidth="5" />
               <path d="M 94 22 L 184 80 L 176 86 L 176 156 L 12 156 L 12 86 L 4 80 Z" />
             </g>
@@ -266,7 +284,10 @@ export default function ConnectionLayout({
               x="94"
               y={tag?.giantY || 117}
               textAnchor="middle"
-              fontSize={Math.min(28, Math.floor(118 / ((tag?.giant.length || 5) * 0.62)))}
+              fontSize={Math.min(
+                28,
+                Math.floor(118 / ((tag?.giant.length || 5) * 0.62)),
+              )}
               fontWeight="300"
               letterSpacing="1"
               fill="#f1efe9"
@@ -297,7 +318,9 @@ export default function ConnectionLayout({
               {tag?.kicker || "SELECT"}
             </div>
             <div className="tag-list" id="tagList" onScroll={onTagScroll}>
-              {tag?.workspace && <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />}
+              {tag?.workspace && (
+                <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />
+              )}
               {tag?.items.map((item, index) => (
                 <button
                   key={index}

@@ -5,6 +5,7 @@ import test from "node:test";
 test("chat disclosures use the final design grid and timing contract", async () => {
   const css = await readFile("client/src/mobile-fixes.css", "utf8");
   const chat = await readFile("client/src/pages/Chat.tsx", "utf8");
+  const message = await readFile("client/src/pages/ChatMessage.tsx", "utf8");
   const motionCss = css.slice(
     css.indexOf(".archive-chat {"),
     css.indexOf(
@@ -27,16 +28,16 @@ test("chat disclosures use the final design grid and timing contract", async () 
   assert.match(css, /opacity 240ms ease 20ms/);
   assert.match(css, /transition:\s*transform 220ms ease/);
   assert.doesNotMatch(motionCss, /visibility/);
-  assert.match(chat, /useDisclosureMotion\(280\)/);
+  assert.match(message, /useDisclosureMotion\(280\)/);
   assert.match(
     chat,
     /const toggleToolExpansion[\s\S]*?requestAnimationFrame\(\(\) => \{[\s\S]*?setExpandedTools/,
   );
   assert.match(
-    chat,
+    message,
     /setExpanded\(false\);[\s\S]*?window\.setTimeout\([\s\S]*?setMounted\(false\)/,
   );
-  assert.match(chat, /open=\{disclosure\.mounted\}/);
+  assert.match(message, /open=\{disclosure\.mounted\}/);
   assert.equal((css.match(/^\.step-head\s*\{/gm) ?? []).length, 1);
   assert.equal((motionCss.match(/margin-left:\s*22px/g) ?? []).length, 1);
 });

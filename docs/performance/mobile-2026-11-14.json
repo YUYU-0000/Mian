@@ -1,0 +1,1029 @@
+{
+  "baselineRevision": "032be85",
+  "branch": "perf/mobile-interaction",
+  "before": {
+    "label": "before",
+    "browser": {
+      "protocolVersion": "1.3",
+      "product": "Chrome/157.0.8103.51",
+      "revision": "@653674df293788cf4932c40d914e9e15b41a2d31",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "jsVersion": "15.7.112.23"
+    },
+    "cpuThrottle": 4,
+    "viewport": "390x844 @2x",
+    "historyReplies": 12,
+    "replyCharacters": 3673,
+    "chunkCharacters": 64,
+    "chunkIntervalMs": 40,
+    "sizes": [
+      {
+        "name": "index-BIAlpXYl.js",
+        "bytes": 410981,
+        "gzip": 122980
+      },
+      {
+        "name": "index-CC34boMz.css",
+        "bytes": 256490,
+        "gzip": 86238
+      },
+      {
+        "name": "ReplyMarkdown-BX_nGytI.js",
+        "bytes": 251245,
+        "gzip": 83758
+      },
+      {
+        "name": "ReplyMarkdown-CRypBw86.css",
+        "bytes": 5282,
+        "gzip": 1701
+      }
+    ],
+    "recordings": [
+      {
+        "name": "home-button",
+        "elapsedMs": 2797,
+        "mainThreadMs": 2386.123,
+        "scriptMs": 452.0440000000001,
+        "layoutMs": 1224.733,
+        "styleMs": 159.28100000000003,
+        "paintMs": 197.09500000000003,
+        "rasterMs": 17.977000000000004,
+        "longestTaskMs": 765.289,
+        "longTasks": 10,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 1510
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:25 f",
+            "ms": 723.3
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:4333 renderWithHooks",
+            "ms": 24.8
+          },
+          {
+            "name": "../../src/components/paperStack.ts:60 rest",
+            "ms": 21.5
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:8571 commitHookEffectListMount",
+            "ms": 14.5
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:9427 commitMutationEffectsOnFiber",
+            "ms": 10
+          },
+          {
+            "name": "observe ",
+            "ms": 9
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:9384 recursivelyTraverseMutationEffects",
+            "ms": 8.5
+          },
+          {
+            "name": "setAttribute ",
+            "ms": 8.2
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12455 ",
+            "ms": 7.9
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12957 setProp",
+            "ms": 7.9
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1615 SyntheticBaseEvent",
+            "ms": 7.3
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1494 batchedUpdates$1",
+            "ms": 6.8
+          },
+          {
+            "name": "removeChild ",
+            "ms": 6.8
+          },
+          {
+            "name": "../../src/components/Media.tsx:40 db",
+            "ms": 6.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1060 track",
+            "ms": 6.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:7865 preloadInstanceAndSuspendIfNeeded",
+            "ms": 6.3
+          },
+          {
+            "name": "../../src/components/Media.tsx:6 Media",
+            "ms": 6.2
+          },
+          {
+            "name": "now ",
+            "ms": 5.4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:7955 completeWork",
+            "ms": 5.2
+          }
+        ]
+      },
+      {
+        "name": "connections-swipe",
+        "elapsedMs": 5828,
+        "mainThreadMs": 2073.5710000000004,
+        "scriptMs": 270.0960000000001,
+        "layoutMs": 14.0100000000003,
+        "styleMs": 415.324,
+        "paintMs": 141.53099999999998,
+        "rasterMs": 4.253,
+        "longestTaskMs": 143.322,
+        "longTasks": 5,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 2070.3
+          },
+          {
+            "name": "../../src/components/paperStack.ts:90 paint",
+            "ms": 16.8
+          },
+          {
+            "name": "../../src/components/paperStack.ts:54 shadow",
+            "ms": 15.7
+          },
+          {
+            "name": "../../src/components/paperStack.ts:60 rest",
+            "ms": 12.2
+          },
+          {
+            "name": "animate ",
+            "ms": 12.2
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 11.9
+          },
+          {
+            "name": "../../src/components/paperStack.ts:127 settle",
+            "ms": 10.6
+          },
+          {
+            "name": "../../src/components/paperStack.ts:33 g",
+            "ms": 6.4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12455 ",
+            "ms": 5.7
+          },
+          {
+            "name": "../../src/components/paperStack.ts:223 e",
+            "ms": 5
+          },
+          {
+            "name": "../../src/components/paperStack.ts:52 x",
+            "ms": 4.2
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1419 getEventTarget",
+            "ms": 4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1615 SyntheticBaseEvent",
+            "ms": 3.6
+          },
+          {
+            "name": "../../src/components/paperStack.ts:65 ",
+            "ms": 3.3
+          },
+          {
+            "name": "(anonymous) ",
+            "ms": 3.3
+          },
+          {
+            "name": "../../src/components/paperStack.ts:205 e",
+            "ms": 3.3
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:15280 dispatchContinuousEvent",
+            "ms": 3.2
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:15519 clearIfContinuousEvent",
+            "ms": 3.1
+          },
+          {
+            "name": "setItem ",
+            "ms": 1.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1494 batchedUpdates$1",
+            "ms": 1.5
+          }
+        ]
+      },
+      {
+        "name": "settings-swipe",
+        "elapsedMs": 7897,
+        "mainThreadMs": 3102.87,
+        "scriptMs": 404.31899999999996,
+        "layoutMs": 369.6090000000001,
+        "styleMs": 442.503,
+        "paintMs": 120.50499999999998,
+        "rasterMs": 30.285999999999998,
+        "longestTaskMs": 267.797,
+        "longTasks": 8,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 2680.5
+          },
+          {
+            "name": "../../src/components/paperStack.ts:60 rest",
+            "ms": 269.9
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:25 f",
+            "ms": 45.7
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 43.2
+          },
+          {
+            "name": "../../src/components/paperStack.ts:54 shadow",
+            "ms": 18.9
+          },
+          {
+            "name": "animate ",
+            "ms": 18.3
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:7955 completeWork",
+            "ms": 11.9
+          },
+          {
+            "name": "../../src/components/paperStack.ts:90 paint",
+            "ms": 10.8
+          },
+          {
+            "name": "../../src/components/paperStack.ts:127 settle",
+            "ms": 10.6
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:13577 updateProperties",
+            "ms": 8.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1103 updateInput",
+            "ms": 8.5
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:3793 reconcileChildFibersImpl",
+            "ms": 8.2
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:13997 shouldSetTextContent",
+            "ms": 8
+          },
+          {
+            "name": "../../src/components/paperStack.ts:65 ",
+            "ms": 7.4
+          },
+          {
+            "name": "../../../node_modules/react/cjs/react-jsx-runtime.production.js:14 jsxProd",
+            "ms": 7.4
+          },
+          {
+            "name": "../../src/pages/SettingsFont.tsx:7 FontPage",
+            "ms": 6.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:1615 SyntheticBaseEvent",
+            "ms": 6.5
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:99 ScrollInput",
+            "ms": 6.4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12957 setProp",
+            "ms": 5.1
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:2452 createWorkInProgress",
+            "ms": 5
+          }
+        ]
+      },
+      {
+        "name": "chat-open",
+        "elapsedMs": 5732,
+        "mainThreadMs": 5278.8060000000005,
+        "scriptMs": 2338.249,
+        "layoutMs": 1778.721,
+        "styleMs": 387.83,
+        "paintMs": 273.549,
+        "rasterMs": 51.332000000000015,
+        "longestTaskMs": 1499.178,
+        "longTasks": 16,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 1467.1
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:25 f",
+            "ms": 1356.1
+          },
+          {
+            "name": "../../src/pages/Chat.tsx:658 event",
+            "ms": 292.3
+          },
+          {
+            "name": "../../../node_modules/dompurify/dist/purify.es.mjs:152 ",
+            "ms": 129
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:1211 exec",
+            "ms": 94.7
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 84.4
+          },
+          {
+            "name": "../../../node_modules/marked/lib/marked.esm.js:13 getRegex",
+            "ms": 75.2
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:2405 registerLanguage",
+            "ms": 75.1
+          },
+          {
+            "name": "../../../node_modules/dompurify/dist/purify.es.mjs:1829 Kt",
+            "ms": 67
+          },
+          {
+            "name": "../../../node_modules/dompurify/dist/purify.es.mjs:2403 Aa.e.sanitize",
+            "ms": 65.6
+          },
+          {
+            "name": "../../src/pages/Chat.tsx:437 sl",
+            "ms": 65.4
+          },
+          {
+            "name": "../../../node_modules/dompurify/dist/purify.es.mjs:2272 Jn",
+            "ms": 60.1
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12957 setProp",
+            "ms": 39.5
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:455 countMatchGroups",
+            "ms": 36.4
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:61160/assets/ReplyMarkdown-BX_nGytI.js",
+            "ms": 36.2
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:1867 startNewMode",
+            "ms": 33.2
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:1741 _highlight",
+            "ms": 29.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:7955 completeWork",
+            "ms": 29.1
+          },
+          {
+            "name": "../../src/components/ReplyMarkdown.tsx:30 ",
+            "ms": 28.9
+          },
+          {
+            "name": "../../../node_modules/marked/lib/marked.esm.js:51 blockTokens",
+            "ms": 27.8
+          }
+        ]
+      },
+      {
+        "name": "chat-stream",
+        "elapsedMs": 5585,
+        "mainThreadMs": 5280.717000000001,
+        "scriptMs": 2947.7760000000003,
+        "layoutMs": 877.5019999999997,
+        "styleMs": 254.23499999999999,
+        "paintMs": 244.52299999999994,
+        "rasterMs": 13.775999999999996,
+        "longestTaskMs": 252.992,
+        "longTasks": 23,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 1883.4
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:25 f",
+            "ms": 680.7
+          },
+          {
+            "name": "../../src/pages/Chat.tsx:523 ",
+            "ms": 278.1
+          },
+          {
+            "name": "../../../node_modules/dompurify/dist/purify.es.mjs:152 ",
+            "ms": 128.1
+          },
+          {
+            "name": "setItem ",
+            "ms": 125.7
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:12957 setProp",
+            "ms": 123.8
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:1211 exec",
+            "ms": 110.1
+          },
+          {
+            "name": "parseFromString ",
+            "ms": 103.6
+          },
+          {
+            "name": "../../../node_modules/highlight.js/lib/core.js:1741 _highlight",
+            "ms": 99.9
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:13577 updateProperties",
+            "ms": 81.7
+          },
+          {
+            "name": "../../src/chatModel.ts:534 saveChatGroups",
+            "ms": 76.1
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 54.5
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:7392 beginWork",
+            "ms": 47.6
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:3793 reconcileChildFibersImpl",
+            "ms": 43.9
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:8725 commitHostUpdate",
+            "ms": 42.4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:4333 renderWithHooks",
+            "ms": 39.4
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:2452 createWorkInProgress",
+            "ms": 38.6
+          },
+          {
+            "name": "../../../node_modules/react-dom/cjs/react-dom-client.production.js:2920 propagateContextChanges",
+            "ms": 36.3
+          },
+          {
+            "name": "../../src/pages/Chat.tsx:283 Chat",
+            "ms": 29.7
+          },
+          {
+            "name": "../../src/components/ScrollText.tsx:86 ScrollText",
+            "ms": 28.3
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "label": "optimized",
+    "browser": {
+      "protocolVersion": "1.3",
+      "product": "Chrome/157.0.8103.51",
+      "revision": "@653674df293788cf4932c40d914e9e15b41a2d31",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "jsVersion": "15.7.112.23"
+    },
+    "cpuThrottle": 4,
+    "viewport": "390x844 @2x",
+    "historyReplies": 12,
+    "replyCharacters": 3673,
+    "chunkCharacters": 64,
+    "chunkIntervalMs": 40,
+    "sizes": [
+      {
+        "name": "CodeHighlight-D_NI5CVs.js",
+        "bytes": 85925,
+        "gzip": 27436
+      },
+      {
+        "name": "index-CC34boMz.css",
+        "bytes": 256490,
+        "gzip": 86238
+      },
+      {
+        "name": "index-Dq57DvgY.js",
+        "bytes": 412257,
+        "gzip": 123413
+      },
+      {
+        "name": "ReplyMarkdown-BmwQOFc4.js",
+        "bytes": 86048,
+        "gzip": 29178
+      },
+      {
+        "name": "ReplyMarkdown-CRypBw86.css",
+        "bytes": 5282,
+        "gzip": 1701
+      }
+    ],
+    "recordings": [
+      {
+        "name": "home-button",
+        "elapsedMs": 1781,
+        "mainThreadMs": 1370.7910000000002,
+        "scriptMs": 370.096,
+        "layoutMs": 490.9979999999998,
+        "styleMs": 137.06600000000003,
+        "paintMs": 47.591,
+        "rasterMs": 19.44000000000001,
+        "longestTaskMs": 359.312,
+        "longTasks": 6,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 1306.7
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 43.5
+          },
+          {
+            "name": "ac http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 21.2
+          },
+          {
+            "name": "yL http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 10.5
+          },
+          {
+            "name": "setAttribute ",
+            "ms": 9.8
+          },
+          {
+            "name": "bt http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 9.1
+          },
+          {
+            "name": "Lt http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 7.5
+          },
+          {
+            "name": "ue http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.8
+          },
+          {
+            "name": "He http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.8
+          },
+          {
+            "name": "ym http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.5
+          },
+          {
+            "name": "Ee http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.3
+          },
+          {
+            "name": "J7 http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 5.8
+          },
+          {
+            "name": "Ao http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 5.7
+          },
+          {
+            "name": "removeChild ",
+            "ms": 5.1
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 4.9
+          },
+          {
+            "name": "s0 http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.7
+          },
+          {
+            "name": "lL http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.6
+          },
+          {
+            "name": "N http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.4
+          },
+          {
+            "name": "Gn http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.4
+          },
+          {
+            "name": "t http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.3
+          }
+        ]
+      },
+      {
+        "name": "connections-swipe",
+        "elapsedMs": 5778,
+        "mainThreadMs": 2073.917000000001,
+        "scriptMs": 265.6529999999999,
+        "layoutMs": 9.598999999999691,
+        "styleMs": 401.576,
+        "paintMs": 103.50400000000002,
+        "rasterMs": 5.444000000000001,
+        "longestTaskMs": 162.038,
+        "longTasks": 4,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 2081.2
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 42.1
+          },
+          {
+            "name": "O http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 18.6
+          },
+          {
+            "name": "J http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 13.6
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 12.8
+          },
+          {
+            "name": "animate ",
+            "ms": 11.7
+          },
+          {
+            "name": "(anonymous) ",
+            "ms": 9.8
+          },
+          {
+            "name": "oe http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.6
+          },
+          {
+            "name": "Kr.r.addEventListener.signal http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.4
+          },
+          {
+            "name": "W http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.4
+          },
+          {
+            "name": "g http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 5.7
+          },
+          {
+            "name": "t http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 5.4
+          },
+          {
+            "name": "te http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.5
+          },
+          {
+            "name": "hr http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 4.1
+          },
+          {
+            "name": "Co http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 2.8
+          },
+          {
+            "name": "Se http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1.7
+          },
+          {
+            "name": "er http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1.7
+          },
+          {
+            "name": "mr http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1.6
+          },
+          {
+            "name": "yn http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1.5
+          },
+          {
+            "name": "E2 http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1.5
+          }
+        ]
+      },
+      {
+        "name": "settings-swipe",
+        "elapsedMs": 8109,
+        "mainThreadMs": 3330.8360000000002,
+        "scriptMs": 451.24199999999996,
+        "layoutMs": 370.9910000000001,
+        "styleMs": 510.19800000000004,
+        "paintMs": 166.733,
+        "rasterMs": 26.831999999999994,
+        "longestTaskMs": 327.686,
+        "longTasks": 9,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 2735.3
+          },
+          {
+            "name": "W http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 382.7
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 94.7
+          },
+          {
+            "name": "get scrollWidth ",
+            "ms": 67.1
+          },
+          {
+            "name": "(anonymous) ",
+            "ms": 18.7
+          },
+          {
+            "name": "yL http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 16.1
+          },
+          {
+            "name": "O http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 14.8
+          },
+          {
+            "name": "J http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 10.1
+          },
+          {
+            "name": "gs http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 9.5
+          },
+          {
+            "name": "Lu http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.6
+          },
+          {
+            "name": "t http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.3
+          },
+          {
+            "name": "oe http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.3
+          },
+          {
+            "name": "fp http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.1
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 8.1
+          },
+          {
+            "name": "animate ",
+            "ms": 7.6
+          },
+          {
+            "name": "ac http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 7.6
+          },
+          {
+            "name": "He http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.6
+          },
+          {
+            "name": "setAttribute ",
+            "ms": 6.5
+          },
+          {
+            "name": "zf http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 6.4
+          },
+          {
+            "name": "rp http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 5.9
+          }
+        ]
+      },
+      {
+        "name": "chat-open",
+        "elapsedMs": 5564,
+        "mainThreadMs": 5037.6630000000005,
+        "scriptMs": 2057.154,
+        "layoutMs": 1772.1860000000001,
+        "styleMs": 436.30600000000004,
+        "paintMs": 168.937,
+        "rasterMs": 40.06200000000002,
+        "longestTaskMs": 1301.072,
+        "longTasks": 18,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 1777.3
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 1223.2
+          },
+          {
+            "name": "onScroll http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 255.6
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 200.1
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 107.9
+          },
+          {
+            "name": "Fn http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 89.6
+          },
+          {
+            "name": "getRegex http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 77.8
+          },
+          {
+            "name": "exec http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 75.4
+          },
+          {
+            "name": "Ta http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 57.7
+          },
+          {
+            "name": "jt http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 51.7
+          },
+          {
+            "name": "en http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 37.9
+          },
+          {
+            "name": "He http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 37.1
+          },
+          {
+            "name": "appendChild ",
+            "ms": 36
+          },
+          {
+            "name": "ps http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 34.3
+          },
+          {
+            "name": "Xn http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 33.6
+          },
+          {
+            "name": "RegExp: (^#![ ]*\\/.*\\bnode\\b.*)|(^\\s*['\"]use (strict|asm)['\"])|(')|(\")|(.?html`)|(.?css`)|(.?gql`)|(`)|(\\/\\*\\*(?!\\/))|(\\/\\*)|(\\/\\/)|(\\$\\d+)|((\\b(0|[1-9](_?[0-9])*|0[0-7]*[89][0-9]*)((\\.([0-9](_?[0-9])*))|\\.)?|(\\.([0-9](_?[0-9])*)))[eE][+-]?([0-9](_?[0-9])*)\\b)|(\\b(0|[1-9](_?[0-9])*|0[0-7]*[89][0-9]*)\\b((\\.([0-9](_?[0-9])*))\\b|\\.)?|(\\.([0-9](_?[0-9])*))\\b)|(\\b(0|[1-9](_?[0-9])*)n\\b)|(\\b0[xX][0-9a-fA-F](_?[0-9a-fA-F])*n?\\b)|(\\b0[bB][0-1](_?[0-1])*n?\\b)|(\\b0[oO][0-7](_?[0-7])*n?\\b)|(\\b0[0-7]+n?\\b)|((?:\\bJSON|\\b[A-Z][a-z]+([A-Z][a-z]*|\\d)*|\\b[A-Z]{2,}([A-Z][a-z]+|\\d)+([A-Z][a-z]*)*|\\b[A-Z]{2,}[a-z]+([A-Z][a-z]+|\\d)*([A-Z][a-z]*)*))|([A-Za-z$_][0-9A-Za-z$_]*(?=:))|((const|var|let)(\\s+)([A-Za-z$_][0-9A-Za-z$_]*)(\\s*)(=\\s*)((async\\s*)?)((?=(\\([^()]*(\\([^()]*(\\([^()]*\\)[^()]*)*\\)[^()]*)*\\)|[a-zA-Z_]\\w*)\\s*=>)))|((!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|\\/=|\\/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~|\\b(case|return|throw)\\b)\\s*)|((function)(\\s+)([A-Za-z$_][0-9A-Za-z$_]*)((?=\\s*\\()))|(( ",
+            "ms": 31.7
+          },
+          {
+            "name": "ac http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 30.6
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 27.7
+          },
+          {
+            "name": "P http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 27.7
+          },
+          {
+            "name": "Sr.e.sanitize http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 27.3
+          }
+        ]
+      },
+      {
+        "name": "chat-stream",
+        "elapsedMs": 5423,
+        "mainThreadMs": 5116.591,
+        "scriptMs": 2985.7089999999994,
+        "layoutMs": 365.48,
+        "styleMs": 257.281,
+        "paintMs": 343.96100000000007,
+        "rasterMs": 19.97099999999999,
+        "longestTaskMs": 254.027,
+        "longTasks": 30,
+        "topFunctions": [
+          {
+            "name": "(program) ",
+            "ms": 2499
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 207.5
+          },
+          {
+            "name": "exec http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 155.7
+          },
+          {
+            "name": "parseFromString ",
+            "ms": 155.5
+          },
+          {
+            "name": "setItem ",
+            "ms": 126.7
+          },
+          {
+            "name": "He http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 123.4
+          },
+          {
+            "name": "Cd http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 95.9
+          },
+          {
+            "name": "ye http://127.0.0.1:56451/assets/CodeHighlight-D_NI5CVs.js",
+            "ms": 93.8
+          },
+          {
+            "name": "(garbage collector) ",
+            "ms": 93.7
+          },
+          {
+            "name": "getBoundingClientRect ",
+            "ms": 85.4
+          },
+          {
+            "name": "(anonymous) http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 78.3
+          },
+          {
+            "name": "onScroll http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 65
+          },
+          {
+            "name": "jt http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 60.5
+          },
+          {
+            "name": "ps http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 52.7
+          },
+          {
+            "name": "getAttributeType ",
+            "ms": 50.6
+          },
+          {
+            "name": "get nodeName ",
+            "ms": 45.6
+          },
+          {
+            "name": "no http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 29.8
+          },
+          {
+            "name": "ac http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 29.8
+          },
+          {
+            "name": "Sr.e.sanitize http://127.0.0.1:56451/assets/ReplyMarkdown-BmwQOFc4.js",
+            "ms": 27
+          },
+          {
+            "name": "Oc http://127.0.0.1:56451/assets/index-Dq57DvgY.js",
+            "ms": 26.1
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -14,7 +14,8 @@ const bundle = await build({
   bundle: true,
   write: false,
   outdir: profile,
-  format: "iife",
+  format: "esm",
+  splitting: true,
   platform: "browser",
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"' },
@@ -24,11 +25,17 @@ const style = builtPage.match(
   /<link rel="stylesheet"[^>]*href="([^"]+\.css)"/,
 )[1];
 const app = express();
-app.get("/fixture.js", (_req, res) =>
+const bundleRequests = [];
+app.get("/bundle/:name", (req, res) => {
+  bundleRequests.push(req.params.name);
   res
     .type("js")
-    .send(bundle.outputFiles.find((file) => file.path.endsWith(".js")).text),
-);
+    .send(
+      bundle.outputFiles.find(
+        (file) => path.basename(file.path) === req.params.name,
+      ).text,
+    );
+});
 app.get("/fixture.css", (_req, res) =>
   res
     .type("css")
@@ -36,7 +43,7 @@ app.get("/fixture.css", (_req, res) =>
 );
 app.get("/", (_req, res) =>
   res.send(
-    `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${style}"><link rel="stylesheet" href="/fixture.css"><style>body,#root{width:100%;height:auto;overflow:auto}#root{padding-top:20px}</style><div id="root"></div><script src="/fixture.js"></script>`,
+    `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${style}"><link rel="stylesheet" href="/fixture.css"><style>body,#root{width:100%;height:auto;overflow:auto}#root{padding-top:20px}</style><div id="root"></div><script type="module" src="/bundle/replyRendering.fixture.js"></script>`,
   ),
 );
 app.use(express.static(path.join(workspace, "client/dist")));
@@ -261,12 +268,21 @@ try {
     },
   );
 
+  assert.equal(
+    bundleRequests.some((name) => name.startsWith("CodeHighlight-")),
+    false,
+    "Text-only Markdown loaded the highlighter",
+  );
   const code = `const message = "${"long line ".repeat(60)}";`;
   await render(["```javascript\n" + code + "\n```"]);
   await waitFor(
     () =>
       evaluate("Boolean(document.querySelector('.reply-code .hljs-keyword'))"),
     "Code highlighting missing",
+  );
+  assert.equal(
+    bundleRequests.filter((name) => name.startsWith("CodeHighlight-")).length,
+    1,
   );
   assert.equal(
     await evaluate(
@@ -440,23 +456,46 @@ try {
     "Closed fence swallowed later text",
   );
 
-  const renders = await evaluate(`(async () => {
-    renderFixture(['起'], true);
+  const rendering = await evaluate(`(async () => {
+    const history = '已完成的固定氣泡';
+    const parse = DOMParser.prototype.parseFromString;
+    let historyParses = 0;
+    DOMParser.prototype.parseFromString = function (text, ...args) {
+      if (String(text).includes(history)) historyParses++;
+      return parse.call(this, text, ...args);
+    };
+    renderFixture([history, '起'], true);
     await new Promise(resolve => setTimeout(resolve, 120));
+    const startHistoryParses = historyParses;
+    const historyNode = document.querySelector('.reply-markdown');
     let count = 0;
     const observer = new MutationObserver(() => count++);
-    observer.observe(document.querySelector('.reply-markdown'), { childList: true, subtree: true, characterData: true });
+    observer.observe(document.querySelectorAll('.reply-markdown')[1], { childList: true, subtree: true, characterData: true });
     for (let i = 1; i <= 60; i++) {
-      renderFixture(['起' + '字'.repeat(i)], true);
+      renderFixture([history, '起' + '字'.repeat(i)], true);
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    renderFixture(['最終正文'], false);
+    renderFixture([history, '最終正文'], false);
     await new Promise(resolve => setTimeout(resolve, 60));
-    observer.disconnect(); return count;
+    observer.disconnect();
+    DOMParser.prototype.parseFromString = parse;
+    return { count, startHistoryParses, historyParses, sameNode: historyNode === document.querySelector('.reply-markdown') };
   })()`);
-  assert.ok(renders < 20, `Streaming caused ${renders} DOM updates`);
+  assert.ok(
+    rendering.count < 20,
+    `Streaming caused ${rendering.count} DOM updates`,
+  );
+  assert.ok(rendering.startHistoryParses > 0);
   assert.equal(
-    await evaluate("document.querySelector('.reply-markdown').textContent"),
+    rendering.historyParses,
+    rendering.startHistoryParses,
+    "Streaming reparsed a completed bubble",
+  );
+  assert.equal(rendering.sameNode, true);
+  assert.equal(
+    await evaluate(
+      "document.querySelectorAll('.reply-markdown')[1].textContent",
+    ),
     "最終正文",
   );
   for (const [page, label] of [

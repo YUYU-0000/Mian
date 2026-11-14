@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -9,6 +10,7 @@ import {
 } from "react";
 import type { ConversationRecord } from "../types";
 import ScrollText, { ScrollInput } from "./ScrollText";
+import { useHiddenLayer } from "./useHiddenLayer";
 import {
   displayConversationValue,
   formatLastActivity,
@@ -42,10 +44,7 @@ type Props = {
   ) => Promise<ConversationRecord>;
   canArchive: (conversationId: string) => boolean;
   onArchive: (conversationId: string) => Promise<void>;
-  onArchived: (
-    conversationId: string,
-    adjacentConversationId: string,
-  ) => void;
+  onArchived: (conversationId: string, adjacentConversationId: string) => void;
 };
 
 function ticketNumber(conversation: ConversationRecord) {
@@ -71,7 +70,10 @@ function MiniTicket({
   onArchive: () => Promise<void>;
   onExitComplete: () => void;
 }) {
-  const fontSize = Math.max(9, 15 - Math.max(0, conversation.abbr.length - 4) * 0.9);
+  const fontSize = Math.max(
+    9,
+    15 - Math.max(0, conversation.abbr.length - 4) * 0.9,
+  );
   const motionRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
   const suppressClickRef = useRef(false);
@@ -167,7 +169,10 @@ function MiniTicket({
   );
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.phase === "waiting" || dragRef.current?.phase === "exit")
+    if (
+      dragRef.current?.phase === "waiting" ||
+      dragRef.current?.phase === "exit"
+    )
       return;
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     const motion = motionRef.current;
@@ -207,8 +212,7 @@ function MiniTicket({
     suppressClickRef.current = true;
     const now = performance.now();
     const velocity =
-      (event.clientX - state.lastMoveX) /
-      Math.max(1, now - state.lastMoveTime);
+      (event.clientX - state.lastMoveX) / Math.max(1, now - state.lastMoveTime);
     state.velocity = state.velocity * 0.5 + velocity * 0.5;
     state.lastMoveTime = now;
     state.lastMoveX = event.clientX;
@@ -265,7 +269,7 @@ function MiniTicket({
                   : "none",
               }}
               aria-label={`为 ${conversation.abbr} 导入图片`}
-               onClick={(event) => {
+              onClick={(event) => {
                 if (!acceptClick()) {
                   event.preventDefault();
                   event.stopPropagation();
@@ -305,7 +309,7 @@ function MiniTicket({
   );
 }
 
-export default function TicketDrawer({
+export default memo(function TicketDrawer({
   open,
   conversations,
   activeConversationId,
@@ -318,6 +322,7 @@ export default function TicketDrawer({
   onArchive,
   onArchived,
 }: Props) {
+  const layer = useHiddenLayer<HTMLElement>(open, "visibility");
   const [previewId, setPreviewId] = useState(activeConversationId);
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -336,7 +341,9 @@ export default function TicketDrawer({
   const archiveInFlight = useRef<string | null>(null);
   const preview =
     conversations.find((item) => item.conversationId === previewId) ??
-    conversations.find((item) => item.conversationId === activeConversationId) ??
+    conversations.find(
+      (item) => item.conversationId === activeConversationId,
+    ) ??
     conversations[0];
 
   useEffect(() => {
@@ -344,7 +351,9 @@ export default function TicketDrawer({
       setPreviewId(
         conversations.find(
           (item) => item.conversationId === activeConversationId,
-        )?.conversationId ?? conversations[0]?.conversationId ?? "",
+        )?.conversationId ??
+          conversations[0]?.conversationId ??
+          "",
       );
   }, [activeConversationId, conversations, previewId]);
 
@@ -352,7 +361,9 @@ export default function TicketDrawer({
     const removal = flipRemoval.current;
     if (!removal) return;
     flipRemoval.current = null;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     const animations: Animation[] = [];
     if (!reduced)
       for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
@@ -379,7 +390,9 @@ export default function TicketDrawer({
       if (removal.switchAfter) onSelect(removal.adjacentId);
     };
     if (animations.length)
-      void Promise.allSettled(animations.map((animation) => animation.finished)).then(finish);
+      void Promise.allSettled(
+        animations.map((animation) => animation.finished),
+      ).then(finish);
     else finish();
   }, [conversations, onSelect]);
 
@@ -473,7 +486,9 @@ export default function TicketDrawer({
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== "string") return;
-      void onUpdate(conversationId, { image: reader.result }).catch(console.error);
+      void onUpdate(conversationId, { image: reader.result }).catch(
+        console.error,
+      );
     };
     reader.readAsDataURL(file);
   };
@@ -484,7 +499,8 @@ export default function TicketDrawer({
     for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
       ".mini-ticket-container",
     ) ?? [])
-      if (node.dataset.id) before.set(node.dataset.id, node.getBoundingClientRect());
+      if (node.dataset.id)
+        before.set(node.dataset.id, node.getBoundingClientRect());
     setBusy(true);
     try {
       await onUpdate(preview.conversationId, { pinned: true });
@@ -495,10 +511,12 @@ export default function TicketDrawer({
         for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
           ".mini-ticket-container",
         ) ?? []) {
-          const oldRect = node.dataset.id ? before.get(node.dataset.id) : undefined;
+          const oldRect = node.dataset.id
+            ? before.get(node.dataset.id)
+            : undefined;
           if (!oldRect) continue;
           const deltaY = oldRect.top - node.getBoundingClientRect().top;
-          if (Math.abs(deltaY) <= .5) continue;
+          if (Math.abs(deltaY) <= 0.5) continue;
           node.animate(
             [
               { transform: `translate3d(0, ${deltaY}px, 0)` },
@@ -525,6 +543,7 @@ export default function TicketDrawer({
   const image = preview?.image ?? "";
   return (
     <section
+      {...layer}
       id="ticketDrawer"
       className={`ticket-drawer ${open ? "is-open" : ""}`}
       role="dialog"
@@ -573,7 +592,9 @@ export default function TicketDrawer({
                 <MiniTicket
                   key={conversation.conversationId}
                   conversation={conversation}
-                  active={conversation.conversationId === preview?.conversationId}
+                  active={
+                    conversation.conversationId === preview?.conversationId
+                  }
                   entering={conversation.conversationId === enteringId}
                   onActivate={() => {
                     setPreviewId(conversation.conversationId);
@@ -586,7 +607,8 @@ export default function TicketDrawer({
                     canArchive(conversation.conversationId)
                   }
                   onArchive={async () => {
-                    if (archiveInFlight.current) throw new Error("archive busy");
+                    if (archiveInFlight.current)
+                      throw new Error("archive busy");
                     archiveInFlight.current = conversation.conversationId;
                     try {
                       await onArchive(conversation.conversationId);
@@ -610,17 +632,22 @@ export default function TicketDrawer({
                 tabIndex={0}
                 aria-label="翻到票根背面"
                 onClick={(event) => {
-                  if ((event.target as HTMLElement).closest(".front-text")) return;
+                  if ((event.target as HTMLElement).closest(".front-text"))
+                    return;
                   setFlipped(true);
                 }}
                 onKeyDown={flipWithKeyboard}
               >
                 <div className="ticket-part char-part upper main-upper">
-                  {image && <img className="ticket-bg-img" src={image} alt="" />}
+                  {image && (
+                    <img className="ticket-bg-img" src={image} alt="" />
+                  )}
                   <div className="part-overlay front-overlay" />
                 </div>
                 <div className="ticket-part char-part lower main-lower">
-                  {image && <img className="ticket-bg-img" src={image} alt="" />}
+                  {image && (
+                    <img className="ticket-bg-img" src={image} alt="" />
+                  )}
                   <div className="part-overlay front-overlay" />
                 </div>
                 {preview && (
@@ -632,7 +659,9 @@ export default function TicketDrawer({
                     onBlur={(event) => {
                       const frontName = event.currentTarget.textContent?.trim();
                       if (frontName && frontName !== preview.frontName)
-                        void onUpdate(preview.conversationId, { frontName }).catch(console.error);
+                        void onUpdate(preview.conversationId, {
+                          frontName,
+                        }).catch(console.error);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
@@ -649,16 +678,21 @@ export default function TicketDrawer({
               <div
                 className="ticket-face back"
                 onClick={(event) => {
-                  if ((event.target as HTMLElement).closest(".back-grid")) return;
+                  if ((event.target as HTMLElement).closest(".back-grid"))
+                    return;
                   setFlipped(false);
                 }}
               >
                 <div className="ticket-part char-part upper main-upper">
-                  {image && <img className="ticket-bg-img" src={image} alt="" />}
+                  {image && (
+                    <img className="ticket-bg-img" src={image} alt="" />
+                  )}
                   <div className="part-overlay back-overlay" />
                 </div>
                 <div className="ticket-part char-part lower main-lower">
-                  {image && <img className="ticket-bg-img" src={image} alt="" />}
+                  {image && (
+                    <img className="ticket-bg-img" src={image} alt="" />
+                  )}
                   <div className="part-overlay back-overlay" />
                 </div>
                 {preview && (
@@ -678,20 +712,57 @@ export default function TicketDrawer({
                           onBlur={(event) => {
                             const title = event.currentTarget.value.trim();
                             if (title && title !== preview.title)
-                              void onUpdate(preview.conversationId, { title }).catch(console.error);
+                              void onUpdate(preview.conversationId, {
+                                title,
+                              }).catch(console.error);
                           }}
                         />
                       </label>
                       <div className="bg-row row-info">
-                        <div className="info-line"><span className="box-label">Model :</span><ScrollText className="back-input">{displayConversationValue(preview.model)}</ScrollText></div>
-                        <div className="info-line"><span className="box-label">Effort :</span><ScrollText className="back-input">{displayConversationValue(preview.reasoningEffort)}</ScrollText></div>
-                        <div className="info-line"><span className="box-label">Token Used :</span><ScrollText className="back-input">{formatTokenUsage(preview.uncachedTotalTokens)}</ScrollText></div>
+                        <div className="info-line">
+                          <span className="box-label">Model :</span>
+                          <ScrollText className="back-input">
+                            {displayConversationValue(preview.model)}
+                          </ScrollText>
+                        </div>
+                        <div className="info-line">
+                          <span className="box-label">Effort :</span>
+                          <ScrollText className="back-input">
+                            {displayConversationValue(preview.reasoningEffort)}
+                          </ScrollText>
+                        </div>
+                        <div className="info-line">
+                          <span className="box-label">Token Used :</span>
+                          <ScrollText className="back-input">
+                            {formatTokenUsage(preview.uncachedTotalTokens)}
+                          </ScrollText>
+                        </div>
                       </div>
-                      <div className="bg-row row-rating"><span className="box-label">Seen</span><ScrollText className="back-input tone-input">{formatLastActivity(preview.lastActivityAt)}</ScrollText></div>
-                      <div className="bg-row row-review"><span className="box-label">Last MSG</span><ScrollText className="back-textarea">{formatLastMessage(preview.lastMessage)}</ScrollText></div>
+                      <div className="bg-row row-rating">
+                        <span className="box-label">Seen</span>
+                        <ScrollText className="back-input tone-input">
+                          {formatLastActivity(preview.lastActivityAt)}
+                        </ScrollText>
+                      </div>
+                      <div className="bg-row row-review">
+                        <span className="box-label">Last MSG</span>
+                        <ScrollText className="back-textarea">
+                          {formatLastMessage(preview.lastMessage)}
+                        </ScrollText>
+                      </div>
                       <div className="bg-row row-datetime">
-                        <div className="info-line"><span className="box-label">Mode :</span><ScrollText className="back-input">{displayConversationValue(preview.collaborationMode)}</ScrollText></div>
-                        <div className="info-line"><span className="box-label">Mem :</span><span className="back-input">NONE</span></div>
+                        <div className="info-line">
+                          <span className="box-label">Mode :</span>
+                          <ScrollText className="back-input">
+                            {displayConversationValue(
+                              preview.collaborationMode,
+                            )}
+                          </ScrollText>
+                        </div>
+                        <div className="info-line">
+                          <span className="box-label">Mem :</span>
+                          <span className="back-input">NONE</span>
+                        </div>
                       </div>
                       <div className="row-seat">
                         <button
@@ -699,13 +770,21 @@ export default function TicketDrawer({
                           type="button"
                           disabled={busy}
                           onClick={() => void pinPreview()}
-                        ><span className="box-label">Pin</span><span className="seat-val">置顶</span></button>
+                        >
+                          <span className="box-label">Pin</span>
+                          <span className="seat-val">置顶</span>
+                        </button>
                         <button
                           className="seat-col border-left"
                           type="button"
                           disabled={busy}
-                          onClick={() => void run(() => onFork(preview.conversationId))}
-                        ><span className="box-label">Branch</span><span className="seat-val">分支</span></button>
+                          onClick={() =>
+                            void run(() => onFork(preview.conversationId))
+                          }
+                        >
+                          <span className="box-label">Branch</span>
+                          <span className="seat-val">分支</span>
+                        </button>
                         <button
                           className="seat-col border-left"
                           type="button"
@@ -713,7 +792,10 @@ export default function TicketDrawer({
                             pendingSelectionId.current = preview.conversationId;
                             onOpenChange(false);
                           }}
-                        ><span className="box-label">Select</span><span className="seat-val">选择</span></button>
+                        >
+                          <span className="box-label">Select</span>
+                          <span className="seat-val">选择</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -725,4 +807,4 @@ export default function TicketDrawer({
       </div>
     </section>
   );
-}
+});

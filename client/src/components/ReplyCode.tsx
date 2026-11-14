@@ -1,8 +1,10 @@
-import { memo, useMemo, useState } from "react";
-import hljs from "highlight.js/lib/common";
-import { cleanHighlight, type ReplyCode as Code } from "../replyMarkup";
+import { lazy, memo, Suspense, useState } from "react";
+import type { ReplyCode as Code } from "../replyMarkup";
 import HtmlPreview from "./HtmlPreview";
 import { notify } from "./Notify";
+
+// 第一段代码出现时才下载高亮器，加载期间保留完整代码。
+const CodeHighlight = lazy(() => import("./CodeHighlight"));
 
 // 局域网 HTTP 没有 Clipboard API，使用浏览器复制命令。
 async function copyCode(text: string) {
@@ -26,15 +28,6 @@ export default memo(function ReplyCode({
   typing,
 }: Code & { typing: boolean }) {
   const [preview, setPreview] = useState<string | null>(null);
-  const highlighted = useMemo(
-    () =>
-      hljs.getLanguage(language)
-        ? cleanHighlight(
-            hljs.highlight(text, { language, ignoreIllegals: true }).value,
-          )
-        : null,
-    [text, language],
-  );
   return (
     <div className="reply-code">
       <div className="reply-code-head">
@@ -55,11 +48,9 @@ export default memo(function ReplyCode({
       </div>
       <pre>
         <code>
-          {highlighted === null ? (
-            text
-          ) : (
-            <span dangerouslySetInnerHTML={{ __html: highlighted }} />
-          )}
+          <Suspense fallback={text}>
+            <CodeHighlight text={text} language={language} />
+          </Suspense>
           {typing && <span className="cursor-blink" />}
         </code>
       </pre>
