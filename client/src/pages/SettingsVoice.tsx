@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useId, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
@@ -9,14 +9,12 @@ export default function VoicePage({
   index,
   total,
   current,
-  dragged,
   onAdd,
   onDelete,
 }: {
   index: number;
   total: number;
   current: boolean;
-  dragged: RefObject<boolean>;
   onAdd: () => void;
   onDelete: () => void;
 }) {
@@ -30,7 +28,7 @@ export default function VoicePage({
   const [playing, setPlaying] = useState(false);
   const playback = useRef(0);
   const toggle = (event: React.MouseEvent) => {
-    if ((event.target as Element).closest("input") || dragged.current) return;
+    if ((event.target as Element).closest("input")) return;
     event.stopPropagation();
     setPulled((value) => !value);
   };

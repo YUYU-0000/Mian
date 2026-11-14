@@ -209,7 +209,7 @@ try {
   await evaluate("document.querySelector('.api-sheet .js-save').click()");
   await waitFor(() => preset.model === "manual/deepseek-model", "Manual model was not saved");
   assert.equal(preset.format, "openai");
-  assert.equal(await evaluate("JSON.parse(sessionStorage.getItem('mian.api-drafts.v1')).length"), 1);
+  await waitFor(() => evaluate("JSON.parse(sessionStorage.getItem('mian.api-drafts.v1')).length === 1"), "Saving the preset did not clear its draft");
   await turnPaper("ArrowRight");
   await waitFor(() => evaluate(`document.querySelector('${currentPaper} .js-note')?.value === '未保存的新纸'`), "Remaining draft did not survive saving another paper");
   await evaluate(`document.querySelector('${currentPaper} .js-del').click()`);

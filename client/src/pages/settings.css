@@ -374,6 +374,25 @@
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
+/* 字体和语音使用连接中心同样的两层垫纸。 */
+.settings-page .has-paper-stack > .paper-layer-bot {
+  background: #e1ddd2;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.settings-page .has-paper-stack > .paper-layer-mid {
+  background: #ebe7de;
+}
+.settings-page .has-paper-stack > .paper-main {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.settings-page .has-paper-stack > .paper-main > .paper-holes {
+  display: none;
+}
+
 .settings-page .paper-holes {
   position: absolute;
   left: 14px;
@@ -462,31 +481,49 @@
   display: none;
 }
 
-/* 视口允许溢出，纸片由手势逻辑淡出。 */
-.settings-page .api-slider-viewport {
+/* 纸片叠放，独立阴影跟随共用纸堆的位移和淡出。 */
+.settings-page .settings-stack-viewport {
   position: absolute;
   inset: 0;
+  z-index: 3;
   overflow: visible;
   touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
-.settings-page .api-slider-track {
-  display: flex;
-  height: 100%;
-  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1);
-  column-gap: 16px;
-  transform-origin: center center;
+.settings-page .settings-stack-track {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+.settings-page .settings-stack-track > * {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, 0, 0) rotate(0deg);
+  transform-origin: 50% 85%;
+  will-change: transform, opacity;
+}
+.settings-page .settings-stack-track > :not(.stack-shadow) {
+  isolation: isolate;
+}
+.settings-page .settings-stack-track > .stack-shadow {
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+.settings-page .settings-stack-viewport input {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .settings-page .api-page {
-  flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  position: relative;
   background-color: var(--paper-layer-top);
   border-radius: 2px;
-  box-shadow:
-    -1px 3px 10px rgba(0, 0, 0, 0.05),
-    inset 0 0 40px rgba(160, 150, 130, 0.04);
+  box-shadow: inset 0 0 40px rgba(160, 150, 130, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.8);
   box-sizing: border-box;
   opacity: 0;
@@ -1078,32 +1115,15 @@
   z-index: 10;
   display: none;
 }
-.settings-page .vc-viewport {
-  position: absolute;
-  inset: 0;
-  touch-action: pan-y;
-}
-.settings-page .vc-track {
-  display: flex;
-  height: 100%;
-  column-gap: 16px;
-  transform-origin: center center;
-  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1);
-}
 .settings-page .vc-page {
-  position: relative;
-  flex: 0 0 100%;
   width: 100%;
   height: 100%;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease-in-out;
   background-color: var(--paper-layer-top);
   border-radius: 2px;
   box-sizing: border-box;
-  box-shadow:
-    -1px 3px 10px rgba(0, 0, 0, 0.05),
-    inset 0 0 40px rgba(160, 150, 130, 0.04);
+  box-shadow: inset 0 0 40px rgba(160, 150, 130, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
 .settings-page .vc-page.current {

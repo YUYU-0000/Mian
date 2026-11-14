@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
 import { removeSettingsMedia } from "../mediaStorage";
-import { useSettingsCarousel } from "../components/useSettingsCarousel";
+import { useSettingsPaperStack } from "../components/useSettingsPaperStack";
 import SettingsLayout from "./SettingsLayout";
 import FontPage from "./SettingsFont";
 import VoicePage from "./SettingsVoice";
@@ -16,8 +16,8 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   const [voicePages, setVoicePages] = useState([1]);
   const nextFont = useRef(2);
   const nextVoice = useRef(2);
-  const font = useSettingsCarousel(fontPages.length);
-  const voice = useSettingsCarousel(voicePages.length, true);
+  const font = useSettingsPaperStack(fontPages.length, active === 1);
+  const voice = useSettingsPaperStack(voicePages.length, active === 3);
   const [exporting, setExporting] = useState(false);
   const close = () => {
     storage.current!.classList.remove("lit");
@@ -83,8 +83,8 @@ export default function Settings({ onBack }: { onBack: () => void }) {
             .catch((error) => notify.fail("導入失敗", error));
       }}
       fontPages={
-        <div className="api-slider-viewport" ref={font.viewport} {...font.handlers}>
-          <div className="api-slider-track" ref={font.track}>
+        <div className="settings-stack-viewport">
+          <div className="settings-stack-track" ref={font.track}>
             {fontPages.map((id, index) => (
               <FontPage
                 key={id}
@@ -93,16 +93,15 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                 total={fontPages.length}
                 active={active === 1 && index === font.index}
                 onAdd={() => {
+                  font.showAdded();
                   setFontPages((pages) => [...pages, nextFont.current++]);
-                  font.setIndex(fontPages.length);
                 }}
                 onDelete={() => {
                   if (fontPages.length <= 1) return;
                   void removeSettingsMedia(`api_${id}`).catch((error) =>
                     notify.fail("保存失敗", error),
                   );
-                  setFontPages((pages) => pages.filter((page) => page !== id));
-                  if (index <= font.index) font.setIndex(Math.max(0, font.index - 1));
+                  font.remove(() => setFontPages((pages) => pages.filter((page) => page !== id)));
                 }}
               />
             ))}
@@ -110,23 +109,21 @@ export default function Settings({ onBack }: { onBack: () => void }) {
         </div>
       }
       voicePages={
-        <div className="vc-viewport" ref={voice.viewport} {...voice.handlers}>
-          <div className="vc-track" ref={voice.track}>
+        <div className="settings-stack-viewport">
+          <div className="settings-stack-track" ref={voice.track}>
             {voicePages.map((id, index) => (
               <VoicePage
                 key={id}
                 index={index}
                 total={voicePages.length}
                 current={index === voice.index}
-                dragged={voice.dragged}
                 onAdd={() => {
+                  voice.showAdded();
                   setVoicePages((pages) => [...pages, nextVoice.current++]);
-                  voice.setIndex(voicePages.length);
                 }}
                 onDelete={() => {
                   if (voicePages.length <= 1) return;
-                  setVoicePages((pages) => pages.filter((page) => page !== id));
-                  if (index <= voice.index) voice.setIndex(Math.max(0, voice.index - 1));
+                  voice.remove(() => setVoicePages((pages) => pages.filter((page) => page !== id)));
                 }}
               />
             ))}
