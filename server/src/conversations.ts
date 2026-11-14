@@ -167,7 +167,7 @@ export class ConversationRegistry {
     await this.persist();
   }
 
-  async createRoot(binding: ConversationThreadBinding) {
+  async createRoot(binding: Omit<ConversationThreadBinding, "threadId"> & { threadId: string | null }) {
     const rootNumber = Math.max(0, ...this.records.map((record) => record.rootNumber)) + 1;
     const number = String(rootNumber).padStart(2, "0");
     const timestamp = now();
@@ -197,7 +197,7 @@ export class ConversationRegistry {
 
   async createBranch(
     parentConversationId: string,
-    binding: ConversationThreadBinding,
+    binding: Omit<ConversationThreadBinding, "threadId"> & { threadId: string | null },
   ) {
     const parent = this.require(parentConversationId);
     parent.branchCounter += 1;

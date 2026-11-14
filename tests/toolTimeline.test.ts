@@ -91,6 +91,7 @@ test("a complete model bridge plays fully before TOOL CALLS becomes visible", ()
       assert.equal(isToolTimelineVisible(group, visual), false);
     now += 50;
   }
+  visual = tickVisualReply(visual, target, now).view;
   assert.equal(isToolTimelineVisible(group, visual), true);
   groups = applyReplyEvent(
     groups,

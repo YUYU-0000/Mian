@@ -14,6 +14,7 @@ type ConversationSessionsOptions = {
   ) => void;
   storage?: ChatSessionOptions["storage"];
   apiClient?: ChatSessionOptions["apiClient"];
+  onSendError?: ChatSessionOptions["onSendError"];
 };
 
 /** Owns every conversation-scoped client runtime. UI selection lives elsewhere. */
@@ -23,6 +24,7 @@ export class ConversationSessions {
   private readonly onActivity: ConversationSessionsOptions["onActivity"];
   private readonly storage?: ChatSessionOptions["storage"];
   private readonly apiClient?: ChatSessionOptions["apiClient"];
+  private readonly onSendError?: ChatSessionOptions["onSendError"];
   private authoritativeTurns: Readonly<Record<string, string>> = {};
   private hasAuthoritativeSession = false;
   private latestReset = true;
@@ -31,6 +33,7 @@ export class ConversationSessions {
     this.onActivity = options.onActivity;
     this.storage = options.storage;
     this.apiClient = options.apiClient;
+    this.onSendError = options.onSendError;
     for (const conversationId of options.initialConversationIds)
       this.register(conversationId);
   }
@@ -61,6 +64,7 @@ export class ConversationSessions {
         ...(this.storage ? { storage: this.storage } : {}),
         ...(this.apiClient ? { apiClient: this.apiClient } : {}),
         onActivity: (activity) => this.onActivity(conversationId, activity),
+        onSendError: this.onSendError,
       });
       this.stores.set(conversationId, store);
       if (this.hasAuthoritativeSession)

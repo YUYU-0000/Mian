@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { api } from "../api";
 import Media from "../components/Media";
 import { notify } from "../components/Notify";
+import { ScrollInput } from "../components/ScrollText";
 
 export default function FontPage({
   id,
@@ -45,7 +46,7 @@ export default function FontPage({
           <div className="polaroid-img-placeholder">
             <Media storageKey={`api_${id}`} active={active} />
           </div>
-          <input
+          <ScrollInput
             type="text"
             className="api-polaroid-input-main"
             placeholder="UNNAMED"
@@ -89,11 +90,11 @@ export default function FontPage({
       <div className="api-postcard-form">
         <div className="api-field-row">
           <div className="api-field-label">FACE</div>
-          <input type="text" className="api-field-input" placeholder="@font-face { … }" />
+          <ScrollInput type="text" className="api-field-input" placeholder="@font-face { }" />
         </div>
         <div className="api-field-row">
           <div className="api-field-label">VIEW</div>
-          <input type="text" className="api-field-input" placeholder="Still water." />
+          <ScrollInput type="text" className="api-field-input" placeholder="Still water." />
         </div>
         <div className="api-field-row">
           <div className="api-field-label">SIZE</div>

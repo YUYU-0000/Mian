@@ -25,9 +25,6 @@
   width: 100%;
   min-width: 0;
   line-height: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   opacity: 1;
   filter: blur(0);
 }

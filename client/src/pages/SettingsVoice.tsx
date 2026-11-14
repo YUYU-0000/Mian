@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
+import { ScrollInput } from "../components/ScrollText";
 
 const mask = (value: string) =>
   value.length > 4 ? "•".repeat(Math.min(12, value.length - 4)) + value.slice(-4) : value;
@@ -133,7 +134,7 @@ export default function VoicePage({
             strokeLinecap="round"
           />
         </svg>
-        <input className="vc-note-input" type="text" placeholder="備註" />
+        <ScrollInput className="vc-note-input" type="text" placeholder="備註" />
         <div className="vc-sleeve-line" />
         <div className="vc-sleeve-bar">
           <span className="vc-bar-icon" />
@@ -163,7 +164,7 @@ export default function VoicePage({
         <div className="vc-form">
           <div className="api-field-row">
             <div className="api-field-label">TOKEN</div>
-            <input
+            <ScrollInput
               type="text"
               className="api-field-input vc-key"
               placeholder="sk_4f2a9c71e8b05d3a6f91c8"
@@ -180,7 +181,7 @@ export default function VoicePage({
           </div>
           <div className="api-field-row">
             <div className="api-field-label">VOICE</div>
-            <input
+            <ScrollInput
               type="text"
               className="api-field-input vc-id"
               placeholder="9vQe2LkTm4RzWp8NcYdA"
@@ -191,7 +192,7 @@ export default function VoicePage({
           </div>
           <div className="api-field-row">
             <div className="api-field-label">MODEL</div>
-            <input
+            <ScrollInput
               type="text"
               className="api-field-input vc-model"
               placeholder="eleven_v4"
@@ -202,7 +203,7 @@ export default function VoicePage({
           </div>
           <div className="api-field-row">
             <div className="api-field-label">WORDS</div>
-            <input
+            <ScrollInput
               type="text"
               className="api-field-input vc-line"
               placeholder="陪你等天亮。"

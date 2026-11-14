@@ -1,11 +1,14 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
+import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
 import { readConfig, saveConfig } from "./config.js";
 import { connectionRoutes } from "./connections.js";
+import { ApiChat } from "./apiChat.js";
+import { readChannel, requirePreset } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
 import { requestConversationId } from "./requestConversation.js";
@@ -27,6 +30,7 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 const bridge = new CodexBridge();
 const conversations = await ConversationRegistry.load();
+let channel = await readChannel();
 bridge.restoreConversationThreads(conversations.list());
 const streamId = randomUUID();
 const eventBuffer: BufferedEvent[] = [];
@@ -36,7 +40,10 @@ let conversationWriteQueue: Promise<void> = Promise.resolve();
 const activityTimers = new Map<string, NodeJS.Timeout>();
 
 app.use(express.json({ limit: "4mb" }));
-app.use("/api", connectionRoutes(bridge));
+app.use("/api", connectionRoutes(bridge, async () => {
+  channel = await readChannel();
+  broadcast({ type: "channel", channel });
+}));
 
 const broadcast = (event: unknown) => {
   const conversationId =
@@ -93,11 +100,12 @@ wss.on("connection", (ws, request) => {
       seq: cursor,
       reset: !canReplay,
       threadId: bridge.getThreadId(defaultConversationId) ?? null,
-      activeTurnId: bridge.getActiveTurnId(defaultConversationId) ?? null,
+      activeTurnId: apiChat.getActiveTurns()[defaultConversationId] ?? bridge.getActiveTurnId(defaultConversationId) ?? null,
       defaultConversationId,
-      activeTurns: bridge.getActiveTurns(),
+      activeTurns: { ...bridge.getActiveTurns(), ...apiChat.getActiveTurns() },
       conversations: conversations.list(),
       connectionStatus: latestConnectionStatus(),
+      channel,
     }),
   );
   if (canReplay)
@@ -136,6 +144,22 @@ const scheduleConversationActivity = (conversationId: string) => {
     }, 250),
   );
 };
+
+const apiChat = new ApiChat(
+  (event) => {
+    broadcast(event);
+    if (event.type === "assistant-delta" || event.type === "turn-completed")
+      scheduleConversationActivity(event.conversationId);
+  },
+  async (conversationId, usage) => {
+    const current = conversations.require(conversationId);
+    const conversation = await conversations.updateRuntime(conversationId, {
+      totalTokens: (current.totalTokens ?? 0) + usage.totalTokens,
+      uncachedTotalTokens: (current.uncachedTotalTokens ?? 0) + usage.uncachedTotalTokens,
+    });
+    publishConversation(conversation);
+  },
+);
 
 bridge.on("event", (event: any) => {
   broadcast(event);
@@ -184,14 +208,20 @@ app.get("/api/config", async (_request, response) =>
 );
 app.put("/api/config", async (request, response) => {
   try {
-    response.json(await saveConfig(request.body));
+    const config = await saveConfig(request.body);
+    channel = await readChannel();
+    broadcast({ type: "channel", channel });
+    response.json(config);
   } catch (error) {
     response.status(400).json({ error: (error as Error).message });
   }
 });
 app.post("/api/connection/test", async (_request, response) => {
   try {
-    response.json(await bridge.connect(await readConfig()));
+    const config = await readConfig();
+    if (config.channel.kind === "api") {
+      response.json({ state: "ready", message: `目前通道：${channel.name}` });
+    } else response.json(await bridge.connect(config));
   } catch (error) {
     const status = { state: "error", message: (error as Error).message };
     broadcast({ type: "connection", status });
@@ -206,6 +236,15 @@ app.get("/api/conversations", (_request, response) =>
 );
 app.post("/api/conversations", async (_request, response) => {
   try {
+    const config = await readConfig();
+    if (config.channel.kind === "api") {
+      const preset = await requirePreset(config.channel.presetId);
+      const conversation = await conversations.createRoot({ threadId: null, metadata: { model: preset.model } });
+      bridge.restoreConversationThreads([conversation]);
+      publishConversation(conversation);
+      response.status(201).json({ conversation });
+      return;
+    }
     await bridge.connect(await readConfig());
     const binding = await bridge.createConversationThread();
     const conversation = await conversations.createRoot(binding);
@@ -223,6 +262,19 @@ app.post("/api/conversations", async (_request, response) => {
 app.post("/api/conversations/:id/fork", async (request, response) => {
   try {
     conversations.require(request.params.id);
+    const config = await readConfig();
+    if (config.channel.kind === "api") {
+      if (bridge.isConversationBusy(request.params.id) || apiChat.isBusy(request.params.id))
+        throw new Error("当前会话仍在运行或等待权限处理");
+      const preset = await requirePreset(config.channel.presetId);
+      const conversation = await conversations.createBranch(request.params.id, {
+        threadId: null, metadata: { model: preset.model, reasoningEffort: null, collaborationMode: null },
+      });
+      bridge.restoreConversationThreads([conversation]);
+      publishConversation(conversation);
+      response.status(201).json({ conversation });
+      return;
+    }
     await bridge.connect(await readConfig());
     const binding = await bridge.forkConversationThread(request.params.id);
     const conversation = await conversations.createBranch(
@@ -278,7 +330,7 @@ app.delete("/api/conversations/:id", async (request, response) => {
     if (conversations.list().length <= 1)
       throw new Error("最后一个会话不能归档");
     const conversation = conversations.require(conversationId);
-    if (bridge.isConversationBusy(conversationId))
+    if (bridge.isConversationBusy(conversationId) || apiChat.isBusy(conversationId))
       throw new Error("当前会话仍在运行或等待权限处理");
     if (conversation.threadId) await bridge.connect(await readConfig());
     await bridge.archiveConversationThread(conversationId);
@@ -301,6 +353,20 @@ app.post("/api/turn", async (request, response) => {
       conversations.defaultConversationId(),
     );
     conversations.require(conversationId);
+    const config = await readConfig();
+    if (bridge.isConversationBusy(conversationId) || apiChat.isBusy(conversationId))
+      throw new Error("当前会话已有正在运行的 turn");
+    if (config.channel.kind === "api") {
+      const preset = await requirePreset(config.channel.presetId);
+      const conversation = await conversations.updateRuntime(conversationId, {
+        model: preset.model, reasoningEffort: null, collaborationMode: null,
+      });
+      publishConversation(conversation);
+      const messages = request.body.messages ?? [{ role: "user", content: request.body.text.trim() }];
+      response.json(apiChat.startTurn(conversationId, preset, messages, request.body.localTime));
+      return;
+    }
+    await bridge.connect(config);
     const result = await bridge.startTurn(
       request.body.text.trim(),
       conversationId,
@@ -328,7 +394,8 @@ app.post("/api/turn/:id/interrupt", async (request, response) => {
       conversations.defaultConversationId(),
     );
     conversations.require(conversationId);
-    await bridge.interrupt(request.params.id, conversationId);
+    if (apiChat.isBusy(conversationId)) apiChat.interrupt(request.params.id, conversationId);
+    else await bridge.interrupt(request.params.id, conversationId);
     response.json({ ok: true });
   } catch (error) {
     response.status(409).json({ error: (error as Error).message });
@@ -359,10 +426,17 @@ app.get("*splat", (_request, response) =>
   response.sendFile(path.join(clientDist, "index.html")),
 );
 
-server.listen(8787, "127.0.0.1", () =>
-  console.log("Mian backend: http://127.0.0.1:8787"),
-);
+const lan = process.argv.includes("--lan");
+const port = lan ? 5173 : 8787;
+server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
+  console.log(`Mian: http://127.0.0.1:${port}`);
+  if (lan)
+    for (const address of Object.values(networkInterfaces()).flat())
+      if (address?.family === "IPv4" && !address.internal)
+        console.log(`Mian LAN: http://${address.address}:${port}`);
+});
 const shutdown = () => {
+  apiChat.close();
   bridge.close();
   server.close();
 };

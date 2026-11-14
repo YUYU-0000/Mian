@@ -1,3 +1,5 @@
+import { isScrollingText } from "./ScrollText";
+
 // 纸堆手势、独立阴影和翻页动画。
 export type PaperStack = {
   index: number;
@@ -187,7 +189,7 @@ export function makeStack(
     (e) => {
       if (!e.isPrimary || e.button > 0) return;
       stack.dragged = false;
-      if ((e.target as Element).closest("input")) return;
+      if ((e.target as Element).closest("input") || isScrollingText(e.target)) return;
       finish();
       rest();
       startY = e.clientY;

@@ -5,6 +5,8 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  lazy,
+  Suspense,
   type SyntheticEvent,
   type ReactNode,
 } from "react";
@@ -33,7 +35,13 @@ import type {
 } from "../conversationTransition";
 import ArchiveRibbonTitle from "../components/ArchiveRibbonTitle";
 import TicketDrawer from "../components/TicketDrawer";
+import ToolOutput from "../components/ToolOutput";
 import type { ConversationRecord } from "../types";
+
+const MarkdownContent = lazy(() => import("../components/ReplyMarkdown"));
+function ReplyMarkdown(props: { text: string; typing: boolean }) {
+  return <Suspense fallback={null}><MarkdownContent {...props} /></Suspense>;
+}
 
 const Hourglass = () => (
   <svg className="status-icon hourglass" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -215,11 +223,10 @@ export function ToolRow({
           {visibleToolSummary(tool)}
         </span>
       </div>
-      {result && (
+      {(result || tool.command) && (
         <div className="step-body-wrap">
           <div className="archive-step-body step-body">
-            {displayedResult}
-            {streamingResult && <span className="cursor-blink" />}
+            <ToolOutput command={tool.command} result={displayedResult} streaming={streamingResult} />
           </div>
         </div>
       )}
@@ -669,6 +676,10 @@ export default function Chat({
               message,
               visual ?? emptyVisualReply(),
             );
+          const displayedTools = message.role === "assistant"
+            ? message.tools.filter(tool => visual!.visibleToolIds.includes(tool.id))
+              .map(tool => visual!.toolStates[tool.id] ?? tool)
+            : [];
           return (
           <article
             key={
@@ -707,7 +718,7 @@ export default function Chat({
                       </div>
                     </div>
                     <div className="archive-msg-content archive-reply-head-content">
-                      <ArchiveModule
+                      {(!message.format || message.thinking) && <ArchiveModule
                         title="THINKING"
                         running={shouldShowThinkingHourglass(
                           message,
@@ -721,7 +732,7 @@ export default function Chat({
                             kind: "thinking",
                           }) && <span className="cursor-blink" />}
                         </div>
-                      </ArchiveModule>
+                      </ArchiveModule>}
                     </div>
                   </div>
                   <div className="archive-msg-content archive-reply-body">
@@ -733,11 +744,10 @@ export default function Chat({
                         className={`archive-bubble ${historicalAnimationIds.current.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`}
                         data-timeline-kind="ASSISTANT_BUBBLE"
                       >
-                        {visual?.preToolBubbles[index] ?? ""}
-                        {cursorMatches(visual?.cursor ?? null, {
-                          kind: "preToolBubble",
-                          index,
-                        }) && <span className="cursor-blink" />}
+                        <ReplyMarkdown
+                          text={visual?.preToolBubbles[index] ?? ""}
+                          typing={cursorMatches(visual?.cursor ?? null, { kind: "preToolBubble", index })}
+                        />
                       </div>
                     ))}
                   {message.tools.length > 0 && preToolReady && (
@@ -745,12 +755,12 @@ export default function Chat({
                       className="tool-calls-module"
                       timelineKind="TOOL_CALLS"
                       title="TOOL CALLS"
-                      running={message.tools.some(
+                      running={displayedTools.some(
                         (tool) => tool.state === "running",
                       )}
                     >
                       <div className="archive-tool-path tool-path-block">
-                            {message.tools.map((tool) => (
+                            {displayedTools.map((tool) => (
                               <ToolRow
                                 key={tool.id}
                                 tool={tool}
@@ -787,11 +797,10 @@ export default function Chat({
                       className={`archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.current.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`}
                       data-timeline-kind="ASSISTANT_BUBBLE"
                     >
-                      {visual?.bubbles[index] ?? ""}
-                      {cursorMatches(visual?.cursor ?? null, {
-                        kind: "bubble",
-                        index,
-                      }) && <span className="cursor-blink" />}
+                      <ReplyMarkdown
+                        text={visual?.bubbles[index] ?? ""}
+                        typing={cursorMatches(visual?.cursor ?? null, { kind: "bubble", index })}
+                      />
                     </div>
                   ))}
                   {message.approvals.map((approval) => (
@@ -853,7 +862,7 @@ export default function Chat({
               void act();
             }
           }}
-          placeholder="留存新的记录..."
+          placeholder="留存新的记录"
         />
         <button type="button" disabled aria-label="语音稍后开放">
           <svg viewBox="0 0 24 24">

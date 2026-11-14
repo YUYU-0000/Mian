@@ -2,21 +2,12 @@ import { pad2 } from "../format";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import type { ApiPreset } from "../connectionTypes";
-import { createId } from "../id";
+import type { Draft } from "../apiDrafts";
 import AnimatedText from "../components/AnimatedText";
+import ScrollText, { ScrollInput } from "../components/ScrollText";
 import { notify } from "../components/Notify";
 import type { TagConfig } from "./ConnectionLayout";
 
-export type Draft = ApiPreset & { paperKey: string; plus?: boolean };
-export const blankDraft = (): Draft => ({
-  id: "",
-  note: "",
-  endpoint: "",
-  key: "",
-  model: "",
-  paperKey: createId(),
-  plus: true,
-});
 function apiAccent(i: number, count: number) {
   const t = count === 1 ? 0 : i / (count - 1);
   return `rgb(${Math.round(81 + 83 * t)}, ${Math.round(101 + 83 * t)}, ${Math.round(117 + 81 * t)})`;
@@ -30,6 +21,7 @@ export default function ApiSheet({
   onAdd,
   onSave,
   onUse,
+  onDeleteStart,
   onDelete,
   onTag,
 }: {
@@ -41,6 +33,7 @@ export default function ApiSheet({
   onAdd: () => void;
   onSave: (preset: ApiPreset) => void;
   onUse: () => void;
+  onDeleteStart: () => void;
   onDelete: () => void;
   onTag: (tag: TagConfig) => void;
 }) {
@@ -49,6 +42,7 @@ export default function ApiSheet({
   const [armed, setArmed] = useState(false);
   const [testing, setTesting] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [manualModel, setManualModel] = useState(false);
   const timer = useRef(0);
   const wasPlus = useRef(draft.plus);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -67,20 +61,25 @@ export default function ApiSheet({
     id: draft.id,
     note: draft.note.trim(),
     endpoint: draft.endpoint.trim(),
-    key: draft.key.trim(),
+    key: draft.key?.trim() ?? "",
     model: draft.model,
+    format: draft.format,
   });
   const isOn = !!draft.id && activeId === draft.id;
-  const status = testing ? "TESTING…" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
+  const status = testing ? "TESTING" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
   const model = async () => {
     const cfg = form();
-    if (!cfg.endpoint || !cfg.key) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey)) {
       notify.note("先填網址金鑰");
       return;
     }
     setLoadingModels(true);
     try {
       const list = await api.apiModels(cfg);
+      if (!list.length) {
+        setManualModel(true);
+        return;
+      }
       onTag({
         giant: "MODEL",
         kicker: "SELECT",
@@ -89,6 +88,7 @@ export default function ApiSheet({
         onPick: (value) => onChange({ model: value }),
       });
     } catch (error) {
+      setManualModel(true);
       notify.fail("模型讀取失敗", error);
     } finally {
       setLoadingModels(false);
@@ -101,7 +101,7 @@ export default function ApiSheet({
       ref.current!.querySelector<HTMLInputElement>(".js-note")!.focus();
       return;
     }
-    if (!cfg.endpoint || !cfg.key || !cfg.model) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey) || !cfg.model) {
       notify.note("三項都要填");
       return;
     }
@@ -114,7 +114,7 @@ export default function ApiSheet({
   };
   const test = async () => {
     const cfg = form();
-    if (!cfg.endpoint || !cfg.key || !cfg.model) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey) || !cfg.model) {
       notify.note("三項都要填");
       return;
     }
@@ -136,6 +136,7 @@ export default function ApiSheet({
     }
     try {
       if (draft.id) await api.deleteApiPreset(draft.id);
+      onDeleteStart();
       const sheet = ref.current!;
       sheet.inert = true;
       const fromTransform = sheet.style.transform;
@@ -198,7 +199,7 @@ export default function ApiSheet({
           <span className="api-total">/ {pad2(total)}</span>
         </div>
         <label className="api-note-label">NOTE 備註</label>
-        <input
+        <ScrollInput
           className="api-note js-note"
           type="text"
           maxLength={16}
@@ -223,7 +224,7 @@ export default function ApiSheet({
             <b>01</b>ENDPOINT
           </span>
           <span className="api-row">
-            <input
+            <ScrollInput
               className="api-input js-endpoint"
               type="url"
               inputMode="url"
@@ -240,16 +241,16 @@ export default function ApiSheet({
             <b>02</b>KEY
           </span>
           <span className="api-row">
-            <input
+            <ScrollInput
               className="api-input js-key"
               type={showKey ? "text" : "password"}
               autoComplete="off"
               spellCheck={false}
-              placeholder="sk-"
-              value={draft.key}
+              placeholder={draft.hasKey ? draft.keyHint : "sk-"}
+              value={draft.key ?? ""}
               onChange={(e) => onChange({ key: e.target.value })}
             />
-            <button
+            {draft.key && <button
               className="api-mini js-toggle"
               type="button"
               onClick={(e) => {
@@ -258,7 +259,7 @@ export default function ApiSheet({
               }}
             >
               {showKey ? "HIDE" : "SHOW"}
-            </button>
+            </button>}
           </span>
         </label>
         <div className="api-field">
@@ -266,15 +267,26 @@ export default function ApiSheet({
             <b>03</b>MODEL
           </span>
           <span className="api-row">
-            <button
+            {manualModel ? <ScrollInput
+              className="api-input js-model"
+              type="text"
+              aria-label="MODEL 模型名稱"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+              placeholder="輸入模型名稱"
+              value={draft.model}
+              onChange={event => onChange({ model: event.target.value })}
+              onBlur={() => onChange({ model: draft.model.trim() })}
+            /> : <button
               className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
               type="button"
               onClick={() => void model()}
             >
-              <AnimatedText
-                text={loadingModels ? "讀取中…" : draft.model || "點擊讀取"}
-              />
-            </button>
+              <ScrollText><AnimatedText
+                text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
+              /></ScrollText>
+            </button>}
           </span>
         </div>
       </div>

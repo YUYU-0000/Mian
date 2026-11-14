@@ -4,6 +4,7 @@ import {
   applyReplyEvent,
   appendUserRecord,
   buildPublicReplyPrompt,
+  chatHistory,
   closePendingGroup,
   finalizeReplyGroup,
   loadChatGroups,
@@ -14,7 +15,8 @@ import {
   type ChatGroup,
 } from "./chatModel";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
-import type { ChatEvent, ConversationActivity } from "./types";
+import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
+import type { ChatEvent, ChatMessage, ConversationActivity } from "./types";
 import {
   emptyVisualReply,
   hydrateVisualReply,
@@ -28,7 +30,7 @@ const LEGACY_DEFAULT_CONVERSATION_ID = "c1";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type SessionApi = {
-  send: (text: string, conversationId: string) => Promise<{ turnId: string }>;
+  send: (text: string, conversationId: string, messages?: ChatMessage[]) => Promise<{ turnId: string }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
     requestId: string,
@@ -56,6 +58,7 @@ export type ChatSessionOptions = {
   nowMs?: () => number;
   nowIso?: () => string;
   onActivity?: (activity: ConversationActivity) => void;
+  onSendError?: (error: unknown) => void;
   schedule?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
   cancelSchedule?: (timer: ReturnType<typeof setTimeout>) => void;
 };
@@ -70,10 +73,7 @@ export function lastVisibleMessageSummary(messages: ChatGroup[]) {
     for (let item = candidates.length - 1; item >= 0; item -= 1) {
       const value = candidates[item].replace(/\s+/g, " ").trim();
       if (!value) continue;
-      const characters = Array.from(value);
-      return characters.length > 80
-        ? `${characters.slice(0, 79).join("")}…`
-        : value;
+      return value;
     }
   }
   return null;
@@ -159,6 +159,7 @@ export function visualTarget(
       ? message.tools.map((tool) => ({
           id: tool.id,
           text: tool.state === "running" ? "" : readableToolResult(tool),
+          tool,
         }))
       : [],
     bubbles: toolTimelineReady ? message.bubbles : [],
@@ -178,11 +179,7 @@ export function isToolTimelineVisible(
 ) {
   return (
     message.tools.length > 0 &&
-    hasCompletedPreToolBubble(message) &&
-    visual.visiblePreToolBubbleCount >= message.preToolBubbles.length &&
-    message.preToolBubbles.every(
-      (bubble, index) => visual.preToolBubbles[index] === bubble,
-    )
+    visual.visibleToolIds.length > 0
   );
 }
 
@@ -194,6 +191,7 @@ export class ChatSessionStore {
   private readonly nowMs: () => number;
   private readonly nowIso: () => string;
   private readonly onActivity?: ChatSessionOptions["onActivity"];
+  private readonly onSendError?: ChatSessionOptions["onSendError"];
   private readonly schedule: ChatSessionOptions["schedule"];
   private readonly cancelSchedule: ChatSessionOptions["cancelSchedule"];
   private readonly listeners = new Set<() => void>();
@@ -203,6 +201,7 @@ export class ChatSessionStore {
   private playbackTimer: ReturnType<typeof setTimeout> | null = null;
   private messages: ChatGroup[];
   private visualReplies: Record<string, VisualReply>;
+  private playbackQueues = new Map<string, ReplyPlaybackQueue>();
   private activeTurnId: string | null;
   private turnPhase: TurnPhase;
   private remoteTurnSynchronized: boolean;
@@ -222,6 +221,7 @@ export class ChatSessionStore {
     this.nowMs = options.nowMs ?? (() => performance.now());
     this.nowIso = options.nowIso ?? (() => new Date().toISOString());
     this.onActivity = options.onActivity;
+    this.onSendError = options.onSendError;
     this.schedule = options.schedule ?? ((callback, delay) => setTimeout(callback, delay));
     this.cancelSchedule =
       options.cancelSchedule ?? ((timer) => clearTimeout(timer));
@@ -343,14 +343,20 @@ export class ChatSessionStore {
       const result = await this.apiClient.send(
         buildPublicReplyPrompt(userText),
         this.conversationId,
+        chatHistory(this.messages.slice(0, this.messages.indexOf(group) + 1)),
       );
-      this.activeTurnId = result.turnId;
-      this.turnPhase = "running";
+      const reply = this.messages.find(message => message.role === "assistant" && message.replyGroupId === result.turnId);
+      // 快速返回的 API 可能先收到结束事件，再收到 HTTP 响应。
+      if (reply?.role !== "assistant" || !reply.status) {
+        this.activeTurnId = result.turnId;
+        this.turnPhase = "running";
+      }
       this.messages = closePendingGroup(this.messages, group.groupId);
       this.commit(true, true);
       this.schedulePlayback();
     } catch (error) {
       console.error(error);
+      this.onSendError?.(error);
     } finally {
       this.startingTurn = false;
       if (!this.activeTurnId) {
@@ -464,8 +470,13 @@ export class ChatSessionStore {
     if ("turnId" in event) {
       this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
       messagesChanged = true;
+      const message = this.messages.find(group => group.role === "assistant" && group.replyGroupId === event.turnId) as Extract<ChatGroup, { role: "assistant" }>;
+      const queue = this.playbackQueues.get(event.turnId) ?? new ReplyPlaybackQueue();
+      queue.enqueue(event.type === "tool" ? `tool:${event.tool.id}` : event.type, visualTarget(message), this.nowMs());
+      this.playbackQueues.set(event.turnId, queue);
     }
     if (event.type === "turn-completed") {
+      if (event.error) this.onSendError?.(new Error(event.error));
       if (this.activeTurnId === event.turnId) this.turnPhase = "playing";
       const status = event.status.toLowerCase();
       if (status !== "completed" && status !== "success") {
@@ -495,6 +506,10 @@ export class ChatSessionStore {
       }
     }
     this.commit(messagesChanged, sessionChanged);
+    if (event.type === "assistant-delta" && event.immediate) {
+      this.flushTurn(event.turnId);
+      this.commit(false, false);
+    }
     if (event.type === "assistant-delta" || event.type === "turn-completed") {
       const lastMessage = lastVisibleMessageSummary(this.messages);
       this.onActivity?.({
@@ -533,7 +548,7 @@ export class ChatSessionStore {
     if (!message) return;
     const target = visualTarget(message);
     const current = this.visualReplies[turnId] ?? emptyVisualReply();
-    const tick = tickVisualReply(current, target, this.nowMs());
+    const tick = this.playbackQueues.get(turnId)?.tick(current, this.nowMs()) ?? tickVisualReply(current, target, this.nowMs());
     if (tick.changed) {
       this.visualReplies = {
         ...this.visualReplies,
@@ -542,6 +557,7 @@ export class ChatSessionStore {
       this.commit(false, false);
     }
     if (tick.settled) {
+      this.playbackQueues.delete(turnId);
       if (this.activeTurnId === turnId) {
         this.activeTurnId = null;
         this.turnPhase = "idle";
@@ -553,6 +569,7 @@ export class ChatSessionStore {
   }
 
   private flushTurn(turnId: string) {
+    this.playbackQueues.delete(turnId);
     const message = this.messages.find(
       (
         group,

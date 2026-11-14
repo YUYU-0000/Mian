@@ -1,4 +1,6 @@
 import type { RefObject, ReactNode } from "react";
+import WorkspaceEditor from "./WorkspaceEditor";
+import ScrollText from "../components/ScrollText";
 export type TagConfig = {
   giant: string;
   giantY?: number;
@@ -8,6 +10,7 @@ export type TagConfig = {
   titleAction?: () => void;
   items: { label: string; value?: string; selected?: boolean; static?: boolean }[];
   onPick?: (value: string) => void;
+  workspace?: { value: string; onSave: (directory: string) => Promise<void> };
 };
 type Props = {
   rootRef: RefObject<HTMLElement | null>;
@@ -294,6 +297,7 @@ export default function ConnectionLayout({
               {tag?.kicker || "SELECT"}
             </div>
             <div className="tag-list" id="tagList" onScroll={onTagScroll}>
+              {tag?.workspace && <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />}
               {tag?.items.map((item, index) => (
                 <button
                   key={index}
@@ -306,7 +310,7 @@ export default function ConnectionLayout({
                     }
                   }}
                 >
-                  {item.label}
+                  <ScrollText>{item.label}</ScrollText>
                 </button>
               ))}
             </div>

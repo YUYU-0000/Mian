@@ -1,4 +1,6 @@
+import { localDateTime } from "./format";
 import type {
+  ChatMessage,
   ChatEvent,
   Config,
   ConnectionStatus,
@@ -152,8 +154,10 @@ export const api = {
             : ["kimi-k3", "kimi-k3-turbo"],
         ), // 待接后端
   saveSubConfig: async (provider: Provider, cfg: { model: string }) => {
-    if (provider === "codex")
-      return api.saveConfig({ ...(await api.getConfig()), model: cfg.model });
+    if (provider === "codex") {
+      await api.saveConfig({ ...(await api.getConfig()), model: cfg.model });
+      return api.useCodex();
+    }
     // 待接后端：Gemini / Kimi
     await delay(300);
     demoSubscriptions[provider].model = cfg.model;
@@ -175,6 +179,7 @@ export const api = {
     request<void>(`/api/api-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
   useApiPreset: (id: string) =>
     request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
+  useCodex: () => request<void>("/api/subscriptions/codex/use", { method: "POST" }),
   apiModels: (cfg: ApiPreset) =>
     request<string[]>("/api/api-models", { method: "POST", body: JSON.stringify(cfg) }),
   apiTest: (cfg: ApiPreset) =>
@@ -223,10 +228,10 @@ export const api = {
     request<void>(`/api/conversations/${encodeURIComponent(conversationId)}`, {
       method: "DELETE",
     }),
-  send: async (text: string, conversationId: string) => {
+  send: async (text: string, conversationId: string, messages?: ChatMessage[]) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
-      body: JSON.stringify({ text, conversationId }),
+      body: JSON.stringify({ text, conversationId, messages, localTime: localDateTime() }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)
       throw new Error("服务未返回有效的 turnId");

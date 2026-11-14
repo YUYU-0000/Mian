@@ -2,6 +2,7 @@ import { ChatGlyph, House, DockHouse, DockSliders } from "../components/HomeIcon
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import type { ConnectionStatus } from "../types";
+import ScrollText from "../components/ScrollText";
 const Icon = ({
   className = "",
   onClick,
@@ -17,11 +18,13 @@ const Icon = ({
 );
 export default function Home({
   status,
+  channelName,
   onChat,
   onConnections,
   onSettings,
 }: {
   status: ConnectionStatus;
+  channelName: string;
   onChat: () => void;
   onConnections: () => void;
   onSettings: () => void;
@@ -149,7 +152,7 @@ export default function Home({
       <div className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}>
         <div className={`home-code-status status-content ${connectionClass}`}>
           <House />
-          <span className="capsule-text">CODEX</span>
+          <ScrollText className="capsule-text">{channelName}</ScrollText>
         </div>
         <div className="home-dots">
           <i />

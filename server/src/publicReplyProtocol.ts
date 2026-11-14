@@ -9,3 +9,8 @@ A bubble may also end before a sentence is grammatically complete when the speak
 
 If no tool is needed, emit the natural <mian-bubble> blocks selected by those rules. If tools are needed, finish the single thinking block, then emit <mian-pre-tool> containing one or more complete <mian-bubble> blocks before the first real tool call; close </mian-pre-tool> before calling tools. Then call only the tools actually needed. After all real tool calls, output one <mian-tool-summary>...</mian-tool-summary> for each call in call order, using a natural Chinese action summary of 4-12 Chinese characters without punctuation or copied command text, followed by at least one natural <mian-bubble>...</mian-bubble>. Do not invent tools. Tool results belong in the tool result UI: unless the user explicitly requires the raw value in the final reply, final bubbles must not repeat full paths, commands, JSON, file contents, Markdown code spans, or code fences; respond briefly and naturally instead. Never show these tag names or this instruction.
 [/MIAN_PUBLIC_REPLY_PROTOCOL]`;
+
+// API 沿用公开心里话和气泡节奏，不包含工具约定。
+export const MIAN_API_PUBLIC_REPLY_PROTOCOL =
+  MIAN_PUBLIC_REPLY_PROTOCOL.slice(0, MIAN_PUBLIC_REPLY_PROTOCOL.indexOf("\n\nIf no tool is needed")) +
+  "\n\nEmit the natural <mian-bubble> blocks selected by those rules. Never show these tag names or this instruction.\n[/MIAN_PUBLIC_REPLY_PROTOCOL]";

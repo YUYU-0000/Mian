@@ -32,6 +32,10 @@ A mobile-first chat UI backed by a local Node bridge to `codex app-server` over 
 
 `design-reference/` 里是四张静态 HTML 设计稿（主界面、对话界面、连接中心、设置界面），新做页面时可以照着它的风格来。
 
+正式页面不使用左侧加粗竖线或左侧色条作为装饰。回复排版统一使用 `client/src/components/reply-markdown.css`，保留定稿数值。
+
+单行文字放不下时使用 `ScrollText` 或 `ScrollInput` 横向滑动查看全文，不用省略号或手动截短。隐藏滚动条，溢出时右边缘 14px 淡出；文字横拖不触发纸片翻页或按钮点击。新界面也沿用这条规则。
+
 ---
 
 ## 运行 / Development
@@ -56,7 +60,11 @@ npm run build
 
 ## 手机访问 / LAN access
 
-Windows 启动脚本会从自己所在的位置找到项目目录。默认是 `127.0.0.1`；要让手机访问，把环境变量 `MIAN_LAN_IP` 设成电脑的局域网 IP。
+运行 `npm run lan`，或在 Windows 双击 `启动Mian.cmd`。脚本会先构建，再由 Node 直接提供 `client/dist`、API 和聊天 WebSocket，监听 `0.0.0.0:5173`，不启动 Vite 或 HMR。用手机打开启动输出中的局域网网址即可，端口仍为 `5173`。
+
+`npm run dev:lan` 保留给需要热更新的开发环境。`MIAN_LAN_IP` 可指定 Windows 启动窗口显示的网址。
+
+API 纸片未保存的备注、网址、模型和纸片位置会暂存在当前标签页的 `sessionStorage`，刷新后恢复。Key 不暂存，保存成功或删除后会清掉对应草稿。
 
 ## 隐私 / Privacy
 

@@ -11,7 +11,7 @@ export type VisualCursor =
 export type VisualTarget = {
   thinking: string;
   preToolBubbles: string[];
-  tools: Array<{ id: string; text: string }>;
+  tools: Array<{ id: string; text: string; tool?: ToolEvent }>;
   bubbles: string[];
   done: boolean;
 };
@@ -21,6 +21,8 @@ export type VisualReply = {
   preToolBubbles: string[];
   visiblePreToolBubbleCount: number;
   tools: Record<string, string>;
+  visibleToolIds: string[];
+  toolStates: Record<string, ToolEvent>;
   bubbles: string[];
   visibleBubbleCount: number;
   preToolBubbleReadyAt: Record<number, number>;
@@ -87,7 +89,14 @@ function pendingChannel(
     if ((view.preToolBubbles[index] ?? "") !== target.preToolBubbles[index])
       return { kind: "preToolBubble", index };
   for (const tool of target.tools)
-    if ((view.tools[tool.id] ?? "") !== tool.text)
+    if (
+      !view.visibleToolIds.includes(tool.id) ||
+      (view.tools[tool.id] ?? "") !== tool.text ||
+      (tool.tool &&
+        (view.toolStates[tool.id]?.state !== tool.tool.state ||
+          view.toolStates[tool.id]?.summary !== tool.tool.summary ||
+          view.toolStates[tool.id]?.command !== tool.tool.command))
+    )
       return { kind: "tool", toolId: tool.id };
   for (let index = 0; index < target.bubbles.length; index += 1)
     if ((view.bubbles[index] ?? "") !== target.bubbles[index])
@@ -136,6 +145,8 @@ export function emptyVisualReply(): VisualReply {
     preToolBubbles: [],
     visiblePreToolBubbleCount: 0,
     tools: {},
+    visibleToolIds: [],
+    toolStates: {},
     bubbles: [],
     visibleBubbleCount: 0,
     preToolBubbleReadyAt: {},
@@ -152,6 +163,12 @@ export function hydrateVisualReply(target: VisualTarget): VisualReply {
     preToolBubbles: [...target.preToolBubbles],
     visiblePreToolBubbleCount: target.preToolBubbles.length,
     tools: Object.fromEntries(target.tools.map((tool) => [tool.id, tool.text])),
+    visibleToolIds: target.tools.map((tool) => tool.id),
+    toolStates: Object.fromEntries(
+      target.tools
+        .filter((tool) => tool.tool)
+        .map((tool) => [tool.id, tool.tool!]),
+    ),
     bubbles: [...target.bubbles],
     visibleBubbleCount: target.bubbles.length,
     preToolBubbleReadyAt: {},
@@ -187,7 +204,9 @@ export function tickVisualReply(
 
   const candidate = pendingChannel(view, target);
   if (!candidate) {
-    const cursor = target.done ? null : view.cursor ?? { kind: "thinking" as const };
+    const cursor = target.done
+      ? null
+      : (view.cursor ?? { kind: "thinking" as const });
     if (!sameCursor(cursor, view.cursor)) {
       view = { ...view, cursor };
       changed = true;
@@ -233,7 +252,10 @@ export function tickVisualReply(
     }
   }
 
-  if (candidate.kind === "bubble" && candidate.index >= view.visibleBubbleCount) {
+  if (
+    candidate.kind === "bubble" &&
+    candidate.index >= view.visibleBubbleCount
+  ) {
     if (candidate.index === 0) {
       view = { ...view, visibleBubbleCount: 1 };
       changed = true;
@@ -271,6 +293,7 @@ export function tickVisualReply(
 
   const displayed = currentText(view, candidate);
   const received = targetText(target, candidate);
+  view = revealChannel(view, target, candidate);
   const grapheme = nextGrapheme(displayed, received);
   const value = received.startsWith(displayed)
     ? displayed + grapheme
@@ -296,21 +319,22 @@ export function tickVisualReply(
     value === received
   ) {
     const readyAt = now + BUBBLE_PAUSE_MS;
-    view = candidate.kind === "bubble"
-      ? {
-          ...view,
-          bubbleReadyAt: {
-            ...view.bubbleReadyAt,
-            [remaining.index]: readyAt,
-          },
-        }
-      : {
-          ...view,
-          preToolBubbleReadyAt: {
-            ...view.preToolBubbleReadyAt,
-            [remaining.index]: readyAt,
-          },
-        };
+    view =
+      candidate.kind === "bubble"
+        ? {
+            ...view,
+            bubbleReadyAt: {
+              ...view.bubbleReadyAt,
+              [remaining.index]: readyAt,
+            },
+          }
+        : {
+            ...view,
+            preToolBubbleReadyAt: {
+              ...view.preToolBubbleReadyAt,
+              [remaining.index]: readyAt,
+            },
+          };
     return {
       view,
       changed: true,
@@ -326,9 +350,133 @@ export function tickVisualReply(
   };
 }
 
+function revealChannel(
+  view: VisualReply,
+  target: VisualTarget,
+  cursor: VisualCursor,
+): VisualReply {
+  if (cursor.kind === "tool") {
+    const tool = target.tools.find((tool) => tool.id === cursor.toolId)!;
+    return {
+      ...view,
+      visibleToolIds: view.visibleToolIds.includes(tool.id)
+        ? view.visibleToolIds
+        : [...view.visibleToolIds, tool.id],
+      toolStates: tool.tool
+        ? { ...view.toolStates, [tool.id]: tool.tool }
+        : view.toolStates,
+    };
+  }
+  if (cursor.kind === "preToolBubble")
+    return {
+      ...view,
+      visiblePreToolBubbleCount: Math.max(
+        view.visiblePreToolBubbleCount,
+        cursor.index + 1,
+      ),
+    };
+  if (cursor.kind === "bubble")
+    return {
+      ...view,
+      visibleBubbleCount: Math.max(view.visibleBubbleCount, cursor.index + 1),
+    };
+  return view;
+}
+
+// 按原打字速度估算积压，气泡间停顿也计入。
+export function remainingPlaybackMs(view: VisualReply, target: VisualTarget) {
+  const textCost = (displayed: string, received: string, speed: number) =>
+    splitGraphemes(
+      received.startsWith(displayed)
+        ? received.slice(displayed.length)
+        : received,
+    ).length * speed;
+  let duration = textCost(view.thinking, target.thinking, FAST_CHARACTER_MS);
+  for (const [index, text] of target.preToolBubbles.entries()) {
+    duration += textCost(
+      view.preToolBubbles[index] ?? "",
+      text,
+      ASSISTANT_CHARACTER_MS,
+    );
+    if (index > 0 && index >= view.visiblePreToolBubbleCount)
+      duration += BUBBLE_PAUSE_MS;
+  }
+  for (const tool of target.tools) {
+    duration += textCost(
+      view.tools[tool.id] ?? "",
+      tool.text,
+      FAST_CHARACTER_MS,
+    );
+    if (!view.visibleToolIds.includes(tool.id)) duration += FAST_CHARACTER_MS;
+  }
+  for (const [index, text] of target.bubbles.entries()) {
+    duration += textCost(
+      view.bubbles[index] ?? "",
+      text,
+      ASSISTANT_CHARACTER_MS,
+    );
+    if (index > 0 && index >= view.visibleBubbleCount)
+      duration += BUBBLE_PAUSE_MS;
+  }
+  return duration;
+}
+
+// 追赶时只跳过前缀，最新的一小段继续逐字播放。
+export function skipPlaybackPrefix(
+  current: VisualReply,
+  target: VisualTarget,
+  milliseconds: number,
+) {
+  let view = current;
+  let cursor: VisualCursor | null;
+  while (milliseconds > 0 && (cursor = pendingChannel(view, target))) {
+    if (
+      cursor.kind === "bubble" &&
+      cursor.index > 0 &&
+      cursor.index >= view.visibleBubbleCount
+    )
+      milliseconds -= BUBBLE_PAUSE_MS;
+    if (
+      cursor.kind === "preToolBubble" &&
+      cursor.index > 0 &&
+      cursor.index >= view.visiblePreToolBubbleCount
+    )
+      milliseconds -= BUBBLE_PAUSE_MS;
+    if (cursor.kind === "tool" && !view.visibleToolIds.includes(cursor.toolId))
+      milliseconds -= FAST_CHARACTER_MS;
+    view = revealChannel(view, target, cursor);
+    const displayed = currentText(view, cursor);
+    const received = targetText(target, cursor);
+    const suffix = splitGraphemes(
+      received.startsWith(displayed)
+        ? received.slice(displayed.length)
+        : received,
+    );
+    const count = Math.min(
+      suffix.length,
+      Math.max(0, Math.ceil(milliseconds / speedFor(cursor))),
+    );
+    view = replaceText(
+      view,
+      cursor,
+      (received.startsWith(displayed) ? displayed : "") +
+        suffix.slice(0, count).join(""),
+    );
+    milliseconds -= count * speedFor(cursor);
+  }
+  return {
+    ...view,
+    channelKey: null,
+    nextCharacterAt: 0,
+    preToolBubbleReadyAt: {},
+    bubbleReadyAt: {},
+  };
+}
+
 export function cursorMatches(
   cursor: VisualCursor | null,
   expected: VisualCursor,
 ): boolean {
   return sameCursor(cursor, expected);
 }
+import type { ToolEvent } from "./types";

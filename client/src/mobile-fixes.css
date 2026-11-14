@@ -384,21 +384,26 @@
   flex-direction: column;
   padding-bottom: 0;
 }
-.archive-tool-step::before {
-  bottom: calc(-1 * (var(--archive-block-gap) + 7px));
-  transform-origin: top;
-  transform: scaleY(0);
-  transition: transform 240ms ease;
-}
-.archive-module.is-expanded .archive-tool-step::before {
-  transform: scaleY(1);
-  transition: transform 280ms ease 120ms;
-}
 .archive-step-body :where(p, pre) {
   margin: 0;
   font: inherit;
   letter-spacing: inherit;
   white-space: pre-wrap;
+}
+.archive-step-body .archive-tool-output {
+  min-width: 0;
+  max-width: 100%;
+  font: 11px/1.6 ui-monospace, "SF Mono", Consolas, monospace;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+.archive-tool-more {
+  all: unset;
+  align-self: flex-start;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 /* 新挂载的消息执行入场动画。 */

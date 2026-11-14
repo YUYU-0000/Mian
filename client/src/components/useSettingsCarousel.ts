@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isScrollingText } from "./ScrollText";
 
 export function useSettingsCarousel(count: number, voice = false) {
   const track = useRef<HTMLDivElement>(null);
@@ -21,6 +22,7 @@ export function useSettingsCarousel(count: number, voice = false) {
   };
   useLayoutEffect(update, [index, count]);
   const start = (x: number, target: EventTarget) => {
+    if (isScrollingText(target)) return;
     if (
       (target as Element).closest(
         voice

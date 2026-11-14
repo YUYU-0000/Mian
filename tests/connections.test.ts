@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import express from "express";
 import type { AddressInfo } from "node:net";
 import type { CodexBridge } from "../server/src/codex.ts";
 
 test("connection routes persist presets, use provider credentials, and read Codex quota", async () => {
   const workspace = process.cwd();
-  const directory = await mkdtemp(path.join(workspace, ".tmp-connection-test-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "mian-connection-test-"));
   process.chdir(directory);
   const { connectionRoutes } = await import("../server/src/connections.ts");
   const calls: string[] = [];
@@ -34,11 +35,11 @@ test("connection routes persist presets, use provider credentials, and read Code
   } as unknown as CodexBridge;
   const provider = express();
   provider.use(express.json());
-  provider.get("/v1/models", (req, res) => {
+  provider.get(["/models", "/v1/models", "/gateway/models"], (req, res) => {
     if (req.headers.authorization !== "Bearer test-key") { res.status(401).json({ error: "金鑰不正確" }); return; }
     res.json({ data: [{ id: "example-model" }] });
   });
-  provider.post("/v1/chat/completions", (req, res) => {
+  provider.post("/chat/completions", (req, res) => {
     assert.equal(req.headers.authorization, "Bearer test-key");
     assert.equal(req.body.model, "example-model");
     res.json({ choices: [{ message: { content: "hello" } }] });
@@ -59,18 +60,32 @@ test("connection routes persist presets, use provider credentials, and read Code
     assert.deepEqual(await request("/api-presets"), { presets: [], activeId: null });
     const preset = await request("/api-presets", "POST", { id: "", note: "first", endpoint, key: "test-key", model: "example-model" });
     assert.ok(preset.id);
+    assert.equal(preset.key, undefined);
+    assert.equal(preset.hasKey, true);
+    assert.equal(preset.keyHint, "test-ke");
+    assert.equal(preset.format, "openai");
     await request("/api-presets", "POST", { ...preset, note: "updated" });
     await request(`/api-presets/${preset.id}/use`, "POST");
     const stored = JSON.parse(await readFile(path.join(directory, "server/data/api-presets.json"), "utf8"));
-    assert.equal(stored.activeId, preset.id);
+    const config = JSON.parse(await readFile(path.join(directory, "server/data/config.json"), "utf8"));
+    assert.deepEqual(config.channel, { kind: "api", presetId: preset.id });
     assert.equal(stored.presets.length, 1);
     assert.equal(stored.presets[0].note, "updated");
+    assert.equal(stored.presets[0].key, "test-key");
+    const listed = await request("/api-presets");
+    assert.equal(listed.activeId, preset.id);
+    assert.equal(listed.presets[0].key, undefined);
+    assert.equal(listed.presets[0].keyHint, "test-ke");
     assert.deepEqual(await request("/api-models", "POST", preset), ["example-model"]);
     assert.deepEqual(await request("/api-models", "POST", { ...preset, endpoint: endpoint + "/v1/" }), ["example-model"]);
+    assert.deepEqual(await request("/api-models", "POST", { ...preset, endpoint: endpoint + "/gateway" }), ["example-model"]);
     await request("/api-test", "POST", preset);
     const failed = await fetch(base + "/api-models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...preset, key: "invalid" }) });
     assert.equal(failed.ok, false);
-    assert.match((await failed.json()).error, /401.*金鑰不正確/);
+    assert.equal((await failed.json()).error, "金鑰不正確");
+    await request("/subscriptions/codex/use", "POST");
+    assert.equal((await request("/api-presets")).activeId, null);
+    await request(`/api-presets/${preset.id}/use`, "POST");
     await request(`/api-presets/${preset.id}`, "DELETE");
     assert.deepEqual(await request("/api-presets"), { presets: [], activeId: null });
     assert.equal((await request("/subscriptions/codex")).loggedIn, true);
@@ -101,7 +116,7 @@ test("connection routes persist presets, use provider credentials, and read Code
   } finally {
     await Promise.all([new Promise<void>(resolve => server.close(() => resolve())), new Promise<void>(resolve => providerServer.close(() => resolve()))]);
     process.chdir(workspace);
-    assert.equal(path.dirname(directory), workspace);
+    assert.equal(path.dirname(directory), tmpdir());
     await rm(directory, { recursive: true });
   }
 });

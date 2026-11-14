@@ -1,0 +1,256 @@
+/* ===== 回覆排版：沿用檔案館的紙面語言 =====
+   墨藍 #3b4d5a、灰藍 #72828e / #93a7b5、米白紙 #f5f2ec。
+   細線、小號大寫標籤、2px 圓角，不用網頁預設樣式。 */
+.reply-markdown {
+  --rm-ink: #3b4d5a;
+  --rm-muted: #72828e;
+  --rm-soft: #93a7b5;
+  --rm-line: rgba(59, 77, 90, 0.16);
+  --rm-paper: #f5f2ec;
+  --rm-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: var(--rm-ink);
+  line-height: 1.55;
+}
+.reply-markdown :is(p, ul, ol, blockquote, table, details, .reply-code, .reply-table-scroll) {
+  margin: 0.45em 0;
+}
+.reply-markdown > :first-child { margin-top: 0; }
+.reply-markdown > :last-child { margin-bottom: 0; }
+
+/* 標題：h1/h2 底下一道墨線，像封面標題 */
+.reply-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0.7em 0 0.3em;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.5px;
+  color: var(--rm-ink);
+}
+.reply-markdown h1 { font-size: 1.3em; }
+.reply-markdown h2 { font-size: 1.15em; }
+.reply-markdown :is(h1, h2) {
+  display: inline-block;
+  min-width: 60%;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--rm-ink);
+}
+.reply-markdown h3 { font-size: 1.02em; }
+.reply-markdown :is(h4, h5, h6) {
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--rm-muted);
+}
+
+/* 清單：無序用吊牌選項那種小空心圓，有序用 01 02 小號編號 */
+.reply-markdown ul,
+.reply-markdown ol {
+  padding-left: 0;
+  list-style: none;
+}
+.reply-markdown li {
+  position: relative;
+  margin: 0.12em 0;
+  padding-left: 1.3em;
+}
+.reply-markdown li > p { margin: 0.15em 0; }
+.reply-markdown ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0.3em;
+  top: 0.66em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(59, 77, 90, 0.55);
+}
+.reply-markdown ol { counter-reset: rm-ol; }
+.reply-markdown ol > li { counter-increment: rm-ol; padding-left: 1.9em; }
+.reply-markdown ol > li::before {
+  content: counter(rm-ol, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  font-family: var(--rm-mono);
+  font-size: 0.68em;
+  letter-spacing: 1px;
+  color: var(--rm-muted);
+}
+.reply-markdown li:has(> input[type="checkbox"])::before { display: none; }
+.reply-markdown li > input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  top: 0.48em;
+  margin: 0;
+  width: 11px;
+  height: 11px;
+  accent-color: var(--rm-ink);
+}
+
+/* 引用：一張淡紙條，不加左邊的線 */
+.reply-markdown blockquote {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0.35em 0.75em;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(147, 167, 181, 0.1);
+  color: var(--rm-muted);
+}
+.reply-markdown blockquote > :first-child { margin-top: 0; }
+.reply-markdown blockquote > :last-child { margin-bottom: 0; }
+
+.reply-markdown a {
+  color: #527489;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(82, 116, 137, 0.4);
+}
+.reply-markdown strong { font-weight: 600; color: var(--rm-ink); }
+.reply-markdown mark { background: rgba(203, 190, 156, 0.45); color: inherit; padding: 0 2px; }
+.reply-markdown hr {
+  margin: 0.7em 0;
+  border: 0;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--rm-line) 0 4px, transparent 4px 8px);
+}
+.reply-markdown img { max-width: 100%; height: auto; border-radius: 2px; }
+
+/* 行內代碼 */
+.reply-markdown :is(code, kbd) {
+  font-family: var(--rm-mono);
+  font-size: 0.86em;
+  letter-spacing: 0;
+}
+.reply-markdown :not(pre) > code {
+  padding: 0.08em 0.38em;
+  border-radius: 2px;
+  background: rgba(147, 167, 181, 0.16);
+  color: #445a69;
+}
+.reply-markdown kbd {
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--rm-line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* 代碼塊：一張小紙片，頂部小號大寫標籤 */
+.reply-code {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--rm-paper);
+  box-shadow: 0 0 0 1px var(--rm-line), -1px 3px 8px rgba(59, 77, 90, 0.06);
+}
+.reply-code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 6px 12px 4px;
+  border-bottom: 1px dashed var(--rm-line);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--rm-muted);
+}
+.reply-code button {
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1px solid var(--rm-ink);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: 1.5px;
+  color: var(--rm-ink);
+  cursor: pointer;
+}
+.reply-code button:active { opacity: 0.6; }
+.reply-code > pre,
+.reply-markdown pre {
+  max-width: 100%;
+  margin: 0;
+  padding: 7px 12px 8px;
+  overflow-x: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+  background: none;
+  border-radius: 0;
+  scrollbar-width: thin;
+}
+.reply-code pre code {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #44535e;
+}
+.reply-code-preview {
+  padding: 5px 12px 7px;
+  border-top: 1px dashed var(--rm-line);
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.reply-code-preview iframe {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--rm-line), 0 6px 16px rgba(59, 77, 90, 0.12);
+}
+
+/* 表格：像檔案表單，沒有豎線，表頭小號大寫，行與行之間虛線 */
+.reply-table-scroll { max-width: 100%; overflow-x: auto; }
+.reply-markdown table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font: inherit;
+  font-size: 0.92em;
+}
+.reply-markdown th {
+  padding: 2px 12px 4px 0;
+  border-bottom: 1px solid var(--rm-ink);
+  text-align: left;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--rm-muted);
+  background: none;
+}
+.reply-markdown td {
+  padding: 4px 12px 4px 0;
+  border-bottom: 1px dashed var(--rm-line);
+  vertical-align: top;
+}
+.reply-markdown tr:last-child td { border-bottom: 0; }
+.reply-markdown :is(th, td)[align="center"] { text-align: center; }
+.reply-markdown :is(th, td)[align="right"] { text-align: right; }
+
+.reply-markdown details {
+  padding: 0.25em 0.7em;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--rm-line);
+}
+.reply-markdown summary {
+  cursor: pointer;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  color: var(--rm-muted);
+}
+
+/* 語法高亮：只用檔案館的藍灰、苔綠、陶土色 */
+.reply-code :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in) { color: #4f6a80; font-weight: 600; }
+.reply-code :is(.hljs-string, .hljs-attr, .hljs-template-tag) { color: #6f8a67; }
+.reply-code :is(.hljs-number, .hljs-symbol, .hljs-attribute) { color: #a7745a; }
+.reply-code :is(.hljs-title, .hljs-name, .hljs-type, .hljs-function) { color: #3b4d5a; }
+.reply-code :is(.hljs-comment, .hljs-meta, .hljs-quote) { color: #9aa4aa; font-style: italic; }
+.reply-code :is(.hljs-variable, .hljs-params, .hljs-property) { color: #6b7d88; }

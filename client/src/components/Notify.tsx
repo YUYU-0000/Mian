@@ -1,6 +1,7 @@
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import ScrollText from "./ScrollText";
 import "./notify.css";
 
 type Notice = { kind: "ok" | "note" | "fail"; title: string; reason: string; time: Date };
@@ -23,7 +24,10 @@ export const notify = {
   fail: (title: string, err?: unknown) => show("fail", title, reasonOf(err)),
 };
 
-export default function Notify() {
+export default function Notify({ page }: { page: string }) {
+  const pageLabel = page === "/connections" ? "連接設置"
+    : page === "/settings" ? "檔案館"
+    : page === "/chat" ? "對話" : "主界面";
   const [notice, setNotice] = useState<Notice>({
     kind: "ok",
     title: "",
@@ -89,15 +93,15 @@ export default function Notify() {
             <div className="mail-row">
               <div className="mail-kicker">
                 <b>{notice.kind === "fail" ? "未成功" : mark}</b>
-                <span>連接設置 →</span>
+                <span>{pageLabel} →</span>
               </div>
-              <span className="mail-title">{notice.title}</span>
+              <ScrollText className="mail-title">{notice.title}</ScrollText>
               <span className="mail-time">
                 <small>{`${pad2(notice.time.getMonth() + 1)}.${pad2(notice.time.getDate())}`}</small>
                 <span>{`${pad2(notice.time.getHours())}:${pad2(notice.time.getMinutes())}`}</span>
               </span>
             </div>
-            <div className="mail-reason">{notice.reason}</div>
+            <div className="mail-reason"><ScrollText>{notice.reason}</ScrollText></div>
           </div>
         </div>
         <span className="mail-tape" />

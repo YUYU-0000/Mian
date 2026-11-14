@@ -1,5 +1,5 @@
 import { createId } from "./id";
-import type { Approval, ChatEvent, ToolEvent } from "./types";
+import type { Approval, ChatEvent, ChatMessage, ReplyFormat, ToolEvent } from "./types";
 
 export const CHAT_STORAGE_KEY = "mian.chat-groups.v2";
 
@@ -12,6 +12,7 @@ export type UserGroup = {
   records: UserRecord[];
 };
 export type ReplyGroup = {
+  format?: ReplyFormat;
   replyGroupId: string;
   role: "assistant";
   time: string;
@@ -30,6 +31,30 @@ export type ReplyGroup = {
   status?: string;
 };
 export type ChatGroup = UserGroup | ReplyGroup;
+
+// 用可见正文组成完整历史，不带工具、思考或 Codex 协议标记。
+export function chatHistory(groups: ChatGroup[]): ChatMessage[] {
+  const messages: ChatMessage[] = [];
+  for (const group of groups) {
+    if (group.role === "assistant" && group.status === "failed") continue;
+    const content = group.role === "user"
+      ? group.records.map(record => record.text).join("\n\n")
+      : [...group.preToolBubbles, ...group.bubbles].join("\n\n");
+    if (!content) continue;
+    const previous = messages.at(-1);
+    if (previous?.role === group.role) previous.content += `\n\n${content}`;
+    else messages.push({ role: group.role, content });
+  }
+  return messages;
+}
+
+function parseReply(raw: string, format?: ReplyFormat, final = false) {
+  if (format !== "plain") return parsePublicReply(raw, { final, plainStreaming: format === "api" });
+  return {
+    thinking: "", preToolBubbles: [], preToolBubbleComplete: [], preToolComplete: false,
+    toolSummaries: [], bubbles: raw ? [raw] : [], bubbleComplete: raw ? [final] : [],
+  };
+}
 
 export function isThinkingRunning(reply: ReplyGroup): boolean {
   return (
@@ -61,10 +86,20 @@ const protocolMarkers = [
 ];
 
 function normalizeBubbleBody(value: string): string {
-  return value
-    .replace(/\r\n?/g, "\n")
-    .replace(/\n[\t ]*\n(?:[\t ]*\n)+/g, "\n\n")
-    .trim();
+  let fence = "";
+  let blanks = 0;
+  // 聊天段落收拢空行，代码围栏里的空白原样保留。
+  const normalized = value.replace(/\r\n?/g, "\n").split("\n").filter(line => {
+    const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = "";
+      return true;
+    }
+    if (marker) fence = marker[1];
+    blanks = line.trim() ? 0 : blanks + 1;
+    return blanks <= 1;
+  }).join("\n");
+  return /^( {4}|\t)/.test(normalized) ? normalized.trimEnd() : normalized.trim();
 }
 
 function hideTrailingPartialMarker(value: string, final: boolean): string {
@@ -112,12 +147,11 @@ function taggedSegments(
   return segments;
 }
 
-function maskRanges(raw: string, ranges: Array<{ start: number; end: number }>) {
+function withoutRanges(raw: string, ranges: Array<{ start: number; end: number }>) {
   let masked = raw;
   for (const range of [...ranges].sort((left, right) => right.start - left.start))
     masked =
       masked.slice(0, range.start) +
-      " ".repeat(Math.max(0, range.end - range.start)) +
       masked.slice(range.end);
   return masked;
 }
@@ -139,7 +173,7 @@ function stripProtocolMarkers(value: string): string {
 
 export function parsePublicReply(
   raw: string,
-  options: { final?: boolean } = {},
+  options: { final?: boolean; plainStreaming?: boolean } = {},
 ): {
   thinking: string;
   preToolBubbles: string[];
@@ -187,7 +221,7 @@ export function parsePublicReply(
     }
   }
 
-  const postRaw = maskRanges(raw, preToolContainers);
+  const postRaw = withoutRanges(raw, preToolContainers);
   const postSegments = taggedSegments(postRaw, "mian-bubble", final);
   const bubbles: string[] = [];
   const bubbleComplete: boolean[] = [];
@@ -198,18 +232,18 @@ export function parsePublicReply(
     bubbleComplete.push(segment.complete);
   }
 
-  if (final && postSegments.length === 0) {
+  if ((final || options.plainStreaming) && postSegments.length === 0) {
     const controlRanges = [
       ...preToolContainers,
       ...thinkingSegments,
       ...summarySegments,
     ];
     const fallback = normalizeBubbleBody(
-      stripProtocolMarkers(maskRanges(raw, controlRanges)),
+      stripProtocolMarkers(hideTrailingPartialMarker(withoutRanges(raw, controlRanges), final)),
     );
     if (fallback) {
       bubbles.push(fallback);
-      bubbleComplete.push(true);
+      bubbleComplete.push(final);
     }
   }
 
@@ -301,6 +335,10 @@ export function pendingUserGroup(groups: ChatGroup[]): UserGroup | undefined {
 }
 
 export function recoverLastUnansweredUserGroup(groups: ChatGroup[]): ChatGroup[] {
+  const last = groups.at(-1);
+  const user = groups.at(-2);
+  if (last?.role === "assistant" && last.format && last.status === "failed" && user?.role === "user")
+    return [...groups.slice(0, -2), { ...user, pending: true }];
   let lastAssistantIndex = -1;
   for (let index = groups.length - 1; index >= 0; index -= 1) {
     if (groups[index].role === "assistant") {
@@ -344,6 +382,7 @@ export function applyReplyEvent(
       {
         replyGroupId: event.turnId,
         role: "assistant",
+        format: "format" in event ? event.format : undefined,
         time,
         thinking: "",
         activeReasoningItemIds: [],
@@ -389,10 +428,12 @@ export function applyReplyEvent(
     };
   } else if (event.type === "assistant-delta") {
     const raw = group.raw + event.delta;
-    const parsed = parsePublicReply(raw);
+    const format = event.format ?? group.format;
+    const parsed = parseReply(raw, format);
     updated = {
       ...group,
       raw,
+      format,
       thinking: parsed.thinking,
       preToolBubbles: parsed.preToolBubbles,
       preToolBubbleIds: alignIds(
@@ -424,7 +465,7 @@ export function applyReplyEvent(
   } else if (event.type === "approval")
     updated = { ...group, approvals: [...group.approvals, event.approval] };
   else if (event.type === "turn-completed") {
-    const parsed = parsePublicReply(group.raw, { final: true });
+    const parsed = parseReply(group.raw, group.format, true);
     const needsCompatibilityBridge =
       group.tools.length > 0 &&
       (parsed.preToolBubbles.length === 0 || !parsed.preToolComplete);
@@ -504,9 +545,10 @@ export function loadChatGroups(storage: Pick<Storage, "getItem">): ChatGroup[] {
     if (!Array.isArray(value)) return [];
     return (value as ChatGroup[]).map((group) => {
       if (group.role !== "assistant") return group;
-      const parsed = parsePublicReply(
+      const parsed = parseReply(
         typeof group.raw === "string" ? group.raw : "",
-        { final: Boolean(group.status) },
+        group.format,
+        Boolean(group.status),
       );
       const preToolBubbles =
         Array.isArray(group.preToolBubbles) && group.preToolBubbles.length > 0

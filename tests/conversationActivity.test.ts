@@ -59,3 +59,16 @@ test("user and assistant activity report only the last visible message", () => {
     "Mian 的真实回复",
   );
 });
+
+test("Last MSG keeps the full text for horizontal reading", () => {
+  const message = "保留完整消息".repeat(40) + "最后一个字";
+  const activity: Array<{ lastMessage?: string }> = [];
+  const store = new ChatSessionStore({
+    conversationId: "long-message",
+    storage: new MemoryStorage(),
+    onActivity: (entry) => activity.push(entry),
+  });
+  store.saveUserRecord(message);
+  assert.equal(lastVisibleMessageSummary(store.getSnapshot().messages), message);
+  assert.equal(activity.at(-1)?.lastMessage, message);
+});

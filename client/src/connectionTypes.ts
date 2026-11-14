@@ -10,8 +10,11 @@ export type ApiPreset = {
   id: string;
   note: string;
   endpoint: string;
-  key: string;
+  key?: string;
+  hasKey?: boolean;
+  keyHint?: string;
   model: string;
+  format: "openai";
 };
 export type VoiceConfig = {
   apiKey: string;
