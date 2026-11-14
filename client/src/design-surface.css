@@ -1,0 +1,13 @@
+/* Undo only the app-wide element defaults before applying the reference CSS. */
+:where(.connections-page, .settings-page, .notify-surface) *,
+:where(.connections-page, .settings-page, .notify-surface) *::before,
+:where(.connections-page, .settings-page, .notify-surface) *::after { box-sizing: revert; }
+:where(.connections-page, .settings-page) :where(button, input, textarea, select) { font: revert; }
+.connections-page .paper-overlay { all: revert; }
+.settings-page .paper-overlay { all: revert; }
+.route-transition-frame.route-surface-connections,
+.route-transition-frame.route-surface-settings { max-width: none; }
+.route-transition-press[data-transition-target="/settings"] .dock-2,
+.route-transition-press[data-transition-target="/"] .settings-header .back-btn {
+  animation: routeControlPress 40ms ease-out both;
+}

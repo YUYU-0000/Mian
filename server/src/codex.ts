@@ -90,6 +90,21 @@ export class CodexBridge extends EventEmitter {
     return this.conversations.require(conversationId).threadId;
   }
 
+  async readAccount() {
+    const { account } = await this.request("account/read", { refreshToken: false }) as {
+      account: { type: string; email?: string; planType?: string } | null;
+    };
+    const status: ConnectionStatus = {
+      state: account ? "ready" : "login-required",
+      message: account ? "Codex app-server 已连接" : "app-server 已连接，但 Codex 尚未登录",
+      version: this.version,
+      account: account?.email || account?.type,
+    };
+    this.lastStatus = status;
+    this.emit("event", { type: "connection", status });
+    return { loggedIn: !!account, account: account?.email || account?.type || "", plan: account?.planType || "" };
+  }
+
   getActiveTurnId(conversationId: string) {
     return this.conversations.require(conversationId).activeTurnId;
   }

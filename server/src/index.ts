@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
 import { readConfig, saveConfig } from "./config.js";
+import { connectionRoutes } from "./connections.js";
 import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
 import { requestConversationId } from "./requestConversation.js";
@@ -35,6 +36,7 @@ let conversationWriteQueue: Promise<void> = Promise.resolve();
 const activityTimers = new Map<string, NodeJS.Timeout>();
 
 app.use(express.json({ limit: "4mb" }));
+app.use("/api", connectionRoutes(bridge));
 
 const broadcast = (event: unknown) => {
   const conversationId =

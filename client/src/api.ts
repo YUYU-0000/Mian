@@ -6,6 +6,7 @@ import type {
   ConversationRecord,
   RealtimeSession,
 } from "./types";
+import type { ApiPreset, Provider, Quota, Subscription, VoiceConfig } from "./connectionTypes";
 
 const STREAM_CURSOR_KEY = "mian.chat-event-cursor.v1";
 
@@ -83,6 +84,67 @@ function saveStreamCursor(cursor: StreamCursor) {
 }
 
 export const api = {
+  subStatus: (provider: Provider) => provider === "codex"
+    ? request<Subscription>("/api/subscriptions/codex")
+    : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
+  subLogin: async (provider: Provider): Promise<{ account: string; plan: string }> => {
+    if (provider !== "codex") {
+      // 待接后端：保留设计稿的演示登录。
+      await delay(900);
+      Object.assign(demoSubscriptions[provider], { loggedIn: true, account: "yuyu@example.com", plan: "plus" });
+      return demoSubscriptions[provider];
+    }
+    const popup = window.open("about:blank", "mian-codex-login");
+    if (!popup) throw new Error("請允許開啟登入視窗，再試一次。");
+    let loginId = "";
+    try {
+      const login = await request<{ authUrl: string; loginId: string }>("/api/subscriptions/codex/login", { method: "POST" });
+      loginId = login.loginId;
+      popup.location.href = login.authUrl;
+      while (true) {
+        await delay(1000);
+        const status = await api.subStatus("codex");
+        if (status.loggedIn) { popup.close(); return status; }
+        if (popup.closed) throw new Error("登入視窗已關閉，尚未完成登入。");
+      }
+    } catch (error) {
+      popup.close();
+      if (loginId) await request("/api/subscriptions/codex/login/cancel", { method: "POST", body: JSON.stringify({ loginId }) });
+      throw error;
+    }
+  },
+  subLogout: async (provider: Provider) => {
+    if (provider === "codex") return request("/api/subscriptions/codex/logout", { method: "POST" });
+    // 待接后端：Gemini / Kimi
+    await delay(400);
+    Object.assign(demoSubscriptions[provider], { loggedIn: false, account: "", plan: "" });
+  },
+  subModels: (provider: Provider): Promise<string[]> => provider === "codex"
+    ? request("/api/subscriptions/codex/models")
+    : Promise.resolve(provider === "gemini" ? ["gemini-3-pro", "gemini-3-flash"] : ["kimi-k3", "kimi-k3-turbo"]), // 待接后端
+  saveSubConfig: async (provider: Provider, cfg: { model: string }) => {
+    if (provider === "codex") return api.saveConfig({ ...await api.getConfig(), model: cfg.model });
+    // 待接后端：Gemini / Kimi
+    await delay(300);
+    demoSubscriptions[provider].model = cfg.model;
+  },
+  subQuota: async (_provider: Provider): Promise<Quota> => {
+    // 待接后端：保留设计稿的额度演示数据。
+    await delay(600);
+    return { left: 96, resetAt: "11月20日 01:59" };
+  },
+  apiPresets: () => request<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
+  saveApiPreset: (preset: ApiPreset) => request<ApiPreset>("/api/api-presets", { method: "POST", body: JSON.stringify(preset) }),
+  deleteApiPreset: (id: string) => request<void>(`/api/api-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  useApiPreset: (id: string) => request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
+  apiModels: (cfg: ApiPreset) => request<string[]>("/api/api-models", { method: "POST", body: JSON.stringify(cfg) }),
+  apiTest: (cfg: ApiPreset) => request<void>("/api/api-test", { method: "POST", body: JSON.stringify(cfg) }),
+  // 待接后端：以下设置接口保留设计稿的预留实现。
+  saveFontStyle: async (_page: HTMLElement) => {},
+  testFontStyle: async (_page: HTMLElement) => {},
+  testVoice: (_cfg: VoiceConfig) => new Promise<void>(() => {}),
+  exportData: () => delay(300),
+  importData: (_file: File) => delay(300),
   getConfig: () => request<Config>("/api/config"),
   saveConfig: (config: Config) =>
     request<Config>("/api/config", {
@@ -245,4 +307,10 @@ export const api = {
       socket?.close();
     };
   },
+};
+
+const delay = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+const demoSubscriptions: Record<"gemini" | "kimi", Subscription> = {
+  gemini: { loggedIn: false, account: "", plan: "", model: "" },
+  kimi: { loggedIn: false, account: "", plan: "", model: "" },
 };
