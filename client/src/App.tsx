@@ -25,6 +25,8 @@ import type {
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Connections from "./pages/Connections";
+import Settings from "./pages/Settings";
+import Notify from "./components/Notify";
 import ErrorBoundary from "./ErrorBoundary";
 import { isTicketArchiveEligible } from "./ticketGestures";
 import {
@@ -495,7 +497,7 @@ export default function App() {
     ? `route-transition-${transition.phase}`
     : "";
   const surface =
-    location.pathname === "/connections" ? "connections" : "paper";
+    location.pathname === "/connections" ? "connections" : location.pathname === "/settings" ? "settings" : "paper";
   const crossfadeReady =
     transition?.phase === "crossfade" &&
     location.pathname === transition.target;
@@ -509,7 +511,8 @@ export default function App() {
             <Home
               status={status}
               onChat={() => navigateWithTransition("/chat")}
-              onSettings={() => navigateWithTransition("/connections")}
+              onConnections={() => navigateWithTransition("/connections")}
+              onSettings={() => navigateWithTransition("/settings")}
             />
           </ErrorBoundary>
         }
@@ -555,13 +558,12 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Connections
-              status={status}
-              onStatus={setStatus}
               onBack={() => navigateWithTransition("/")}
             />
           </ErrorBoundary>
         }
       />
+      <Route path="/settings" element={<ErrorBoundary><Settings onBack={() => navigateWithTransition("/")} /></ErrorBoundary>} />
     </Routes>
   );
 
@@ -571,7 +573,7 @@ export default function App() {
           className={`route-transition-layer route-layer-surface-${
             transition.fromLocation.pathname === "/connections"
               ? "connections"
-              : "paper"
+              : transition.fromLocation.pathname === "/settings" ? "settings" : "paper"
           } route-transition-outgoing`}
           key={transition.fromLocation.key}
         >
@@ -601,6 +603,7 @@ export default function App() {
       onAnimationEnd={handleTransitionEnd}
     >
       {routeLayers}
+      <Notify />
     </div>
   );
 }

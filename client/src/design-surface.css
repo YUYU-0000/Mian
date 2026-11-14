@@ -1,0 +1,31 @@
+/* Use the standalone designs' native box model, including form controls. */
+:where(.connections-page, .settings-page, .notify-surface) *,
+:where(.connections-page, .settings-page, .notify-surface) *::before,
+:where(.connections-page, .settings-page, .notify-surface) *::after { box-sizing: revert; }
+/* Keep the app-wide SVG rule intact; restore native SVG defaults locally. */
+.connections-page svg,
+.settings-page svg {
+  fill: initial;
+  stroke: initial;
+  stroke-width: initial;
+  stroke-linecap: initial;
+  stroke-linejoin: initial;
+}
+.connections-page svg[fill="none"],
+.settings-page svg[fill="none"] { fill: none; }
+:is(.connections-page, .settings-page) :where(button, input, textarea, select) { font: revert; }
+/* Old connection styles positioned the rivet independently of its button. */
+.connections-page .tie-btn::after {
+  position: static;
+  left: auto;
+  top: auto;
+  box-shadow: none;
+}
+.connections-page .paper-overlay { all: revert; }
+.settings-page .paper-overlay { all: revert; }
+.route-transition-frame.route-surface-connections,
+.route-transition-frame.route-surface-settings { max-width: none; }
+.route-transition-press[data-transition-target="/settings"] .dock-2,
+.route-transition-press[data-transition-target="/"] .settings-header .back-btn {
+  animation: routeControlPress 40ms ease-out both;
+}

@@ -1,0 +1,88 @@
+.notify-surface { font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+--ink: #3b4d5a;
+--muted: #72828e;
+--grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.09"/></svg>');
+}
+        /* ================= 提示：拼貼紙條 =================
+           一條細長的米白撕紙，底下錯開墊一塊淺灰藍紙，左端斜貼一截紙膠帶，結果寫在紙上。
+           成功／提醒：停一會兒自己收回。失敗：原因直接寫在標題下面，停久一點，點一下也能收走。 */
+        .mail {
+            position: fixed; z-index: 210; left: 50%;
+            top: calc(14px + env(safe-area-inset-top));
+            width: min(420px, calc(100vw - 34px));
+            transform: translate3d(-50%, -220%, 0) rotate(-.7deg);
+            transition: transform .5s cubic-bezier(.22,.8,.3,1);
+            font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        .mail.is-in { transform: translate3d(-50%, 0, 0) rotate(-.7deg); }
+
+        /* 撕邊都用遮罩切，陰影放在外層 drop-shadow 才不會被切掉 */
+        .mail-strip-wrap { position: relative; filter: drop-shadow(0 2px 4px rgba(59,77,90,.14)) drop-shadow(0 0 1px rgba(59,77,90,.12)); }
+        /* 底下那張淺灰藍紙：長度跟上面差不多，左邊縮進一點、右邊探出來，下緣多露一截，右緣和下緣撕開 */
+        .mail-back {
+            position: absolute; left: 10px; right: -6px; top: 8px; bottom: -16px;
+            background: #c5d0d8; background-image: var(--grain);
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3Cpath d='M0 0 Q200 0 300.0 0.0 Q400 0 398.9 2.0 Q397.9 4 397.0 6.5 Q396.2 9 395.2 11.5 Q394.3 14 393.6 16.5 Q392.9 19 391.2 21.5 Q389.6 24 389.0 26.5 Q388.4 29 385.0 31.5 Q381.7 34 381.7 36.5 Q381.7 39 381.8 41.5 Q381.9 44 380.0 46.5 Q378.2 49 377.1 48.5 Q376 47.9 372.6 47.4 Q369.3 46.9 365.6 47.0 Q361.8 47.1 357.1 46.8 Q352.4 46.4 348.8 47.0 Q345.1 47.5 339.4 48.6 Q333.6 49.7 330.1 50.2 Q326.6 50.6 323.2 50.8 Q319.8 51.0 316.4 50.8 Q313.0 50.5 307.4 51.1 Q301.8 51.8 298.1 52.7 Q294.5 53.6 288.9 52.9 Q283.3 52.2 277.4 52.2 Q271.5 52.2 266.5 51.5 Q261.5 50.8 255.7 50.9 Q249.8 51.0 243.9 50.9 Q238.0 50.8 234.1 50.2 Q230.2 49.7 226.7 49.5 Q223.2 49.3 220.0 49.5 Q216.8 49.8 212.0 49.7 Q207.2 49.6 202.1 50.2 Q197.1 50.9 193.2 51.5 Q189.3 52.2 184.9 51.9 Q180.4 51.5 175.9 51.9 Q171.5 52.3 168.3 52.5 Q165.2 52.6 162.1 52.2 Q159.0 51.8 153.5 50.6 Q148.0 49.4 142.6 49.1 Q137.2 48.9 132.5 48.0 Q127.8 47.2 124.7 47.0 Q121.5 46.9 115.7 46.5 Q109.8 46.1 104.5 46.8 Q99.2 47.4 93.4 47.0 Q87.6 46.6 83.5 47.1 Q79.4 47.6 74.1 47.7 Q68.8 47.8 63.5 49.0 Q58.3 50.2 52.7 49.9 Q47.1 49.5 41.3 49.9 Q35.5 50.2 31.4 50.8 Q27.4 51.3 21.6 50.8 Q15.9 50.4 10.2 50.3 Q4.4 50.3 2.2 51.1 Q0 52 0.0 36.0 L0 20Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3Cpath d='M0 0 Q200 0 300.0 0.0 Q400 0 398.9 2.0 Q397.9 4 397.0 6.5 Q396.2 9 395.2 11.5 Q394.3 14 393.6 16.5 Q392.9 19 391.2 21.5 Q389.6 24 389.0 26.5 Q388.4 29 385.0 31.5 Q381.7 34 381.7 36.5 Q381.7 39 381.8 41.5 Q381.9 44 380.0 46.5 Q378.2 49 377.1 48.5 Q376 47.9 372.6 47.4 Q369.3 46.9 365.6 47.0 Q361.8 47.1 357.1 46.8 Q352.4 46.4 348.8 47.0 Q345.1 47.5 339.4 48.6 Q333.6 49.7 330.1 50.2 Q326.6 50.6 323.2 50.8 Q319.8 51.0 316.4 50.8 Q313.0 50.5 307.4 51.1 Q301.8 51.8 298.1 52.7 Q294.5 53.6 288.9 52.9 Q283.3 52.2 277.4 52.2 Q271.5 52.2 266.5 51.5 Q261.5 50.8 255.7 50.9 Q249.8 51.0 243.9 50.9 Q238.0 50.8 234.1 50.2 Q230.2 49.7 226.7 49.5 Q223.2 49.3 220.0 49.5 Q216.8 49.8 212.0 49.7 Q207.2 49.6 202.1 50.2 Q197.1 50.9 193.2 51.5 Q189.3 52.2 184.9 51.9 Q180.4 51.5 175.9 51.9 Q171.5 52.3 168.3 52.5 Q165.2 52.6 162.1 52.2 Q159.0 51.8 153.5 50.6 Q148.0 49.4 142.6 49.1 Q137.2 48.9 132.5 48.0 Q127.8 47.2 124.7 47.0 Q121.5 46.9 115.7 46.5 Q109.8 46.1 104.5 46.8 Q99.2 47.4 93.4 47.0 Q87.6 46.6 83.5 47.1 Q79.4 47.6 74.1 47.7 Q68.8 47.8 63.5 49.0 Q58.3 50.2 52.7 49.9 Q47.1 49.5 41.3 49.9 Q35.5 50.2 31.4 50.8 Q27.4 51.3 21.6 50.8 Q15.9 50.4 10.2 50.3 Q4.4 50.3 2.2 51.1 Q0 52 0.0 36.0 L0 20Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+            transform: rotate(.9deg); transform-origin: 0 0;
+        }
+        .mail.is-fail .mail-back { background-color: #dcd6c8; }
+        .mail-strip {
+            position: relative; box-sizing: border-box; min-height: 54px;
+            padding: 15px 24px 15px 42px;
+            display: flex; flex-direction: column; justify-content: center; gap: 5px;
+            background-color: #faf7f0;
+            background-image:
+                var(--grain),
+                linear-gradient(90deg, transparent 29px, rgba(147,167,181,.45) 29px 30px, transparent 30px),
+                linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 60%);
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10 Q0 3.3 3.1 3.3 Q6.3 3.3 9.8 3.3 Q13.2 3.3 16.3 3.6 Q19.4 4.0 23.5 4.5 Q27.6 4.9 30.1 4.8 Q32.5 4.7 34.6 4.8 Q36.7 4.9 40.5 5.3 Q44.2 5.7 47.2 5.5 Q50.1 5.3 52.4 5.5 Q54.6 5.8 58.7 5.6 Q62.7 5.4 66.3 5.3 Q70.0 5.3 72.2 5.4 Q74.5 5.5 78.0 5.5 Q81.4 5.5 84.1 5.6 Q86.7 5.7 88.8 5.7 Q90.8 5.7 92.9 5.6 Q95.0 5.4 97.4 5.2 Q99.8 5.0 102.9 5.0 Q106.0 5.0 108.7 4.9 Q111.4 4.8 114.5 4.6 Q117.5 4.4 119.8 4.6 Q122.1 4.8 125.5 4.7 Q128.8 4.6 132.7 4.6 Q136.5 4.6 140.3 4.4 Q144.2 4.2 147.8 4.6 Q151.3 4.9 155.3 4.8 Q159.3 4.6 161.9 4.9 Q164.4 5.3 166.7 5.4 Q169.0 5.5 172.9 5.2 Q176.9 4.9 179.2 5.3 Q181.6 5.7 184.1 5.5 Q186.5 5.2 190.3 5.5 Q194.1 5.7 197.8 5.7 Q201.5 5.6 204.2 5.9 Q207.0 6.2 208.8 6.0 Q210.7 5.8 214.1 6.2 Q217.5 6.5 221.7 6.0 Q225.8 5.6 228.8 5.8 Q231.8 6.1 234.8 5.9 Q237.8 5.8 240.1 5.4 Q242.3 5.0 244.4 4.9 Q246.5 4.8 249.6 4.8 Q252.7 4.9 255.8 4.6 Q259.0 4.2 261.2 4.1 Q263.5 4.0 267.4 4.2 Q271.2 4.3 275.2 3.6 Q279.2 3.0 281.1 3.4 Q283.1 3.7 286.0 3.5 Q288.9 3.2 291.5 3.0 Q294.1 2.7 297.1 2.6 Q300.2 2.5 303.4 2.2 Q306.6 2.0 310.1 2.4 Q313.6 2.8 315.9 2.6 Q318.1 2.5 321.6 2.5 Q325.2 2.5 327.5 2.5 Q329.8 2.4 332.8 2.5 Q335.8 2.5 339.8 3.0 Q343.7 3.5 347.2 3.7 Q350.7 3.9 354.0 3.8 Q357.3 3.7 360.6 3.9 Q363.8 4.1 368.0 4.4 Q372.1 4.7 374.5 4.8 Q376.9 4.9 380.5 5.0 Q384.1 5.0 387.9 4.8 Q391.6 4.7 395.6 5.0 Q399.5 5.2 399.8 5.0 Q400 4.8 400.0 7.4 L400 10Z'/%3E%3C/svg%3E") top / 100% 7px no-repeat, linear-gradient(#000,#000) center / 100% calc(100% - 13px) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 10' preserveAspectRatio='none'%3E%3Cpath d='M0 0 Q0 4.4 3.5 4.3 Q7.1 4.2 9.7 4.5 Q12.3 4.7 14.2 4.7 Q16.0 4.7 19.3 4.9 Q22.6 5.1 25.0 5.3 Q27.3 5.5 30.7 5.2 Q34.1 5.0 37.5 5.2 Q40.9 5.3 44.0 5.2 Q47.1 5.1 51.3 5.2 Q55.5 5.3 59.0 5.3 Q62.4 5.3 66.5 4.8 Q70.7 4.3 74.0 4.5 Q77.3 4.8 79.7 4.5 Q82.1 4.2 84.0 4.0 Q86.0 3.9 88.7 3.7 Q91.4 3.5 93.8 3.8 Q96.2 4.1 99.3 3.8 Q102.4 3.5 106.6 3.4 Q110.7 3.3 114.8 3.2 Q119.0 3.2 122.8 2.9 Q126.5 2.6 129.8 3.0 Q133.0 3.3 134.9 3.4 Q136.8 3.5 139.0 3.4 Q141.2 3.2 143.4 3.2 Q145.6 3.3 148.8 3.2 Q152.1 3.1 156.1 3.5 Q160.2 3.9 163.3 4.2 Q166.4 4.4 169.1 4.4 Q171.7 4.4 175.1 4.7 Q178.5 5.0 180.9 5.2 Q183.4 5.5 185.9 5.3 Q188.5 5.1 190.8 5.2 Q193.2 5.3 195.4 5.8 Q197.6 6.3 200.3 6.4 Q203.1 6.6 206.6 6.3 Q210.2 6.0 214.4 6.5 Q218.6 7.1 220.6 7.0 Q222.5 7.0 225.3 6.8 Q228.2 6.6 232.3 6.4 Q236.5 6.3 239.6 6.6 Q242.6 6.9 246.1 6.6 Q249.7 6.2 253.8 6.2 Q258.0 6.3 261.2 5.8 Q264.5 5.4 267.8 5.5 Q271.1 5.5 273.4 5.2 Q275.6 4.9 278.7 4.8 Q281.8 4.8 284.6 5.0 Q287.5 5.3 290.4 5.0 Q293.3 4.8 296.5 4.8 Q299.7 4.9 303.4 5.0 Q307.0 5.0 311.2 5.2 Q315.4 5.5 318.9 5.2 Q322.5 5.0 324.6 5.3 Q326.7 5.7 330.4 5.7 Q334.0 5.7 336.7 5.6 Q339.4 5.5 342.8 5.7 Q346.2 5.9 349.4 6.1 Q352.7 6.2 356.3 6.1 Q359.9 5.9 362.3 6.3 Q364.7 6.7 368.7 6.7 Q372.7 6.6 374.6 6.2 Q376.5 5.8 378.9 5.9 Q381.4 6.1 384.7 5.8 Q388.0 5.6 391.1 5.5 Q394.2 5.4 396.2 5.6 Q398.2 5.8 399.1 5.4 Q400 5.1 400.0 2.5 L400 0Z'/%3E%3C/svg%3E") bottom / 100% 7px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10 Q0 3.3 3.1 3.3 Q6.3 3.3 9.8 3.3 Q13.2 3.3 16.3 3.6 Q19.4 4.0 23.5 4.5 Q27.6 4.9 30.1 4.8 Q32.5 4.7 34.6 4.8 Q36.7 4.9 40.5 5.3 Q44.2 5.7 47.2 5.5 Q50.1 5.3 52.4 5.5 Q54.6 5.8 58.7 5.6 Q62.7 5.4 66.3 5.3 Q70.0 5.3 72.2 5.4 Q74.5 5.5 78.0 5.5 Q81.4 5.5 84.1 5.6 Q86.7 5.7 88.8 5.7 Q90.8 5.7 92.9 5.6 Q95.0 5.4 97.4 5.2 Q99.8 5.0 102.9 5.0 Q106.0 5.0 108.7 4.9 Q111.4 4.8 114.5 4.6 Q117.5 4.4 119.8 4.6 Q122.1 4.8 125.5 4.7 Q128.8 4.6 132.7 4.6 Q136.5 4.6 140.3 4.4 Q144.2 4.2 147.8 4.6 Q151.3 4.9 155.3 4.8 Q159.3 4.6 161.9 4.9 Q164.4 5.3 166.7 5.4 Q169.0 5.5 172.9 5.2 Q176.9 4.9 179.2 5.3 Q181.6 5.7 184.1 5.5 Q186.5 5.2 190.3 5.5 Q194.1 5.7 197.8 5.7 Q201.5 5.6 204.2 5.9 Q207.0 6.2 208.8 6.0 Q210.7 5.8 214.1 6.2 Q217.5 6.5 221.7 6.0 Q225.8 5.6 228.8 5.8 Q231.8 6.1 234.8 5.9 Q237.8 5.8 240.1 5.4 Q242.3 5.0 244.4 4.9 Q246.5 4.8 249.6 4.8 Q252.7 4.9 255.8 4.6 Q259.0 4.2 261.2 4.1 Q263.5 4.0 267.4 4.2 Q271.2 4.3 275.2 3.6 Q279.2 3.0 281.1 3.4 Q283.1 3.7 286.0 3.5 Q288.9 3.2 291.5 3.0 Q294.1 2.7 297.1 2.6 Q300.2 2.5 303.4 2.2 Q306.6 2.0 310.1 2.4 Q313.6 2.8 315.9 2.6 Q318.1 2.5 321.6 2.5 Q325.2 2.5 327.5 2.5 Q329.8 2.4 332.8 2.5 Q335.8 2.5 339.8 3.0 Q343.7 3.5 347.2 3.7 Q350.7 3.9 354.0 3.8 Q357.3 3.7 360.6 3.9 Q363.8 4.1 368.0 4.4 Q372.1 4.7 374.5 4.8 Q376.9 4.9 380.5 5.0 Q384.1 5.0 387.9 4.8 Q391.6 4.7 395.6 5.0 Q399.5 5.2 399.8 5.0 Q400 4.8 400.0 7.4 L400 10Z'/%3E%3C/svg%3E") top / 100% 7px no-repeat, linear-gradient(#000,#000) center / 100% calc(100% - 13px) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 10' preserveAspectRatio='none'%3E%3Cpath d='M0 0 Q0 4.4 3.5 4.3 Q7.1 4.2 9.7 4.5 Q12.3 4.7 14.2 4.7 Q16.0 4.7 19.3 4.9 Q22.6 5.1 25.0 5.3 Q27.3 5.5 30.7 5.2 Q34.1 5.0 37.5 5.2 Q40.9 5.3 44.0 5.2 Q47.1 5.1 51.3 5.2 Q55.5 5.3 59.0 5.3 Q62.4 5.3 66.5 4.8 Q70.7 4.3 74.0 4.5 Q77.3 4.8 79.7 4.5 Q82.1 4.2 84.0 4.0 Q86.0 3.9 88.7 3.7 Q91.4 3.5 93.8 3.8 Q96.2 4.1 99.3 3.8 Q102.4 3.5 106.6 3.4 Q110.7 3.3 114.8 3.2 Q119.0 3.2 122.8 2.9 Q126.5 2.6 129.8 3.0 Q133.0 3.3 134.9 3.4 Q136.8 3.5 139.0 3.4 Q141.2 3.2 143.4 3.2 Q145.6 3.3 148.8 3.2 Q152.1 3.1 156.1 3.5 Q160.2 3.9 163.3 4.2 Q166.4 4.4 169.1 4.4 Q171.7 4.4 175.1 4.7 Q178.5 5.0 180.9 5.2 Q183.4 5.5 185.9 5.3 Q188.5 5.1 190.8 5.2 Q193.2 5.3 195.4 5.8 Q197.6 6.3 200.3 6.4 Q203.1 6.6 206.6 6.3 Q210.2 6.0 214.4 6.5 Q218.6 7.1 220.6 7.0 Q222.5 7.0 225.3 6.8 Q228.2 6.6 232.3 6.4 Q236.5 6.3 239.6 6.6 Q242.6 6.9 246.1 6.6 Q249.7 6.2 253.8 6.2 Q258.0 6.3 261.2 5.8 Q264.5 5.4 267.8 5.5 Q271.1 5.5 273.4 5.2 Q275.6 4.9 278.7 4.8 Q281.8 4.8 284.6 5.0 Q287.5 5.3 290.4 5.0 Q293.3 4.8 296.5 4.8 Q299.7 4.9 303.4 5.0 Q307.0 5.0 311.2 5.2 Q315.4 5.5 318.9 5.2 Q322.5 5.0 324.6 5.3 Q326.7 5.7 330.4 5.7 Q334.0 5.7 336.7 5.6 Q339.4 5.5 342.8 5.7 Q346.2 5.9 349.4 6.1 Q352.7 6.2 356.3 6.1 Q359.9 5.9 362.3 6.3 Q364.7 6.7 368.7 6.7 Q372.7 6.6 374.6 6.2 Q376.5 5.8 378.9 5.9 Q381.4 6.1 384.7 5.8 Q388.0 5.6 391.1 5.5 Q394.2 5.4 396.2 5.6 Q398.2 5.8 399.1 5.4 Q400 5.1 400.0 2.5 L400 0Z'/%3E%3C/svg%3E") bottom / 100% 7px no-repeat;
+        }
+        /* 排版參考海報：背後一個超大淡色英文字，左邊兩行小號大寫標籤，中間粗黑標題，右邊斜體細字的日期時間 */
+        .mail-mark {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-52%);
+            font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: 2px;
+            color: rgba(107,131,150,.07); pointer-events: none; white-space: nowrap;
+        }
+        .mail.is-fail .mail-mark { top: 14px; transform: none; font-size: 40px; color: rgba(160,145,111,.1); }
+        .mail-row { position: relative; display: flex; align-items: center; gap: 12px; white-space: nowrap; min-width: 0; }
+        .mail-kicker {
+            flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;
+            padding-right: 12px; border-right: 1px solid rgba(59,77,90,.18);
+            font-size: 6.5px; line-height: 1; letter-spacing: 1.6px; color: var(--muted);
+        }
+        .mail-kicker b { font-size: 7.5px; letter-spacing: 2px; font-weight: 700; color: var(--ink); }
+        .mail.is-fail .mail-kicker b { color: #8f805f; }
+        .mail-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; letter-spacing: 2px; font-weight: 700; color: var(--ink); }
+        /* 窄螢幕：收掉日期，只留時間，標題字距收一點，保證一行放得下（標題都控制在六個字以內） */
+        @media (max-width: 380px) {
+            .mail-title { font-size: 14px; letter-spacing: 1.2px; }
+            .mail-time small { display: none; }
+            .mail-row { gap: 10px; }
+            .mail-kicker { padding-right: 10px; }
+        }
+        .mail-time {
+            flex-shrink: 0; margin-left: auto; display: flex; align-items: baseline; gap: 5px;
+            font-size: 11px; font-style: italic; font-weight: 300; letter-spacing: .5px; color: var(--muted);
+        }
+        .mail-time small { font-size: 6.5px; font-style: normal; font-weight: 500; letter-spacing: 1.2px; line-height: 1.1; }
+        .mail-reason {
+            display: none; position: relative; margin-top: 4px; padding-left: 16px;
+            font-size: 11.5px; line-height: 1.65; letter-spacing: .5px; color: var(--muted); word-break: break-word;
+        }
+        .mail-reason::before { content: '→'; position: absolute; left: 0; top: 0; color: #a0916f; }
+        .mail.is-fail .mail-reason { display: block; }
+        .mail.is-fail .mail-strip { gap: 8px; }
+
+        /* 紙膠帶：斜斜貼在左端，兩頭撕開 */
+        .mail-tape {
+            position: absolute; z-index: 3; pointer-events: none;
+            left: -12px; top: -1px; width: 54px; height: 17px;
+            background-color: #9fb1bf;
+            background-image: repeating-linear-gradient(70deg, transparent 0 6px, #b7c6d1 6px 7px);
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 18' preserveAspectRatio='none'%3E%3Cpath d='M3 0.7 L5.7 0.9 L10.3 1.6 L13.8 1.8 L20.0 1.2 L23.5 2.1 L27.5 1.8 L31.2 0.6 L37.5 0.8 L44.8 1.2 L48.2 0.6 L52.8 1.5 L57 0.5 L57.7 1 L59.5 2.8 L56.6 4.4 L57.7 5.8 L59.2 9.3 L59.6 12.4 L57.5 15.9 L59.4 17 L57 16.8 L55.2 17.8 L50.9 16.4 L43.8 16.7 L38.9 16.1 L34.2 17.6 L27.6 16.7 L24.1 17.9 L21.0 17.9 L16.7 16.6 L14.2 16.3 L10.1 16.7 L5.7 17.3 L3 17.5 L1.9 17 L0.8 14.3 L2.8 12.2 L0.7 9.1 L0.1 5.5 L0.0 4.2 L2.5 1Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 18' preserveAspectRatio='none'%3E%3Cpath d='M3 0.7 L5.7 0.9 L10.3 1.6 L13.8 1.8 L20.0 1.2 L23.5 2.1 L27.5 1.8 L31.2 0.6 L37.5 0.8 L44.8 1.2 L48.2 0.6 L52.8 1.5 L57 0.5 L57.7 1 L59.5 2.8 L56.6 4.4 L57.7 5.8 L59.2 9.3 L59.6 12.4 L57.5 15.9 L59.4 17 L57 16.8 L55.2 17.8 L50.9 16.4 L43.8 16.7 L38.9 16.1 L34.2 17.6 L27.6 16.7 L24.1 17.9 L21.0 17.9 L16.7 16.6 L14.2 16.3 L10.1 16.7 L5.7 17.3 L3 17.5 L1.9 17 L0.8 14.3 L2.8 12.2 L0.7 9.1 L0.1 5.5 L0.0 4.2 L2.5 1Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+            transform: rotate(-24deg);
+        }
+        .mail.is-note .mail-tape { background-color: #b4c3ce; background-image: repeating-linear-gradient(70deg, transparent 0 6px, #c9d5dd 6px 7px); }
+        .mail.is-fail .mail-tape { background-color: #cbbe9c; background-image: repeating-linear-gradient(70deg, transparent 0 6px, #dbd1b6 6px 7px); }
+
+    
