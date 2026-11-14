@@ -145,7 +145,7 @@ export default function SettingsLayout({
         className={`paper-overlay${active ? " active" : ""}`}
         onClick={onClose}
       >
-        <div className="paper-stack-container" onClick={(e) => e.stopPropagation()}>
+        <div className={`paper-stack-container${active === 1 || active === 3 ? " has-paper-stack" : ""}`} onClick={(e) => e.stopPropagation()}>
           <div className="paper-layer-bot"></div>
           <div className="paper-layer-mid"></div>
           <div className="paper-main">
