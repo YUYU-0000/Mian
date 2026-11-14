@@ -2,9 +2,9 @@
 <!--
   圖片查看設計稿（點票根「查看」後的全屏預覽）
   - 遮罩：rgba(59,77,90,.42)，後面的聊天隱約可見。
-  - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)；後面墊兩張錯開的紙（#6b8396、#c5d0d8）。
+  - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)；後面墊兩張錯開的紙（#5f7789、#7f95a5，兩張都是灰藍，深淺只差一檔）。
   - 照片長寬比跟著圖片本身：完整顯示不裁切；最寬 78vw（減去相紙內邊距），最高 60vh，超出等比縮小。相紙白邊和底部留白固定。
-  - 底部白邊：左邊 IMAGE · 圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫 No.編號 + 日期。
+  - 底部白邊：左邊 IMAGE · 圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫日期（月.日），不寫編號。
   - 保存：相紙長按一秒保存，按住時輕微下沉，移動超過 10px 或提前鬆手取消；遮罩不放操作按鈕。
   - 手勢：兩指縮放；下拉跟手淡出，鬆手繼續下滑關閉；點遮罩空白處關閉，相紙本身不關閉。
   - 動畫：打開從下方 16px、scale(.96) 淡入並轉到 -1.2deg，320ms，底紙晚 40ms；關閉下移 10px、scale(.97) 淡出，220ms。緩動 cubic-bezier(.22,.8,.3,1)。
@@ -28,8 +28,8 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
 .pv{position:fixed;left:50%;top:46%;width:fit-content;transform:translate(-50%,-50%)}
 /* 後面墊兩張錯開的紙：灰藍、淺灰藍 */
 .pv-under{position:absolute;inset:0;border-radius:1px;background-image:var(--grain)}
-.pv-under.a{background-color:#6b8396;transform:translate(-14px,10px) rotate(-5deg)}
-.pv-under.b{background-color:#c5d0d8;transform:translate(10px,14px) rotate(3.5deg)}
+.pv-under.a{background-color:#5f7789;transform:translate(-14px,10px) rotate(-5deg)}
+.pv-under.b{background-color:#7f95a5;transform:translate(10px,14px) rotate(3.5deg)}
 /* 相紙 */
 .pv-card{position:relative;background:#fbfaf6;background-image:var(--grain);padding:16px 16px 0;border-radius:1px;
   box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 24px rgba(30,40,50,.22);transform:rotate(-1.2deg)}
@@ -45,6 +45,9 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
 /* 操作 */
 .pv-hint{position:fixed;left:0;right:0;top:calc(16% + env(safe-area-inset-top));text-align:center;font-family:"ZSFT-br",serif;font-size:7px;letter-spacing:3px;color:rgba(245,242,236,.7)}
 
+/* 英文、數字統一用頭像下方時間戳那款 ZSFT-br，中文落到全局的霞鶩銘心宋 */
+.pv-kicker,.pv-name{font-family:"ZSFT-br","LXGW Heart Serif",serif}
+.pv-name{font-size:12px;letter-spacing:1px}
 </style></head><body>
 <div class="chat"><div class="u">帮我找张海边的图</div><div>图也找到了，你看看喜不喜欢。</div><div>是早上拍的那种。</div></div>
 <div class="pv-mask"></div>
@@ -55,7 +58,7 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
     <div class="pv-photo"></div>
     <div class="pv-foot">
       <div class="pv-info"><div class="pv-kicker">IMAGE · 圖片</div><div class="pv-name">morning-sea.png</div></div>
-      <div class="pv-hand">No.02<br>11.14</div>
+      <div class="pv-hand">11.14</div>
     </div>
   </div>
 </div>
