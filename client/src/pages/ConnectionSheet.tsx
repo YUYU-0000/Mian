@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import type { ApiPreset } from "../connectionTypes";
+import { createId } from "../id";
 import AnimatedText from "../components/AnimatedText";
 import { notify } from "../components/Notify";
 import type { TagConfig } from "./ConnectionLayout";
 
 export type Draft = ApiPreset & { paperKey: string; plus?: boolean };
-export const blankDraft = (): Draft => ({ id: "", note: "", endpoint: "", key: "", model: "", paperKey: crypto.randomUUID(), plus: true });
+export const blankDraft = (): Draft => ({ id: "", note: "", endpoint: "", key: "", model: "", paperKey: createId(), plus: true });
 const pad2 = (n: number) => String(n).padStart(2, "0");
 function apiAccent(i: number, count: number) {
   const t = count === 1 ? 0 : i / (count - 1);
