@@ -54,8 +54,10 @@
   flex-direction: column;
 }
 .ft-kicker {
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+  font-weight: 500;
   font-size: 6.5px;
-  letter-spacing: 2px;
+  letter-spacing: 2.2px;
   color: var(--t-muted);
   display: flex;
   gap: 8px;
@@ -69,9 +71,10 @@
 }
 .ft-name {
   margin-top: 3px;
-  font-size: 13.5px;
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 14px;
   line-height: 1.2;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   color: var(--t-ink);
   white-space: nowrap;
   overflow-x: auto;
@@ -87,19 +90,20 @@
   margin-top: auto;
   display: flex;
   gap: 10px;
-  font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 1px;
+  align-items: baseline;
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
+  font-size: 8.5px;
+  letter-spacing: 1.2px;
   color: var(--t-muted);
 }
 .ft-meta b {
-  font-weight: 500;
-  color: var(--t-ink);
+  font-weight: 400;
+  color: var(--t-muted);
 }
 .ft-act {
   margin-left: auto;
-  font-family: inherit;
-  font-size: 8px;
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 8.5px;
   letter-spacing: 1.5px;
   color: var(--t-ink);
   border-bottom: 1px solid var(--t-ink);
@@ -125,8 +129,9 @@
 .ft-ext {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  font-size: 12px;
-  letter-spacing: 2px;
+  font-family: "ZSFT-br", serif;
+  font-size: 12.5px;
+  letter-spacing: 2.5px;
   color: var(--t-ink);
 }
 .ft-stub::before {
@@ -189,9 +194,9 @@
   background: var(--t-ink);
 }
 
-/* 保留设计稿的字体和盒模型，避免受聊天页全局规则影响。 */
+/* 两款字体：名字和按钮用霞鹜铭心宋，标注用 ZSFT-br；盒模型不受聊天页全局规则影响。 */
 .ft {
-  font-family: "Noto Serif CJK SC", serif;
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
   flex-shrink: 0;
 }
 .ft,
@@ -204,7 +209,7 @@
   height: 74px;
 }
 .ft.is-image .ft-name {
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 /* 待发送票根悬在输入框上方。 */
