@@ -6,8 +6,8 @@ test("chat disclosures use the final design grid and timing contract", async () 
   const css = await readFile("client/src/mobile-fixes.css", "utf8");
   const chat = await readFile("client/src/pages/Chat.tsx", "utf8");
   const motionCss = css.slice(
-    css.indexOf("/* Original collapsible motion"),
-    css.indexOf("/* Paper-only local font"),
+    css.indexOf(".archive-chat {"),
+    css.indexOf("\n}", css.indexOf(".archive-tool-step.is-expanded .archive-step-body {")) + 2,
   );
 
   assert.match(css, /grid-template-rows:\s*0fr/);

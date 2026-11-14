@@ -44,22 +44,23 @@ test("Connections fonts needed on first entry are preloaded exactly once", async
 });
 
 test("Connections title typography and the 220ms route transition stay intact", async () => {
-  const [connections, theme, motion] = await Promise.all([
-    readFile("client/src/pages/Connections.tsx", "utf8"),
+  const [layout, connections, theme, motion] = await Promise.all([
+    readFile("client/src/pages/ConnectionLayout.tsx", "utf8"),
+    readFile("client/src/pages/connections.css", "utf8"),
     readFile("client/src/theme.css", "utf8"),
     readFile("client/src/mobile-fixes.css", "utf8"),
   ]);
 
   assert.match(
-    connections,
-    /<div className="mail-first-title">\s*CODEX\s*<i>LOCAL<\/i>\s*<\/div>/,
+    layout,
+    /className="env1-title-text">[\s\S]*?CLOUD[\s\S]*?<span className="maison">PLANS<\/span>/,
   );
 
-  const title = cssRule(theme, ".mail-first-title");
+  const title = cssRule(connections, ".connections-page .env1-title-text");
   assert.match(title, /font-size:\s*52px/);
   assert.match(title, /letter-spacing:\s*5px/);
   assert.match(title, /transform:\s*rotate\(90deg\) translateY\(-100%\)/);
-  assert.match(cssRule(theme, ".mail-first-title i"), /font-weight:\s*300/);
+  assert.match(cssRule(connections, ".connections-page .env1-title-text .maison"), /font-weight:\s*300/);
 
   const lightFace = (theme.match(/@font-face\s*\{[^}]*\}/g) ?? []).find(
     (block) => block.includes("/fonts/zsft/light.woff2"),

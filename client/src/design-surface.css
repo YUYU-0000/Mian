@@ -1,8 +1,10 @@
-/* Use the standalone designs' native box model, including form controls. */
+/* 连接和设置页面使用原始盒模型。 */
 :where(.connections-page, .settings-page, .notify-surface) *,
 :where(.connections-page, .settings-page, .notify-surface) *::before,
-:where(.connections-page, .settings-page, .notify-surface) *::after { box-sizing: revert; }
-/* Keep the app-wide SVG rule intact; restore native SVG defaults locally. */
+:where(.connections-page, .settings-page, .notify-surface) *::after {
+  box-sizing: revert;
+}
+/* 局部恢复 SVG 默认样式。 */
 .connections-page svg,
 .settings-page svg {
   fill: initial;
@@ -12,19 +14,27 @@
   stroke-linejoin: initial;
 }
 .connections-page svg[fill="none"],
-.settings-page svg[fill="none"] { fill: none; }
-:is(.connections-page, .settings-page) :where(button, input, textarea, select) { font: revert; }
-/* Old connection styles positioned the rivet independently of its button. */
+.settings-page svg[fill="none"] {
+  fill: none;
+}
+:is(.connections-page, .settings-page) :where(button, input, textarea, select) {
+  font: revert;
+}
+/* 让铆钉跟随扣子布局。 */
 .connections-page .tie-btn::after {
   position: static;
   left: auto;
   top: auto;
   box-shadow: none;
 }
-.connections-page .paper-overlay { all: revert; }
-.settings-page .paper-overlay { all: revert; }
+.connections-page .paper-overlay,
+.settings-page .paper-overlay {
+  all: revert;
+}
 .route-transition-frame.route-surface-connections,
-.route-transition-frame.route-surface-settings { max-width: none; }
+.route-transition-frame.route-surface-settings {
+  max-width: none;
+}
 .route-transition-press[data-transition-target="/settings"] .dock-2,
 .route-transition-press[data-transition-target="/"] .settings-header .back-btn {
   animation: routeControlPress 40ms ease-out both;

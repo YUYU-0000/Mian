@@ -37,15 +37,15 @@ test("ticket metadata formatting uses real values and honest empty states", () =
   assert.equal(formatLastMessage("  最后一条真实消息  "), "最后一条真实消息");
   assert.equal(
     formatLastActivity(
-      "2026-08-19T09:07:00-07:00",
-      new Date("2026-08-19T12:00:00-07:00"),
+      new Date(2026, 7, 19, 9, 7).toISOString(),
+      new Date(2026, 7, 19, 12),
     ),
     "Today 09:07",
   );
   assert.equal(
     formatLastActivity(
-      "2026-08-16T23:18:00-07:00",
-      new Date("2026-08-19T12:00:00-07:00"),
+      new Date(2026, 7, 16, 23, 18).toISOString(),
+      new Date(2026, 7, 19, 12),
     ),
     "2026.08.16",
   );

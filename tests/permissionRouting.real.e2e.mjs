@@ -40,7 +40,7 @@ const turnResponse = await fetch(`${baseUrl}/api/turn`, {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     conversationId: owner.conversationId,
-    text: "请使用命令执行工具尝试在 C:\\Windows\\Temp 中创建 permission-e2e.tmp。必须先请求权限，不要改用别的方法。",
+    text: "请使用命令执行工具尝试在 C:\\Windows\\Temp 中创建 permission-e2e.tmp。调用时必须设置 sandbox_permissions 为 require_escalated，并填写 justification，先等待权限决定。不要直接在沙箱内执行，不要改用别的方法。",
   }),
 });
 assert.equal(turnResponse.status, 200);
