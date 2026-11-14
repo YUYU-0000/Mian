@@ -45,7 +45,7 @@ export default function Connections({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     if (open !== "sub") return;
     const id = providers[subIndex].id;
-    if (subscriptions[id].loaded) return;
+    if (id !== "codex" && subscriptions[id].loaded) return;
     patchSub(id, { loaded: true });
     void api.subStatus(id).then(status => {
       patchSub(id, status);
