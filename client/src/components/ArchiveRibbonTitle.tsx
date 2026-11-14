@@ -14,15 +14,13 @@ type RibbonTitleTransition = {
 export default function ArchiveRibbonTitle({
   conversationId,
   title,
-  channelName,
 }: {
   conversationId: string;
   title: string;
-  channelName: string;
 }) {
   const target = {
     conversationId,
-    text: `${channelName} · ${title || "ARCHIVE CHAT"}`,
+    text: title || "ARCHIVE CHAT",
   };
   const [displayed, setDisplayed] = useState<RibbonTitleValue>(target);
   const [transition, setTransition] =

@@ -528,7 +528,6 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Chat
-              channelName={channel.name}
               session={chatSession}
               onBack={() => navigateWithTransition("/")}
               conversations={conversations}

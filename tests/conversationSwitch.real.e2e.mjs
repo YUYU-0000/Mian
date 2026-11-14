@@ -136,7 +136,7 @@ try {
   await waitUntil(
     () =>
       evaluate(
-        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(first.conversationId)} && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(`CODEX · ${first.title}`)}`,
+        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(first.conversationId)} && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(first.title)}`,
       ),
     "initial conversation did not render",
   );
@@ -309,7 +309,7 @@ try {
 
   assert.equal(finalState.active, first.conversationId);
   assert.equal(finalState.displayed, first.conversationId);
-  assert.equal(finalState.title, `CODEX · ${first.title}`);
+  assert.equal(finalState.title, first.title);
   assert.equal(finalState.draft, firstDraft);
   assert.ok(Math.abs(finalState.scrollTop - firstScrollTop) <= 2);
   assert.equal(finalState.horizontalOverflow, 0);
@@ -338,7 +338,7 @@ try {
         "both conversation layers became transparent",
       );
     if (frame.displayed && titles[frame.displayed])
-      assert.equal(frame.title, `CODEX · ${titles[frame.displayed]}`, "title and Store switched in different frames");
+      assert.equal(frame.title, titles[frame.displayed], "title and Store switched in different frames");
     assert.notEqual(frame.background, "rgba(0, 0, 0, 0)");
     assert.notEqual(frame.background, "rgb(0, 0, 0)");
     if (frame.displayed === first.conversationId)

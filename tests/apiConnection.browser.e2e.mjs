@@ -171,7 +171,7 @@ try {
   await navigate("/");
   await waitFor(() => evaluate("document.querySelector('.capsule-text')?.textContent === '我的中转'"), "Home did not show the current API note");
   await navigate("/chat");
-  await waitFor(() => evaluate("document.querySelector('#archiveRibbonTitle')?.textContent === '我的中转 · 对话标题'"), "Chat did not show the channel and preserve its title");
+  await waitFor(() => evaluate("document.querySelector('#archiveRibbonTitle')?.textContent === '对话标题'"), "Chat title included the channel or lost its conversation title");
   await navigate("/connections");
   await waitFor(() => evaluate("Boolean(document.querySelector('#codexTie'))"), "Connections did not reopen");
   await evaluate("document.querySelector('#codexTie').click()");
