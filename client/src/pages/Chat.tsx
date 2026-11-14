@@ -862,7 +862,7 @@ export default function Chat({
               void act();
             }
           }}
-          placeholder="留存新的记录..."
+          placeholder="留存新的记录"
         />
         <button type="button" disabled aria-label="语音稍后开放">
           <svg viewBox="0 0 24 24">

@@ -73,10 +73,7 @@ export function lastVisibleMessageSummary(messages: ChatGroup[]) {
     for (let item = candidates.length - 1; item >= 0; item -= 1) {
       const value = candidates[item].replace(/\s+/g, " ").trim();
       if (!value) continue;
-      const characters = Array.from(value);
-      return characters.length > 80
-        ? `${characters.slice(0, 79).join("")}…`
-        : value;
+      return value;
     }
   }
   return null;

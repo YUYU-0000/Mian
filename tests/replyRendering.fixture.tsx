@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import ReplyMarkdown from "../client/src/components/ReplyMarkdown";
 import Notify, { notify } from "../client/src/components/Notify";
 import ToolOutput from "../client/src/components/ToolOutput";
+import ArchiveRibbonTitle from "../client/src/components/ArchiveRibbonTitle";
 
 const root = createRoot(document.getElementById("root")!);
 (window as any).renderFixture = (
@@ -27,7 +28,17 @@ const root = createRoot(document.getElementById("root")!);
     </>,
   );
 };
-(window as any).showNotice = () => notify.ok("已複製");
+(window as any).showNotice = (title = "已複製", reason = "") =>
+  reason ? notify.fail(title, reason) : notify.ok(title);
+(window as any).renderTitleFixture = (title: string) =>
+  root.render(
+    <>
+      <div className="archive-ribbon">
+        <ArchiveRibbonTitle conversationId="long-title" title={title} />
+      </div>
+      <Notify page="/chat" />
+    </>,
+  );
 (window as any).renderToolFixture = (command: string, result: string) =>
   root.render(
     <div className="archive-msg-content">

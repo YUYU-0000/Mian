@@ -12,7 +12,6 @@ import { ApiChat } from "../server/src/apiChat.ts";
 import {
   apiRequestMessages,
   API_FORMAT_REMINDER,
-  API_HTML_STYLE,
 } from "../server/src/apiPrompt.ts";
 import {
   MIAN_API_PUBLIC_REPLY_PROTOCOL,
@@ -84,7 +83,7 @@ test("API request reminders affect only the last user message and never mutate h
   assert.deepEqual(apiRequestMessages(history, localTime), request);
   assert.equal(
     request[0].content,
-    `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${API_HTML_STYLE}\n\n${localTime}`,
+    `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${localTime}`,
   );
   assert.doesNotMatch(
     MIAN_PUBLIC_REPLY_PROTOCOL,
@@ -208,7 +207,7 @@ test("API sends a fresh local clock and puts it beside the protocol in the syste
   assert.deepEqual(bodies[2].messages, [
     {
       role: "system",
-      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${API_HTML_STYLE}\n\n${bodies[1].localTime}`,
+      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${bodies[1].localTime}`,
     },
     { role: "user", content: `现在几点\n\n${API_FORMAT_REMINDER}` },
   ]);

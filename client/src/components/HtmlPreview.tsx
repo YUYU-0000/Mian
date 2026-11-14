@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import DOMPurify from "dompurify";
 
-// 预览中的脚本也先消毒，只注入回报高度的脚本。
+// 预览保留原始页面，在独立 sandbox 中执行，并回报内容高度。
 const resizeScript = `<script>
 (() => {
   let frame;
@@ -24,12 +23,9 @@ export default function HtmlPreview({ source }: { source: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(1);
   const srcDoc = useMemo(() => {
-    const html = DOMPurify.sanitize(source, {
-      WHOLE_DOCUMENT: true,
-      ADD_TAGS: ["style"],
-      FORBID_TAGS: ["iframe"],
-    });
-    return html.replace(/<\/body>/i, `${resizeScript}</body>`);
+    return /<\/body>/i.test(source)
+      ? source.replace(/<\/body>/i, (closingBody) => resizeScript + closingBody)
+      : source + resizeScript;
   }, [source]);
   useEffect(() => {
     const receive = (event: MessageEvent) => {
@@ -51,7 +47,7 @@ export default function HtmlPreview({ source }: { source: string }) {
     <iframe
       ref={frame}
       title="HTML 預覽"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-forms allow-modals allow-popups"
       srcDoc={srcDoc}
       style={{ height }}
     />

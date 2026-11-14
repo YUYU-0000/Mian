@@ -14,15 +14,8 @@ export type CompletionEvent =
   | { type: "usage"; usage: TokenUsage };
 
 // 仅使用 Web API，供服务端和手机端共用。
-export function shortProviderMessage(message: string) {
-  const text = message.replace(/\s+/g, " ").trim();
-  const sentences =
-    text.match(/.*?(?:[。！？!?]|\.(?=\s|$)|$)/g)?.filter(Boolean) ?? [];
-  const brief = sentences
-    .slice(0, 2)
-    .map((sentence) => sentence.trim())
-    .join(" ");
-  return brief.length > 240 ? `${brief.slice(0, 239)}…` : brief;
+export function providerMessage(message: string) {
+  return message.replace(/\s+/g, " ").trim();
 }
 
 class ProviderError extends Error {
@@ -31,7 +24,7 @@ class ProviderError extends Error {
     readonly status: number,
     readonly param?: string,
   ) {
-    super(shortProviderMessage(detail));
+    super(providerMessage(detail));
   }
 }
 

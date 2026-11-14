@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { apiRequestMessages } from "./apiPrompt.js";
 import {
   completeChat,
-  shortProviderMessage,
+  providerMessage,
   type ChatMessage,
   type ProviderConfig,
   type TokenUsage,
@@ -110,7 +110,7 @@ export class ApiChat {
     } catch (cause) {
       status = turn.controller.signal.aborted ? "interrupted" : "failed";
       if (status === "failed")
-        error = shortProviderMessage((cause as Error).message);
+        error = providerMessage((cause as Error).message);
     }
     try {
       if (usage) await this.recordUsage(conversationId, usage);

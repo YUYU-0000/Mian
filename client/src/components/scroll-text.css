@@ -1,0 +1,25 @@
+/* 单行长文字横向阅读，保留原来的字号与换字动画。 */
+.scroll-text,
+.connections-page .scroll-text,
+.settings-page .scroll-text,
+.ticket-drawer .scroll-text {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+.scroll-text::-webkit-scrollbar {
+  display: none;
+}
+.scroll-text.is-overflowing {
+  mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
+}
+.scroll-text-content {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}

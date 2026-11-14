@@ -18,7 +18,9 @@ const conversation = {
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 };
 let channel = { kind: "codex", name: "CODEX" };
-let preset = { id: "paper", note: "我的中转", endpoint: "https://fake.test/relay", hasKey: true, keyHint: "sk-abcd", model: "", format: "openai" };
+const longModel = "provider/" + "long-model-name-".repeat(12);
+let modelsAvailable = false;
+let preset = { id: "paper", note: "我的中转", endpoint: "https://fake.test/relay", hasKey: true, keyHint: "sk-abcd", model: longModel, format: "openai" };
 const calls = [];
 let workspaceConfig = { workingDirectory: "C:\\Users\\Example\\MianWorkspace", sandbox: "workspace-write", model: "test", channel: { kind: "codex" } };
 let seq = 0;
@@ -43,7 +45,9 @@ app.put("/api/config", (req, res) => {
   workspaceConfig = req.body; res.json(workspaceConfig);
 });
 app.get("/api/api-presets", (_req, res) => res.json({ presets: [preset], activeId: channel.kind === "api" ? "paper" : null }));
-app.post("/api/api-models", (_req, res) => res.status(400).json({ error: "Model listing is unavailable." }));
+app.post("/api/api-models", (_req, res) => modelsAvailable
+  ? res.json([longModel])
+  : res.status(400).json({ error: "Model listing is unavailable." }));
 app.post("/api/api-presets", (req, res) => {
   const { key, ...fields } = req.body;
   assert.equal(key, "");
@@ -117,8 +121,25 @@ try {
     await evaluate(`document.activeElement.blur(); document.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true }))`);
   };
   const currentPaper = ".api-sheet:not([inert])";
+  const swipeText = async selector => {
+    const point = await evaluate(`(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      element.scrollLeft = 0;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.right - 16, y: rect.top + rect.height / 2 };
+    })()`);
+    await call("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+    await call("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: point.x - 1, y: point.y + 2 }] });
+    for (let step = 1; step <= 6; step++) {
+      await call("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: point.x - step * 14, y: point.y + 2 }] });
+      await sleep(16);
+    }
+    await call("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    assert.ok(await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollLeft > 30`), `Text did not scroll: ${selector}`);
+  };
   await call("Page.enable"); await call("Runtime.enable");
   await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await call("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
   await navigate("/connections");
   await waitFor(() => evaluate("Boolean(document.querySelector('#apiTie'))"), "Connections did not render");
   await evaluate("document.querySelector('#apiTie').click()");
@@ -126,6 +147,25 @@ try {
   assert.equal(await evaluate("document.querySelector('.api-sheet .js-key').value"), "");
   assert.equal(await evaluate("document.querySelector('.api-sheet .js-key').placeholder"), "sk-abcd");
   assert.equal(await evaluate("document.querySelector('.api-sheet .js-toggle')"), null);
+  await evaluate("Promise.all(document.querySelector('#apiStack').getAnimations().map(animation => animation.finished))");
+  await waitFor(() => evaluate(`document.querySelector('${currentPaper} .js-model .scroll-text')?.classList.contains('is-overflowing')`), "Long model did not become scrollable");
+  const modelCallsBeforeSwipe = calls.filter(call => call.path === "/api/api-models").length;
+  await swipeText(`${currentPaper} .js-model .scroll-text`);
+  assert.equal(await evaluate(`document.querySelector('${currentPaper}').dataset.i`), "0");
+  assert.equal(calls.filter(call => call.path === "/api/api-models").length, modelCallsBeforeSwipe);
+  const longNote = "完整的紙片備註".repeat(12);
+  await input(`${currentPaper} .js-note`, longNote);
+  await swipeText(`${currentPaper} .js-note`);
+  assert.equal(await evaluate(`document.querySelector('${currentPaper} .js-note').value`), longNote);
+  assert.equal(await evaluate(`document.querySelector('${currentPaper}').dataset.i`), "0");
+  await input(`${currentPaper} .js-note`, "我的中转");
+  modelsAvailable = true;
+  await evaluate("document.activeElement.blur(); document.querySelector('.api-sheet .js-model').click()");
+  await waitFor(() => evaluate("document.querySelector('.tag-option .scroll-text')?.classList.contains('is-overflowing')"), "Long tag option did not become scrollable");
+  await swipeText(".tag-option .scroll-text");
+  assert.equal(await evaluate("document.querySelector('#hangTag').classList.contains('is-visible')"), true);
+  await evaluate("document.querySelector('.tag-option').click()");
+  modelsAvailable = false;
   await evaluate("document.querySelector('.api-sheet .js-model').click()");
   await waitFor(() => evaluate("Boolean(document.querySelector('input.js-model'))"), "MODEL did not allow manual input after listing failed");
   await evaluate(`(() => {
@@ -186,6 +226,13 @@ try {
   await waitFor(() => channel.kind === "api", "USE did not select the API channel");
   await navigate("/");
   await waitFor(() => evaluate("document.querySelector('.capsule-text')?.textContent === '我的中转'"), "Home did not show the current API note");
+  channel = { ...channel, name: longNote };
+  publishChannel();
+  await waitFor(() => evaluate("document.querySelector('.capsule-text')?.classList.contains('is-overflowing')"), "Long channel note did not become scrollable");
+  await swipeText(".capsule-text");
+  assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+  channel = { ...channel, name: preset.note };
+  publishChannel();
   await navigate("/chat");
   await waitFor(() => evaluate("document.querySelector('#archiveRibbonTitle')?.textContent === '对话标题'"), "Chat title included the channel or lost its conversation title");
   const publishReply = (event) => {

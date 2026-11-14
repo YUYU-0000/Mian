@@ -125,7 +125,7 @@ export default function Media({
         className={`loading-text${cover ? " js-loading" : ""}`}
         style={{ display: loading ? "block" : "none" }}
       >
-        載入中...
+        載入中
       </div>
       <input
         type="file"

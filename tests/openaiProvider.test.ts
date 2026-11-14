@@ -171,12 +171,13 @@ test("auth, quota and model errors preserve provider reasons without retrying", 
     [401, "Invalid API key."],
     [429, "Insufficient quota. Add credits. Third sentence."],
     [404, "Model does not exist."],
+    [400, "Provider detail ".repeat(30) + "last sentence."],
   ] as const) {
     const mocked = t.mock.method(globalThis, "fetch", async () =>
       Response.json({ error: { message } }, { status }),
     );
     await assert.rejects(collect(), {
-      message: status === 429 ? "Insufficient quota. Add credits." : message,
+      message,
     });
     assert.equal(mocked.mock.callCount(), 1);
     mocked.mock.restore();

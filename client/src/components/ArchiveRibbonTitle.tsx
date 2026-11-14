@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import ScrollText from "./ScrollText";
 
 type RibbonTitleValue = {
   conversationId: string;
@@ -53,10 +54,10 @@ export default function ArchiveRibbonTitle({
     >
       {transition ? (
         <>
-          <span className="archive-title-text archive-title-outgoing">
+          <ScrollText className="archive-title-text archive-title-outgoing">
             {transition.from.text}
-          </span>
-          <span
+          </ScrollText>
+          <ScrollText
             key={transition.generation}
             className="archive-title-text archive-title-incoming"
             onAnimationEnd={(event) => {
@@ -71,10 +72,10 @@ export default function ArchiveRibbonTitle({
             }}
           >
             {transition.to.text}
-          </span>
+          </ScrollText>
         </>
       ) : (
-        <span className="archive-title-text">{displayed.text}</span>
+        <ScrollText className="archive-title-text">{displayed.text}</ScrollText>
       )}
     </div>
   );

@@ -640,15 +640,17 @@
   color: var(--muted);
 }
 .connections-page .cover-link-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   font-size: 12px;
   letter-spacing: 0.5px;
   color: var(--ink);
   transition: transform 0.2s ease;
 }
-.connections-page .cover-link-value::after {
+.connections-page .cover-link-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.connections-page .cover-link-text::after {
   content: "›";
   font-size: 13px;
   color: rgba(59, 77, 90, 0.4);
@@ -913,6 +915,7 @@
 .connections-page .api-pick {
   all: unset;
   flex: 1;
+  min-width: 0;
   cursor: pointer;
   padding: 3px 0 2px;
   font-size: 12px;

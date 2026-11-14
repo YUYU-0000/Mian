@@ -4,6 +4,7 @@ import { api } from "../api";
 import type { ApiPreset } from "../connectionTypes";
 import type { Draft } from "../apiDrafts";
 import AnimatedText from "../components/AnimatedText";
+import ScrollText, { ScrollInput } from "../components/ScrollText";
 import { notify } from "../components/Notify";
 import type { TagConfig } from "./ConnectionLayout";
 
@@ -65,7 +66,7 @@ export default function ApiSheet({
     format: draft.format,
   });
   const isOn = !!draft.id && activeId === draft.id;
-  const status = testing ? "TESTING…" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
+  const status = testing ? "TESTING" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
   const model = async () => {
     const cfg = form();
     if (!cfg.endpoint || (!cfg.key && !draft.hasKey)) {
@@ -198,7 +199,7 @@ export default function ApiSheet({
           <span className="api-total">/ {pad2(total)}</span>
         </div>
         <label className="api-note-label">NOTE 備註</label>
-        <input
+        <ScrollInput
           className="api-note js-note"
           type="text"
           maxLength={16}
@@ -223,7 +224,7 @@ export default function ApiSheet({
             <b>01</b>ENDPOINT
           </span>
           <span className="api-row">
-            <input
+            <ScrollInput
               className="api-input js-endpoint"
               type="url"
               inputMode="url"
@@ -240,7 +241,7 @@ export default function ApiSheet({
             <b>02</b>KEY
           </span>
           <span className="api-row">
-            <input
+            <ScrollInput
               className="api-input js-key"
               type={showKey ? "text" : "password"}
               autoComplete="off"
@@ -266,7 +267,7 @@ export default function ApiSheet({
             <b>03</b>MODEL
           </span>
           <span className="api-row">
-            {manualModel ? <input
+            {manualModel ? <ScrollInput
               className="api-input js-model"
               type="text"
               aria-label="MODEL 模型名稱"
@@ -282,9 +283,9 @@ export default function ApiSheet({
               type="button"
               onClick={() => void model()}
             >
-              <AnimatedText
-                text={loadingModels ? "讀取中…" : draft.model || "點擊讀取"}
-              />
+              <ScrollText><AnimatedText
+                text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
+              /></ScrollText>
             </button>}
           </span>
         </div>

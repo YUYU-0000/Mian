@@ -9,6 +9,7 @@ import "./ticket-drawer.css";
 import "./design-surface.css";
 import "./pages/connections.css";
 import "./pages/settings.css";
+import "./components/scroll-text.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

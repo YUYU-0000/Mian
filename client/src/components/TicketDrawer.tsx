@@ -8,6 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { ConversationRecord } from "../types";
+import ScrollText, { ScrollInput } from "./ScrollText";
 import {
   displayConversationValue,
   formatLastActivity,
@@ -288,7 +289,7 @@ function MiniTicket({
               onActivate();
             }}
           >
-            <span
+            <ScrollText
               className="mini-abbr"
               style={{
                 fontSize,
@@ -296,7 +297,7 @@ function MiniTicket({
               }}
             >
               {conversation.abbr}
-            </span>
+            </ScrollText>
           </button>
         </div>
       </div>
@@ -623,7 +624,7 @@ export default function TicketDrawer({
                   <div className="part-overlay front-overlay" />
                 </div>
                 {preview && (
-                  <div
+                  <ScrollText
                     className="front-text"
                     contentEditable
                     suppressContentEditableWarning
@@ -641,7 +642,7 @@ export default function TicketDrawer({
                     }}
                   >
                     {preview.frontName}
-                  </div>
+                  </ScrollText>
                 )}
               </div>
 
@@ -669,7 +670,7 @@ export default function TicketDrawer({
                     <div className="back-grid">
                       <label className="bg-row row-title">
                         <span className="box-label">Nickname</span>
-                        <input
+                        <ScrollInput
                           key={`${preview.conversationId}:title`}
                           type="text"
                           className="back-input cursive-input"
@@ -682,14 +683,14 @@ export default function TicketDrawer({
                         />
                       </label>
                       <div className="bg-row row-info">
-                        <div className="info-line"><span className="box-label">Model :</span><span className="back-input">{displayConversationValue(preview.model)}</span></div>
-                        <div className="info-line"><span className="box-label">Effort :</span><span className="back-input">{displayConversationValue(preview.reasoningEffort)}</span></div>
-                        <div className="info-line"><span className="box-label">Token Used :</span><span className="back-input">{formatTokenUsage(preview.uncachedTotalTokens)}</span></div>
+                        <div className="info-line"><span className="box-label">Model :</span><ScrollText className="back-input">{displayConversationValue(preview.model)}</ScrollText></div>
+                        <div className="info-line"><span className="box-label">Effort :</span><ScrollText className="back-input">{displayConversationValue(preview.reasoningEffort)}</ScrollText></div>
+                        <div className="info-line"><span className="box-label">Token Used :</span><ScrollText className="back-input">{formatTokenUsage(preview.uncachedTotalTokens)}</ScrollText></div>
                       </div>
-                      <div className="bg-row row-rating"><span className="box-label">Seen</span><span className="back-input tone-input">{formatLastActivity(preview.lastActivityAt)}</span></div>
-                      <div className="bg-row row-review"><span className="box-label">Last MSG</span><div className="back-textarea">{formatLastMessage(preview.lastMessage)}</div></div>
+                      <div className="bg-row row-rating"><span className="box-label">Seen</span><ScrollText className="back-input tone-input">{formatLastActivity(preview.lastActivityAt)}</ScrollText></div>
+                      <div className="bg-row row-review"><span className="box-label">Last MSG</span><ScrollText className="back-textarea">{formatLastMessage(preview.lastMessage)}</ScrollText></div>
                       <div className="bg-row row-datetime">
-                        <div className="info-line"><span className="box-label">Mode :</span><span className="back-input">{displayConversationValue(preview.collaborationMode)}</span></div>
+                        <div className="info-line"><span className="box-label">Mode :</span><ScrollText className="back-input">{displayConversationValue(preview.collaborationMode)}</ScrollText></div>
                         <div className="info-line"><span className="box-label">Mem :</span><span className="back-input">NONE</span></div>
                       </div>
                       <div className="row-seat">

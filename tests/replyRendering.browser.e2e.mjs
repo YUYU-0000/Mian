@@ -118,6 +118,42 @@ try {
     evaluate(
       `renderFixture(${JSON.stringify(bubbles)}, ${typing}, ${JSON.stringify(page)})`,
     );
+  const swipeText = async (selector) => {
+    const point = await evaluate(`(async () => {
+      const text = document.querySelector(${JSON.stringify(selector)});
+      text.scrollIntoView({block:'center'}); text.scrollLeft = 0;
+      await new Promise(requestAnimationFrame);
+      const rect = text.getBoundingClientRect();
+      return {x: rect.right - 10, y: rect.top + rect.height / 2};
+    })()`);
+    await call("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [point],
+    });
+    await call("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: point.x - 1, y: point.y + 2 }],
+    });
+    for (let step = 1; step <= 6; step++) {
+      await call("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: point.x - step * 12, y: point.y + 2 }],
+      });
+      await sleep(16);
+    }
+    await call("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    const position = await evaluate(`(() => {
+      const text = document.querySelector(${JSON.stringify(selector)});
+      return { left:text.scrollLeft, width:text.clientWidth, content:text.scrollWidth };
+    })()`);
+    assert.ok(
+      position.left > 30,
+      `Text did not scroll: ${selector} ${JSON.stringify(position)}`,
+    );
+  };
   await call("Page.enable");
   await call("Runtime.enable");
   await call("Emulation.setDeviceMetricsOverride", {
@@ -125,6 +161,10 @@ try {
     height: 844,
     deviceScaleFactor: 1,
     mobile: true,
+  });
+  await call("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 1,
   });
   await call("Page.navigate", {
     url: `http://127.0.0.1:${server.address().port}`,
@@ -262,7 +302,7 @@ try {
       paper: "rgb(245, 242, 236)",
       radius: "2px",
       header: "dashed",
-      padding: "10px 14px 12px",
+      padding: "7px 12px 8px",
       whitespace: "pre",
       font: "12px",
       mono: true,
@@ -278,8 +318,7 @@ try {
   );
   assert.equal(await evaluate("window.copiedCode"), code);
 
-  const html =
-    '<!doctype html><html><head><style>body{margin:0}section{height:900px;background:#ddd}</style></head><body><section>預覽內容</section><script>parent.__xss=1</script><iframe src="about:blank"></iframe></body></html>';
+  const html = `<!doctype html><html><head><style>body{margin:0}section{height:900px;background:#ddd}button{position:fixed;top:0;left:0;width:120px;height:36px}</style></head><body><section>預覽內容</section><button onclick="parent.postMessage({type:'fixture-preview-click',count:++window.demoCount},'*')">點擊計數</button><script>window.demoCount=0;let isolated=false;try{parent.__xss=1}catch{isolated=true}parent.postMessage({type:'fixture-preview-ready',isolated},'*')</script><iframe src="about:blank"></iframe></body></html>`;
   const htmlBubble = "```html\n" + html + "\n```";
   await render([htmlBubble]);
   await waitFor(
@@ -287,6 +326,9 @@ try {
       evaluate("Boolean(document.querySelector('.reply-code-preview button'))"),
     "HTML preview action missing",
   );
+  await evaluate(`window.previewEvents = []; window.addEventListener('message', event => {
+    if (event.source === document.querySelector('.reply-code-preview iframe')?.contentWindow && event.data?.type?.startsWith('fixture-preview-')) window.previewEvents.push(event.data);
+  })`);
   await evaluate(
     "document.querySelector('.reply-code-preview button').click()",
   );
@@ -301,12 +343,38 @@ try {
     return { sandbox: frame.getAttribute('sandbox'), opaque: frame.contentDocument === null, modelScript: frame.srcdoc.includes('parent.__xss'), nestedFrame: frame.srcdoc.includes('<iframe'), xss: Boolean(window.__xss) };
   })()`),
     {
-      sandbox: "allow-scripts",
+      sandbox: "allow-scripts allow-forms allow-modals allow-popups",
       opaque: true,
-      modelScript: false,
-      nestedFrame: false,
+      modelScript: true,
+      nestedFrame: true,
       xss: false,
     },
+  );
+  await waitFor(
+    () =>
+      evaluate(
+        "window.previewEvents.some(event => event.type === 'fixture-preview-ready' && event.isolated)",
+      ),
+    "Preview script did not run inside an isolated origin",
+  );
+  const previewButton = await evaluate(`(async () => {
+    const frame = document.querySelector('.reply-code-preview iframe');
+    frame.scrollIntoView({ block: 'center' });
+    await new Promise(requestAnimationFrame);
+    const rect = frame.getBoundingClientRect();
+    return { x: rect.left + 40, y: rect.top + 18 };
+  })()`);
+  await call("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [previewButton],
+  });
+  await call("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await waitFor(
+    () =>
+      evaluate(
+        "window.previewEvents.some(event => event.type === 'fixture-preview-click' && event.count === 1)",
+      ),
+    "Preview onclick did not respond to a real click",
   );
   assert.deepEqual(
     await evaluate(`(() => {
@@ -347,6 +415,12 @@ try {
         "parseFloat(document.querySelector('iframe')?.style.height) > 60 && parseFloat(document.querySelector('iframe')?.style.height) < 150",
       ),
     "Short preview height did not adapt",
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('iframe').srcdoc.startsWith('<div style="height:70px">短預覽</div>')`,
+    ),
+    true,
   );
 
   await render(["```js\nconst unfinished = 1", "後一個氣泡"], true);
@@ -400,6 +474,62 @@ try {
       "Notice page label incorrect",
     );
   }
+  const longTitle = "完整的對話名稱".repeat(12);
+  await evaluate(`renderTitleFixture(${JSON.stringify(longTitle)})`);
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.archive-title-text')?.classList.contains('is-overflowing')",
+      ),
+    "Long ticket title did not become scrollable",
+  );
+  await swipeText(".archive-title-text");
+  assert.equal(
+    await evaluate("document.querySelector('.archive-title-text').textContent"),
+    longTitle,
+  );
+  await evaluate(
+    `showNotice(${JSON.stringify(longTitle)}, ${JSON.stringify("保留完整錯誤原因。".repeat(40))})`,
+  );
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.mail.is-in .mail-title')?.classList.contains('is-overflowing')",
+      ),
+    "Long notice did not become scrollable",
+  );
+  await evaluate(
+    "Promise.all(document.querySelector('.mail').getAnimations().map(animation => animation.finished))",
+  );
+  assert.deepEqual(
+    await evaluate(`(() => {
+    const text = document.querySelector('.mail-title'); const style = getComputedStyle(text);
+    return {nowrap:style.whiteSpace, x:style.overflowX, y:style.overflowY, scrollbar:style.scrollbarWidth, webkit:getComputedStyle(text,'::-webkit-scrollbar').display, fade:style.maskImage.includes('14px')};
+  })()`),
+    {
+      nowrap: "nowrap",
+      x: "auto",
+      y: "hidden",
+      scrollbar: "none",
+      webkit: "none",
+      fade: true,
+    },
+  );
+  await swipeText(".mail-title");
+  assert.equal(
+    await evaluate(
+      "document.querySelector('.mail').classList.contains('is-in')",
+    ),
+    true,
+  );
+  await swipeText(".mail-reason .scroll-text");
+  assert.equal(
+    await evaluate(
+      "document.querySelector('.mail').classList.contains('is-in')",
+    ),
+    true,
+  );
+
   const command = "python " + "long-argument ".repeat(60);
   const output = Array.from(
     { length: 14 },

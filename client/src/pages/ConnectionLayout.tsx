@@ -1,5 +1,6 @@
 import type { RefObject, ReactNode } from "react";
 import WorkspaceEditor from "./WorkspaceEditor";
+import ScrollText from "../components/ScrollText";
 export type TagConfig = {
   giant: string;
   giantY?: number;
@@ -309,7 +310,7 @@ export default function ConnectionLayout({
                     }
                   }}
                 >
-                  {item.label}
+                  <ScrollText>{item.label}</ScrollText>
                 </button>
               ))}
             </div>

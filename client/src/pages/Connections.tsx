@@ -4,6 +4,7 @@ import { api } from "../api";
 import type { Provider, Quota, Subscription } from "../connectionTypes";
 import type { Channel } from "../types";
 import AnimatedText from "../components/AnimatedText";
+import ScrollText from "../components/ScrollText";
 import Media from "../components/Media";
 import { notify } from "../components/Notify";
 import { makeStack, type PaperStack } from "../components/paperStack";
@@ -351,10 +352,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                     onClick={() => void account(provider.id)}
                   >
                     <span className="cover-link-label">ACCOUNT</span>
-                    <AnimatedText
-                      className="cover-link-value js-account-v"
+                    <ScrollText className="cover-link-value js-account-v"><AnimatedText className="cover-link-text"
                       text={s.loggedIn ? (s.plan || "SIGNED IN").toUpperCase() : "未登入"}
-                    />
+                    /></ScrollText>
                   </button>
                   <button
                     className="cover-link js-model"
@@ -362,10 +362,9 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                     onClick={() => void subModels(provider.id)}
                   >
                     <span className="cover-link-label">MODEL</span>
-                    <AnimatedText
-                      className="cover-link-value js-model-v"
+                    <ScrollText className="cover-link-value js-model-v"><AnimatedText className="cover-link-text"
                       text={s.model || "未設定"}
-                    />
+                    /></ScrollText>
                   </button>
                   <button
                     className="cover-link js-quota"
@@ -375,16 +374,15 @@ export default function Connections({ onBack, channel }: { onBack: () => void; c
                     }
                   >
                     <span className="cover-link-label">QUOTA</span>
-                    <AnimatedText
-                      className="cover-link-value js-quota-v"
+                    <ScrollText className="cover-link-value js-quota-v"><AnimatedText className="cover-link-text"
                       text={
                         s.quotaLoading
-                          ? "讀取中…"
+                          ? "讀取中"
                           : s.quota
                             ? `剩餘 ${s.quota.left}%`
                             : "—"
                       }
-                    />
+                    /></ScrollText>
                   </button>
                 </div>
               </div>

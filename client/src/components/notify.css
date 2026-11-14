@@ -52,7 +52,7 @@
         }
         .mail-kicker b { font-size: 7.5px; letter-spacing: 2px; font-weight: 700; color: var(--ink); }
         .mail.is-fail .mail-kicker b { color: #8f805f; }
-        .mail-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; letter-spacing: 2px; font-weight: 700; color: var(--ink); }
+        .mail-title { flex: 1; min-width: 0; font-size: 15px; letter-spacing: 2px; font-weight: 700; color: var(--ink); }
         /* 窄螢幕：收掉日期，只留時間，標題字距收一點，保證一行放得下（標題都控制在六個字以內） */
         @media (max-width: 380px) {
             .mail-title { font-size: 14px; letter-spacing: 1.2px; }

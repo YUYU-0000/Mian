@@ -1,6 +1,7 @@
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import ScrollText from "./ScrollText";
 import "./notify.css";
 
 type Notice = { kind: "ok" | "note" | "fail"; title: string; reason: string; time: Date };
@@ -94,13 +95,13 @@ export default function Notify({ page }: { page: string }) {
                 <b>{notice.kind === "fail" ? "未成功" : mark}</b>
                 <span>{pageLabel} →</span>
               </div>
-              <span className="mail-title">{notice.title}</span>
+              <ScrollText className="mail-title">{notice.title}</ScrollText>
               <span className="mail-time">
                 <small>{`${pad2(notice.time.getMonth() + 1)}.${pad2(notice.time.getDate())}`}</small>
                 <span>{`${pad2(notice.time.getHours())}:${pad2(notice.time.getMinutes())}`}</span>
               </span>
             </div>
-            <div className="mail-reason">{notice.reason}</div>
+            <div className="mail-reason"><ScrollText>{notice.reason}</ScrollText></div>
           </div>
         </div>
         <span className="mail-tape" />
