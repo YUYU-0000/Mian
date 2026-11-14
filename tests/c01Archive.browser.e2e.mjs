@@ -151,7 +151,7 @@ try {
   await waitUntil(
     () =>
       evaluate(
-        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(victim.conversationId)} && document.querySelectorAll('.mini-ticket-container').length > 1 && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(victim.title)} && document.querySelectorAll('#archiveRibbonTitle .archive-title-text').length === 1`,
+        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(victim.conversationId)} && document.querySelectorAll('.mini-ticket-container').length > 1 && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(`CODEX · ${victim.title}`)} && document.querySelectorAll('#archiveRibbonTitle .archive-title-text').length === 1`,
       ),
     "selected Chat did not render",
   );

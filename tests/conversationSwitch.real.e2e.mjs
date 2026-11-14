@@ -136,7 +136,7 @@ try {
   await waitUntil(
     () =>
       evaluate(
-        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(first.conversationId)} && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(first.title)}`,
+        `document.querySelector('.archive-chat')?.dataset.displayedConversationId === ${JSON.stringify(first.conversationId)} && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(`CODEX · ${first.title}`)}`,
       ),
     "initial conversation did not render",
   );
@@ -164,6 +164,9 @@ try {
         draft: input?.value ?? null,
         opacity: style?.opacity ?? null,
         filter: style?.filter ?? null,
+        incomingDuration: style?.animationDuration ?? null,
+        incomingDelay: style?.animationDelay ?? null,
+        outgoingDuration: outgoingStyle?.animationDuration ?? null,
         outgoingOpacity: outgoingStyle?.opacity ?? null,
         chatCount: document.querySelectorAll('.archive-chat').length,
         headerCount: document.querySelectorAll('.archive-header').length,
@@ -195,8 +198,8 @@ try {
   const selectTicket = async (conversationId, finishImmediately = false) => {
     await evaluate(`document.querySelector('.ribbon-ticket-hit').click()`);
     await waitUntil(
-      () => evaluate(`document.querySelector('.ticket-drawer')?.classList.contains('is-open')`),
-      "ticket drawer did not open",
+      () => evaluate(`document.querySelector('.ticket-drawer')?.classList.contains('is-open') && getComputedStyle(document.querySelector('.ticket-workspace')).opacity === '1'`),
+      "ticket drawer entrance did not finish",
     );
     const targetSelector = `.mini-ticket-container[data-id="${conversationId}"] .mini-lower`;
     await waitUntil(
@@ -233,20 +236,16 @@ try {
   assert.equal(await setDraft(firstDraft), firstDraft);
   const firstScrollTop = await setScroll();
   await selectTicket(second.conversationId);
-  await waitUntil(
+  const normalFrame = await waitUntil(
     () =>
       evaluate(
-        `document.querySelector('.archive-message-layer-current')?.dataset.conversationSwitchPhase === 'overlap'`,
+        `window.__mianSwitchFrames.find(frame => frame.displayed === ${JSON.stringify(second.conversationId)} && frame.phase === 'overlap')`,
       ),
     "normal overlap did not start",
   );
-  const normalOutgoingDuration = await evaluate(
-    `getComputedStyle(document.querySelector('.archive-message-layer-outgoing')).animationDuration`,
-  );
-  const normalIncoming = await evaluate(
-    `(() => { const style = getComputedStyle(document.querySelector('.archive-message-layer-current')); return { duration: style.animationDuration, delay: style.animationDelay }; })()`,
-  );
   await waitForIdle(second.conversationId);
+  const normalOutgoingDuration = normalFrame.outgoingDuration;
+  const normalIncoming = { duration: normalFrame.incomingDuration, delay: normalFrame.incomingDelay };
   assert.equal(normalOutgoingDuration, "0.16s");
   assert.deepEqual(normalIncoming, { duration: "0.18s", delay: "0.04s" });
   assert.equal(await setDraft(secondDraft), secondDraft);
@@ -310,7 +309,7 @@ try {
 
   assert.equal(finalState.active, first.conversationId);
   assert.equal(finalState.displayed, first.conversationId);
-  assert.equal(finalState.title, first.title);
+  assert.equal(finalState.title, `CODEX · ${first.title}`);
   assert.equal(finalState.draft, firstDraft);
   assert.ok(Math.abs(finalState.scrollTop - firstScrollTop) <= 2);
   assert.equal(finalState.horizontalOverflow, 0);
@@ -339,7 +338,7 @@ try {
         "both conversation layers became transparent",
       );
     if (frame.displayed && titles[frame.displayed])
-      assert.equal(frame.title, titles[frame.displayed], "title and Store switched in different frames");
+      assert.equal(frame.title, `CODEX · ${titles[frame.displayed]}`, "title and Store switched in different frames");
     assert.notEqual(frame.background, "rgba(0, 0, 0, 0)");
     assert.notEqual(frame.background, "rgb(0, 0, 0)");
     if (frame.displayed === first.conversationId)

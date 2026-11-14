@@ -1,5 +1,5 @@
 import { createId } from "./id";
-import type { Approval, ChatEvent, ToolEvent } from "./types";
+import type { Approval, ChatEvent, ChatMessage, ToolEvent } from "./types";
 
 export const CHAT_STORAGE_KEY = "mian.chat-groups.v2";
 
@@ -12,6 +12,7 @@ export type UserGroup = {
   records: UserRecord[];
 };
 export type ReplyGroup = {
+  format?: "plain";
   replyGroupId: string;
   role: "assistant";
   time: string;
@@ -30,6 +31,30 @@ export type ReplyGroup = {
   status?: string;
 };
 export type ChatGroup = UserGroup | ReplyGroup;
+
+// 用可见正文组成完整历史，不带工具、思考或 Codex 协议标记。
+export function chatHistory(groups: ChatGroup[]): ChatMessage[] {
+  const messages: ChatMessage[] = [];
+  for (const group of groups) {
+    if (group.role === "assistant" && group.status === "failed") continue;
+    const content = group.role === "user"
+      ? group.records.map(record => record.text).join("\n\n")
+      : [...group.preToolBubbles, ...group.bubbles].join("\n\n");
+    if (!content) continue;
+    const previous = messages.at(-1);
+    if (previous?.role === group.role) previous.content += `\n\n${content}`;
+    else messages.push({ role: group.role, content });
+  }
+  return messages;
+}
+
+function parseReply(raw: string, format?: "plain", final = false) {
+  if (format !== "plain") return parsePublicReply(raw, { final });
+  return {
+    thinking: "", preToolBubbles: [], preToolBubbleComplete: [], preToolComplete: false,
+    toolSummaries: [], bubbles: raw ? [raw] : [], bubbleComplete: raw ? [final] : [],
+  };
+}
 
 export function isThinkingRunning(reply: ReplyGroup): boolean {
   return (
@@ -301,6 +326,10 @@ export function pendingUserGroup(groups: ChatGroup[]): UserGroup | undefined {
 }
 
 export function recoverLastUnansweredUserGroup(groups: ChatGroup[]): ChatGroup[] {
+  const last = groups.at(-1);
+  const user = groups.at(-2);
+  if (last?.role === "assistant" && last.format === "plain" && last.status === "failed" && user?.role === "user")
+    return [...groups.slice(0, -2), { ...user, pending: true }];
   let lastAssistantIndex = -1;
   for (let index = groups.length - 1; index >= 0; index -= 1) {
     if (groups[index].role === "assistant") {
@@ -344,6 +373,7 @@ export function applyReplyEvent(
       {
         replyGroupId: event.turnId,
         role: "assistant",
+        format: "format" in event ? event.format : undefined,
         time,
         thinking: "",
         activeReasoningItemIds: [],
@@ -389,10 +419,12 @@ export function applyReplyEvent(
     };
   } else if (event.type === "assistant-delta") {
     const raw = group.raw + event.delta;
-    const parsed = parsePublicReply(raw);
+    const format = event.format ?? group.format;
+    const parsed = parseReply(raw, format);
     updated = {
       ...group,
       raw,
+      format,
       thinking: parsed.thinking,
       preToolBubbles: parsed.preToolBubbles,
       preToolBubbleIds: alignIds(
@@ -424,7 +456,7 @@ export function applyReplyEvent(
   } else if (event.type === "approval")
     updated = { ...group, approvals: [...group.approvals, event.approval] };
   else if (event.type === "turn-completed") {
-    const parsed = parsePublicReply(group.raw, { final: true });
+    const parsed = parseReply(group.raw, group.format, true);
     const needsCompatibilityBridge =
       group.tools.length > 0 &&
       (parsed.preToolBubbles.length === 0 || !parsed.preToolComplete);
@@ -504,9 +536,10 @@ export function loadChatGroups(storage: Pick<Storage, "getItem">): ChatGroup[] {
     if (!Array.isArray(value)) return [];
     return (value as ChatGroup[]).map((group) => {
       if (group.role !== "assistant") return group;
-      const parsed = parsePublicReply(
+      const parsed = parseReply(
         typeof group.raw === "string" ? group.raw : "",
-        { final: Boolean(group.status) },
+        group.format,
+        Boolean(group.status),
       );
       const preToolBubbles =
         Array.isArray(group.preToolBubbles) && group.preToolBubbles.length > 0

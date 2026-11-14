@@ -17,11 +17,13 @@ const Icon = ({
 );
 export default function Home({
   status,
+  channelName,
   onChat,
   onConnections,
   onSettings,
 }: {
   status: ConnectionStatus;
+  channelName: string;
   onChat: () => void;
   onConnections: () => void;
   onSettings: () => void;
@@ -149,7 +151,7 @@ export default function Home({
       <div className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}>
         <div className={`home-code-status status-content ${connectionClass}`}>
           <House />
-          <span className="capsule-text">CODEX</span>
+          <span className="capsule-text">{channelName}</span>
         </div>
         <div className="home-dots">
           <i />

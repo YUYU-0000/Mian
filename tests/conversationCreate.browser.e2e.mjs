@@ -279,7 +279,7 @@ try {
     await waitUntil(
       () =>
         evaluate(
-          `document.querySelector('#archiveRibbonTitle')?.querySelectorAll('.archive-title-text').length === 1 && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(renamedTitle)}`,
+          `document.querySelector('#archiveRibbonTitle')?.querySelectorAll('.archive-title-text').length === 1 && document.querySelector('#archiveRibbonTitle')?.textContent === ${JSON.stringify(`CODEX · ${renamedTitle}`)}`,
         ),
       "saved rename did not finish one title transition",
     );
@@ -311,7 +311,7 @@ try {
   assert.equal(createIndex, 3);
   assert.equal(finalState.active, temporary[2].conversationId);
   assert.equal(finalState.displayed, temporary[2].conversationId);
-  assert.equal(finalState.title, renamedTitle);
+  assert.equal(finalState.title, `CODEX · ${renamedTitle}`);
   assert.equal(finalState.draft, "");
   assert.equal(finalState.horizontalOverflow, 0);
   assert.equal(finalState.chatStable, true);

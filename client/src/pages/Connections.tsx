@@ -2,6 +2,7 @@ import { pad2 } from "../format";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Provider, Quota, Subscription } from "../connectionTypes";
+import type { Channel } from "../types";
 import AnimatedText from "../components/AnimatedText";
 import Media from "../components/Media";
 import { notify } from "../components/Notify";
@@ -26,7 +27,7 @@ type SubState = Subscription & {
   quotaLoading?: boolean;
 };
 
-export default function Connections({ onBack }: { onBack: () => void }) {
+export default function Connections({ onBack, channel }: { onBack: () => void; channel: Channel }) {
   const root = useRef<HTMLElement>(null);
   const subTrack = useRef<HTMLDivElement>(null);
   const apiTrack = useRef<HTMLDivElement>(null);
@@ -54,6 +55,9 @@ export default function Connections({ onBack }: { onBack: () => void }) {
   const [presets, setPresets] = useState<Draft[]>([]);
   const [plus, setPlus] = useState<Draft>(blankDraft);
   const [activeId, setActiveId] = useState<string | null>(null);
+  useEffect(() => {
+    setActiveId(channel.kind === "api" ? channel.presetId : null);
+  }, [channel]);
   const [focus, setFocus] = useState(0);
   const [revision, setRevision] = useState(0);
   const [tag, setTag] = useState<TagConfig | null>(null);
@@ -250,6 +254,12 @@ export default function Connections({ onBack }: { onBack: () => void }) {
       notify.fail("模型讀取失敗", error);
     }
   };
+  const useCodex = () => {
+    void api.useCodex().then(() => {
+      setActiveId(null);
+      notify.ok("已切換");
+    }).catch(error => notify.fail("切換失敗", error));
+  };
   const rearrange = (index: number) => {
     setFocus(index);
     setRevision((value) => value + 1);
@@ -285,7 +295,20 @@ export default function Connections({ onBack }: { onBack: () => void }) {
               <span className="cover-count">{`${pad2(index + 1)} / ${pad2(providers.length)}`}</span>
             </div>
             <div className="cover-band">
-              <div className="cover-giant" style={{ fontSize: provider.size }}>
+              <div
+                className="cover-giant"
+                style={{ fontSize: provider.size }}
+                role={provider.id === "codex" ? "button" : undefined}
+                tabIndex={provider.id === "codex" ? 0 : undefined}
+                aria-label={provider.id === "codex" ? "使用 Codex 通道" : undefined}
+                onClick={provider.id === "codex" ? useCodex : undefined}
+                onKeyDown={provider.id === "codex" ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    useCodex();
+                  }
+                } : undefined}
+              >
                 {provider.giant}
               </div>
               <div className="cover-band-inner">

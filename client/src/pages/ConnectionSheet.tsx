@@ -14,6 +14,7 @@ export const blankDraft = (): Draft => ({
   endpoint: "",
   key: "",
   model: "",
+  format: "openai",
   paperKey: createId(),
   plus: true,
 });
@@ -49,6 +50,7 @@ export default function ApiSheet({
   const [armed, setArmed] = useState(false);
   const [testing, setTesting] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [manualModel, setManualModel] = useState(false);
   const timer = useRef(0);
   const wasPlus = useRef(draft.plus);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -67,20 +69,25 @@ export default function ApiSheet({
     id: draft.id,
     note: draft.note.trim(),
     endpoint: draft.endpoint.trim(),
-    key: draft.key.trim(),
+    key: draft.key?.trim() ?? "",
     model: draft.model,
+    format: draft.format,
   });
   const isOn = !!draft.id && activeId === draft.id;
   const status = testing ? "TESTING…" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
   const model = async () => {
     const cfg = form();
-    if (!cfg.endpoint || !cfg.key) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey)) {
       notify.note("先填網址金鑰");
       return;
     }
     setLoadingModels(true);
     try {
       const list = await api.apiModels(cfg);
+      if (!list.length) {
+        setManualModel(true);
+        return;
+      }
       onTag({
         giant: "MODEL",
         kicker: "SELECT",
@@ -89,6 +96,7 @@ export default function ApiSheet({
         onPick: (value) => onChange({ model: value }),
       });
     } catch (error) {
+      setManualModel(true);
       notify.fail("模型讀取失敗", error);
     } finally {
       setLoadingModels(false);
@@ -101,7 +109,7 @@ export default function ApiSheet({
       ref.current!.querySelector<HTMLInputElement>(".js-note")!.focus();
       return;
     }
-    if (!cfg.endpoint || !cfg.key || !cfg.model) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey) || !cfg.model) {
       notify.note("三項都要填");
       return;
     }
@@ -114,7 +122,7 @@ export default function ApiSheet({
   };
   const test = async () => {
     const cfg = form();
-    if (!cfg.endpoint || !cfg.key || !cfg.model) {
+    if (!cfg.endpoint || (!cfg.key && !draft.hasKey) || !cfg.model) {
       notify.note("三項都要填");
       return;
     }
@@ -245,8 +253,8 @@ export default function ApiSheet({
               type={showKey ? "text" : "password"}
               autoComplete="off"
               spellCheck={false}
-              placeholder="sk-"
-              value={draft.key}
+              placeholder={draft.hasKey ? "已保存，輸入以更換" : "sk-"}
+              value={draft.key ?? ""}
               onChange={(e) => onChange({ key: e.target.value })}
             />
             <button
@@ -266,7 +274,18 @@ export default function ApiSheet({
             <b>03</b>MODEL
           </span>
           <span className="api-row">
-            <button
+            {manualModel ? <input
+              className="api-input js-model"
+              type="text"
+              aria-label="MODEL 模型名稱"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+              placeholder="輸入模型名稱"
+              value={draft.model}
+              onChange={event => onChange({ model: event.target.value })}
+              onBlur={() => onChange({ model: draft.model.trim() })}
+            /> : <button
               className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
               type="button"
               onClick={() => void model()}
@@ -274,7 +293,7 @@ export default function ApiSheet({
               <AnimatedText
                 text={loadingModels ? "讀取中…" : draft.model || "點擊讀取"}
               />
-            </button>
+            </button>}
           </span>
         </div>
       </div>

@@ -274,6 +274,7 @@ function ApprovalCard({
 }
 
 export default function Chat({
+  channelName,
   session,
   onBack,
   conversations,
@@ -293,6 +294,7 @@ export default function Chat({
   initialScrollTop,
   onViewStateChange,
 }: {
+  channelName: string;
   session: ChatSessionStore;
   onBack: () => void;
   conversations: ConversationRecord[];
@@ -606,6 +608,7 @@ export default function Chat({
             onClick={() => setTicketDrawerOpen((open) => !open)}
           />
           <ArchiveRibbonTitle
+            channelName={channelName}
             conversationId={displayedConversation.conversationId}
             title={displayedConversation.title}
           />

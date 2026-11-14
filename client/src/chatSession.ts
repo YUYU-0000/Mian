@@ -4,6 +4,7 @@ import {
   applyReplyEvent,
   appendUserRecord,
   buildPublicReplyPrompt,
+  chatHistory,
   closePendingGroup,
   finalizeReplyGroup,
   loadChatGroups,
@@ -14,7 +15,7 @@ import {
   type ChatGroup,
 } from "./chatModel";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
-import type { ChatEvent, ConversationActivity } from "./types";
+import type { ChatEvent, ChatMessage, ConversationActivity } from "./types";
 import {
   emptyVisualReply,
   hydrateVisualReply,
@@ -28,7 +29,7 @@ const LEGACY_DEFAULT_CONVERSATION_ID = "c1";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type SessionApi = {
-  send: (text: string, conversationId: string) => Promise<{ turnId: string }>;
+  send: (text: string, conversationId: string, messages?: ChatMessage[]) => Promise<{ turnId: string }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
     requestId: string,
@@ -56,6 +57,7 @@ export type ChatSessionOptions = {
   nowMs?: () => number;
   nowIso?: () => string;
   onActivity?: (activity: ConversationActivity) => void;
+  onSendError?: (error: unknown) => void;
   schedule?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
   cancelSchedule?: (timer: ReturnType<typeof setTimeout>) => void;
 };
@@ -194,6 +196,7 @@ export class ChatSessionStore {
   private readonly nowMs: () => number;
   private readonly nowIso: () => string;
   private readonly onActivity?: ChatSessionOptions["onActivity"];
+  private readonly onSendError?: ChatSessionOptions["onSendError"];
   private readonly schedule: ChatSessionOptions["schedule"];
   private readonly cancelSchedule: ChatSessionOptions["cancelSchedule"];
   private readonly listeners = new Set<() => void>();
@@ -222,6 +225,7 @@ export class ChatSessionStore {
     this.nowMs = options.nowMs ?? (() => performance.now());
     this.nowIso = options.nowIso ?? (() => new Date().toISOString());
     this.onActivity = options.onActivity;
+    this.onSendError = options.onSendError;
     this.schedule = options.schedule ?? ((callback, delay) => setTimeout(callback, delay));
     this.cancelSchedule =
       options.cancelSchedule ?? ((timer) => clearTimeout(timer));
@@ -343,14 +347,20 @@ export class ChatSessionStore {
       const result = await this.apiClient.send(
         buildPublicReplyPrompt(userText),
         this.conversationId,
+        chatHistory(this.messages.slice(0, this.messages.indexOf(group) + 1)),
       );
-      this.activeTurnId = result.turnId;
-      this.turnPhase = "running";
+      const reply = this.messages.find(message => message.role === "assistant" && message.replyGroupId === result.turnId);
+      // 快速返回的 API 可能先收到结束事件，再收到 HTTP 响应。
+      if (reply?.role !== "assistant" || !reply.status) {
+        this.activeTurnId = result.turnId;
+        this.turnPhase = "running";
+      }
       this.messages = closePendingGroup(this.messages, group.groupId);
       this.commit(true, true);
       this.schedulePlayback();
     } catch (error) {
       console.error(error);
+      this.onSendError?.(error);
     } finally {
       this.startingTurn = false;
       if (!this.activeTurnId) {
@@ -466,6 +476,7 @@ export class ChatSessionStore {
       messagesChanged = true;
     }
     if (event.type === "turn-completed") {
+      if (event.error) this.onSendError?.(new Error(event.error));
       if (this.activeTurnId === event.turnId) this.turnPhase = "playing";
       const status = event.status.toLowerCase();
       if (status !== "completed" && status !== "success") {
@@ -495,6 +506,10 @@ export class ChatSessionStore {
       }
     }
     this.commit(messagesChanged, sessionChanged);
+    if (event.type === "assistant-delta" && event.immediate) {
+      this.flushTurn(event.turnId);
+      this.commit(false, false);
+    }
     if (event.type === "assistant-delta" || event.type === "turn-completed") {
       const lastMessage = lastVisibleMessageSummary(this.messages);
       this.onActivity?.({

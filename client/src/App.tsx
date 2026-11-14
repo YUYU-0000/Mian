@@ -18,6 +18,7 @@ import {
 } from "./chatSession";
 import { ConversationSessions } from "./conversationSessions";
 import type {
+  Channel,
   ConnectionStatus,
   ConversationActivity,
   ConversationRecord,
@@ -26,7 +27,7 @@ import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Connections from "./pages/Connections";
 import Settings from "./pages/Settings";
-import Notify from "./components/Notify";
+import Notify, { notify } from "./components/Notify";
 import ErrorBoundary from "./ErrorBoundary";
 import { isTicketArchiveEligible } from "./ticketGestures";
 import {
@@ -83,6 +84,7 @@ export default function App() {
   const nav = useNavigate();
   const location = useLocation();
   const [status, setStatus] = useState(initial);
+  const [channel, setChannel] = useState<Channel>({ kind: "codex", name: "CODEX" });
   const [transition, setTransition] = useState<RouteTransition | null>(null);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
     defaultConversation,
@@ -167,6 +169,7 @@ export default function App() {
         activeConversationId,
       ],
       onActivity: recordConversationActivity,
+      onSendError: (error) => notify.fail("發送失敗", error),
     });
   const conversationSessions = conversationSessionsRef.current;
   const chatSession = conversationSessions.get(displayedConversationId);
@@ -211,6 +214,7 @@ export default function App() {
       api.subscribe(
         (event) => {
           if (event.type === "connection") setStatus(event.status);
+          else if (event.type === "channel") setChannel(event.channel);
           else if (event.type === "conversation-updated")
             setConversations((current) => {
               conversationSessions.register(event.conversation);
@@ -236,6 +240,7 @@ export default function App() {
             });
           }
           if (remote.connectionStatus) setStatus(remote.connectionStatus);
+          if (remote.channel) setChannel(remote.channel);
         },
       ),
     [],
@@ -509,7 +514,8 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Home
-              status={status}
+              status={channel.kind === "api" ? { state: "ready", message: channel.name } : status}
+              channelName={channel.name}
               onChat={() => navigateWithTransition("/chat")}
               onConnections={() => navigateWithTransition("/connections")}
               onSettings={() => navigateWithTransition("/settings")}
@@ -522,6 +528,7 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Chat
+              channelName={channel.name}
               session={chatSession}
               onBack={() => navigateWithTransition("/")}
               conversations={conversations}
@@ -558,6 +565,7 @@ export default function App() {
         element={
           <ErrorBoundary>
             <Connections
+              channel={channel}
               onBack={() => navigateWithTransition("/")}
             />
           </ErrorBoundary>

@@ -1,5 +1,6 @@
 export type Sandbox='read-only'|'workspace-write'|'danger-full-access';
-export type AppConfig={workingDirectory:string;sandbox:Sandbox;model:string};
+export type Channel = { kind: "codex" } | { kind: "api"; presetId: string };
+export type AppConfig={workingDirectory:string;sandbox:Sandbox;model:string;channel:Channel};
 export type RpcMessage={jsonrpc:'2.0';id?:number|string;method?:string;params?:unknown;result?:unknown;error?:{code:number;message:string;data?:unknown}};
 export type PendingApproval={rpcId:number|string;kind:'command'|'file'|'permissions';params:Record<string,unknown>;turnId:string;conversationId:string};
 
