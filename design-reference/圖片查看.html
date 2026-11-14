@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  圖片查看設計稿（點票根「查看」後的全屏預覽）
+  - 遮罩：rgba(59,77,90,.42)，後面的聊天隱約可見。
+  - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)，左上角迴紋針；後面墊兩張錯開的紙（#6b8396、#c5d0d8）。
+  - 照片長寬比跟著圖片本身：完整顯示不裁切；最寬 78vw（減去相紙內邊距），最高 60vh，超出等比縮小。相紙白邊和底部留白固定。
+  - 底部白邊：左邊 IMAGE · 圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫 No.編號 + 日期。
+  - 操作：遮罩上兩個帶下劃線的小字「保存」「關閉」，間距 72px。
+  - 手勢：兩指縮放；下拉時拍立得跟手下滑並淡出，鬆手關閉；點遮罩空白處關閉。打開時從票根位置落到螢幕中間，帶一點旋轉。
+-->
+<html><head><meta charset="utf-8"><style>
+@import url("../client/public/fonts/lxgw/result.css");
+@font-face{font-family:"ZSFT-l";src:url("../client/public/fonts/zsft-l/Qwigley-Regular.ttf") format("truetype")}
+@font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/main.woff2") format("woff2");font-weight:400}
+@font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/medium.woff2") format("woff2");font-weight:500}
+:root{--ink:#3b4d5a;--muted:#72828e;--line:rgba(59,77,90,.18);
+--grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
+html,body{margin:0;height:100%}
+body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;position:relative}
+/* 背後的聊天，只為了看遮罩效果 */
+.chat{padding:30px 54px;display:flex;flex-direction:column;gap:14px;color:var(--ink);font-size:14.5px;letter-spacing:1px}
+.chat div{background:#FCFBF8;border:1px solid #6b6256;border-radius:6px;padding:6px 14px;width:fit-content}
+.chat .u{align-self:flex-end;background:#EBE7DE}
+
+/* ===== 圖片查看：拍立得 ===== */
+.pv-mask{position:fixed;inset:0;background:rgba(59,77,90,.42)}
+.pv{position:fixed;left:50%;top:46%;width:fit-content;transform:translate(-50%,-50%)}
+/* 後面墊兩張錯開的紙：灰藍、淺灰藍 */
+.pv-under{position:absolute;inset:0;border-radius:1px;background-image:var(--grain)}
+.pv-under.a{background-color:#6b8396;transform:translate(-14px,10px) rotate(-5deg)}
+.pv-under.b{background-color:#c5d0d8;transform:translate(10px,14px) rotate(3.5deg)}
+/* 相紙 */
+.pv-card{position:relative;background:#fbfaf6;background-image:var(--grain);padding:16px 16px 0;border-radius:1px;
+  box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 24px rgba(30,40,50,.22);transform:rotate(-1.2deg)}
+.pv-photo{display:block;max-width:calc(78vw - 32px);max-height:60vh;width:var(--w);aspect-ratio:var(--r);background:linear-gradient(170deg,#e6ecef 0%,#c9d5dd 38%,#93a7b5 62%,#6b8396 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+/* 迴紋針 */
+.pv-clip{position:absolute;left:40px;top:-26px;width:30px;height:84px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+/* 相紙下方白邊 */
+.pv-foot{width:var(--w);max-width:calc(78vw - 32px);box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-end;padding:14px 2px 16px}
+.pv-info{min-width:0;flex:1;margin-right:12px}
+.pv-kicker{font-family:"ZSFT-br",serif;font-weight:500;font-size:6.5px;letter-spacing:2.2px;color:var(--muted)}
+.pv-name{margin-top:4px;font-size:13px;letter-spacing:.4px;color:var(--ink);white-space:nowrap;overflow-x:auto;scrollbar-width:none;
+  -webkit-mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000);mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000)}
+.pv-hand{flex-shrink:0;font-family:"ZSFT-l",cursive;font-size:22px;line-height:.9;color:#4a5560;text-align:right;transform:rotate(-6deg);margin-bottom:-2px}
+/* 操作 */
+.pv-hint{position:fixed;left:0;right:0;top:calc(16% + env(safe-area-inset-top));text-align:center;font-family:"ZSFT-br",serif;font-size:7px;letter-spacing:3px;color:rgba(245,242,236,.7)}
+
+.pv-acts{position:fixed;left:0;right:0;bottom:calc(15% + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:72px}
+.pv-acts span{font-size:12px;letter-spacing:3px;color:#f5f2ec;border-bottom:1px solid rgba(245,242,236,.8);padding-bottom:2px;cursor:pointer}
+</style></head><body>
+<div class="chat"><div class="u">帮我找张海边的图</div><div>图也找到了，你看看喜不喜欢。</div><div>是早上拍的那种。</div></div>
+<div class="pv-mask"></div>
+
+<div class="pv" style="--w:240px;--r:3/4"><!-- --w、--r 由图片实际尺寸决定，这里是竖图示例 -->
+  <div class="pv-under a"></div><div class="pv-under b"></div>
+  <div class="pv-card">
+    <div class="pv-photo"></div>
+    <div class="pv-foot">
+      <div class="pv-info"><div class="pv-kicker">IMAGE · 圖片</div><div class="pv-name">morning-sea.png</div></div>
+      <div class="pv-hand">No.02<br>11.14</div>
+    </div>
+  </div>
+  <svg class="pv-clip" viewBox="0 0 22 64"><path d="M15 16 V8 a4.2 4.2 0 0 0 -8.4 0 V50 a3.6 3.6 0 0 0 7.2 0 V20 a2 2 0 0 0 -4 0 V40" fill="none" stroke="#8e999f" stroke-width="1.5" stroke-linecap="round"/></svg>
+</div>
+<div class="pv-acts"><span>保存</span><span>關閉</span></div>
+</body></html>
