@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+  檔案票根設計稿（對話裡的檔案卡片）
+  - 模型發來的檔案：米白票根、墨藍字；圖片多一格縮圖，「下載」改成「查看」。
+  - 我發出去的檔案：灰藍紙、米白字；上傳中底部一道細進度線。
+  - 尺寸：寬 min(228px, 100%)，高 70px（圖片 74px）。存根寬 50px，豎排副檔名。
+  - 放不下的文字一律左右滑動查看，右邊緣淡出，不用省略號。
+  - 下面的氣泡和頭像只是為了對照大小，照搬對話界面原稿的數值。
+-->
+<html><head><meta charset="utf-8"><style>
+/* ===== 檔案票根：對話裡的檔案卡片 =====
+   一張米白票根：左邊主票寫檔名，中間打孔虛線，右邊存根直排寫副檔名。
+   模型發的：米白紙、墨藍字；我發的：灰藍紙、米白字。 */
+:root{
+  --ink:#3b4d5a; --muted:#72828e; --soft:#93a7b5; --env1:#6b8396;
+  --paper:#f5f2ec; --line:rgba(59,77,90,.18);
+  --mono: ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+  --grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.06"/></svg>');
+}
+
+.row{display:flex}.row.me{justify-content:flex-end}
+.cap{font-size:9px;letter-spacing:2px;color:var(--muted);margin:0 0 -16px}
+
+.ft{
+  --t-paper:var(--paper); --t-ink:var(--ink); --t-muted:var(--muted); --t-line:var(--line); --t-accent:var(--env1);
+  position:relative; width:min(228px,100%); height:70px; display:flex;
+  filter:drop-shadow(0 3px 6px rgba(59,77,90,.12)) drop-shadow(0 0 1px rgba(59,77,90,.18));
+  -webkit-tap-highlight-color:transparent; cursor:pointer;
+}
+/* 票面：四角小圓缺口 + 打孔處上下兩個半圓缺口，用遮罩挖出來 */
+.ft-body{
+  position:absolute; inset:0; background:var(--t-paper); background-image:var(--grain);
+  --cut:50px; /* 存根寬度 */
+  -webkit-mask:
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 0,#0000 98%,#000) top/100% 51% no-repeat,
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+  mask:
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 0,#0000 98%,#000) top/100% 51% no-repeat,
+    radial-gradient(circle 5px at calc(100% - var(--cut)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
+  border-radius:3px;
+}
+.ft-main{position:relative; flex:1; min-width:0; padding:9px 11px 5px 13px; display:flex; flex-direction:column}
+.ft-kicker{font-size:6.5px; letter-spacing:2px; color:var(--t-muted); display:flex; gap:8px; align-items:center}
+.ft-kicker::after{content:""; flex:1; height:1px; background:var(--t-line)}
+.ft-name{margin-top:3px; font-size:13.5px; line-height:1.2; letter-spacing:.5px; color:var(--t-ink); white-space:nowrap; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000); mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000)}
+.ft-name::-webkit-scrollbar{display:none}
+.ft-meta{margin-top:auto; display:flex; gap:10px; font-family:var(--mono); font-size:8px; letter-spacing:1px; color:var(--t-muted)}
+.ft-meta b{font-weight:500; color:var(--t-ink)}
+.ft-act{margin-left:auto; font-family:inherit; font-size:8px; letter-spacing:1.5px; color:var(--t-ink); border-bottom:1px solid var(--t-ink); padding-bottom:1px}
+/* 打孔虛線 */
+.ft-perf{position:relative; width:0; margin:8px 0; border-left:1px dashed var(--t-line)}
+/* 存根：直排副檔名 + 小號編號 */
+.ft-stub{position:relative; width:50px; flex-shrink:0; display:flex; align-items:center; justify-content:center; gap:7px}
+.ft-ext{writing-mode:vertical-rl; transform:rotate(180deg); font-size:12px; letter-spacing:2px; color:var(--t-ink)}
+.ft-no{display:none; writing-mode:vertical-rl; font-family:var(--mono); font-size:7px; letter-spacing:1.5px; color:var(--t-muted)}
+.ft-stub::before{content:""; position:absolute; top:0; left:13px; width:20px; height:2px; background:var(--t-accent)}
+
+/* 圖片：主票左側放一格縮圖 */
+.ft.is-image .ft-main{flex-direction:row; gap:9px; padding-right:10px; align-items:center}
+.ft-thumb{width:44px; height:56px; flex-shrink:0; border-radius:2px; background:#a4b8c6 center/cover; box-shadow:0 0 0 1px var(--t-line)}
+.ft-col{min-width:0; flex:1; height:100%; display:flex; flex-direction:column}
+
+/* 我發的：灰藍紙、米白字 */
+.ft.is-mine{--t-paper:#6b8396; --t-ink:#f5f2ec; --t-muted:rgba(245,242,236,.7); --t-line:rgba(245,242,236,.35); --t-accent:#f5f2ec}
+/* 上傳中：底部一道細進度線 */
+.ft.is-mine:has(.ft-progress) .ft-main{padding-bottom:9px}
+.ft-progress{position:absolute; left:16px; right:62px; bottom:3px; height:1px; background:var(--t-line)}
+.ft-progress i{display:block; height:100%; width:62%; background:var(--t-ink)}
+
+body{margin:0;background:#f1efe9;font-family:"Noto Serif CJK SC",serif;color:#3b4d5a;padding:18px 0}
+.msg{display:flex;gap:10px;padding:0 10px;margin-bottom:22px}
+.msg.user{flex-direction:row-reverse}
+.av{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:#7590a3}
+.msg.user .av{background:#d8d0c5}
+.col{display:flex;flex-direction:column;gap:6px;max-width:calc(100% - 88px);align-items:flex-start}
+.msg.user .col{align-items:flex-end}
+.bub{width:fit-content;max-width:100%;font-size:14.5px;line-height:1.45;letter-spacing:1px;padding:6px 14px;border:1px solid #6b6256;border-radius:6px;box-shadow:1px 2px 4px rgba(0,0,0,.03);box-sizing:border-box;background:#FCFBF8}
+.msg.user .bub{background:#EBE7DE}
+</style></head><body>
+<div class="msg user"><div class="av"></div><div class="col"><div class="bub">帮我建一个 hello.txt，再找张海边的图</div></div></div>
+<div class="msg"><div class="av"></div><div class="col">
+<div class="bub">建好了，放在工作目录里。</div>
+<div class="ft"><div class="ft-body"></div><div class="ft-main"><div class="ft-kicker">FILE · 檔案</div><div class="ft-name">hello.txt</div><div class="ft-meta"><span><b>12</b> B</span><span>04:01</span><span class="ft-act">下載</span></div></div><div class="ft-perf"></div><div class="ft-stub"><span class="ft-ext">TXT</span><span class="ft-no">No.0001</span></div></div>
+<div class="bub">图也找到了，你看看喜不喜欢。</div>
+<div class="ft is-image" style="height:74px"><div class="ft-body"></div><div class="ft-main"><div class="ft-thumb" style="background-image:linear-gradient(160deg,#c9d5dd,#93a7b5 55%,#6b8396)"></div><div class="ft-col"><div class="ft-kicker">IMAGE · 圖片</div><div class="ft-name" style="font-size:12.5px">morning-sea.png</div><div class="ft-meta"><span><b>1.2</b> MB</span><span class="ft-act">查看</span></div></div></div><div class="ft-perf"></div><div class="ft-stub"><span class="ft-ext">PNG</span><span class="ft-no">No.0002</span></div></div>
+</div></div>
+<div class="msg user"><div class="av"></div><div class="col">
+<div class="ft is-mine"><div class="ft-body"></div><div class="ft-main"><div class="ft-kicker">SENT · 寄出</div><div class="ft-name">連接設置-設計稿.pdf</div><div class="ft-meta"><span><b>3.4</b> MB</span><span>上傳中 62%</span></div></div><div class="ft-perf"></div><div class="ft-stub"><span class="ft-ext">PDF</span><span class="ft-no">No.0003</span></div><div class="ft-progress"><i></i></div></div>
+<div class="bub">这个也帮我看看</div>
+</div></div>
+</body></html>
