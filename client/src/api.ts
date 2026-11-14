@@ -6,7 +6,13 @@ import type {
   ConversationRecord,
   RealtimeSession,
 } from "./types";
-import type { ApiPreset, Provider, Quota, Subscription, VoiceConfig } from "./connectionTypes";
+import type {
+  ApiPreset,
+  Provider,
+  Quota,
+  Subscription,
+  VoiceConfig,
+} from "./connectionTypes";
 
 const STREAM_CURSOR_KEY = "mian.chat-event-cursor.v1";
 
@@ -59,9 +65,7 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
 
 function loadStreamCursor(): StreamCursor | null {
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(STREAM_CURSOR_KEY) ?? "null",
-    );
+    const value: unknown = JSON.parse(localStorage.getItem(STREAM_CURSOR_KEY) ?? "null");
     if (
       typeof value === "object" &&
       value !== null &&
@@ -84,46 +88,72 @@ function saveStreamCursor(cursor: StreamCursor) {
 }
 
 export const api = {
-  subStatus: (provider: Provider) => provider === "codex"
-    ? request<Subscription>("/api/subscriptions/codex")
-    : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
+  subStatus: (provider: Provider) =>
+    provider === "codex"
+      ? request<Subscription>("/api/subscriptions/codex")
+      : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
   subLogin: async (provider: Provider): Promise<{ account: string; plan: string }> => {
     if (provider !== "codex") {
       // 待接后端：保留设计稿的演示登录。
       await delay(900);
-      Object.assign(demoSubscriptions[provider], { loggedIn: true, account: "yuyu@example.com", plan: "plus" });
+      Object.assign(demoSubscriptions[provider], {
+        loggedIn: true,
+        account: "yuyu@example.com",
+        plan: "plus",
+      });
       return demoSubscriptions[provider];
     }
     const popup = window.open("about:blank", "mian-codex-login");
     if (!popup) throw new Error("請允許開啟登入視窗，再試一次。");
     let loginId = "";
     try {
-      const login = await request<{ authUrl: string; loginId: string }>("/api/subscriptions/codex/login", { method: "POST" });
+      const login = await request<{ authUrl: string; loginId: string }>(
+        "/api/subscriptions/codex/login",
+        { method: "POST" },
+      );
       loginId = login.loginId;
       popup.location.href = login.authUrl;
       while (true) {
         await delay(1000);
         const status = await api.subStatus("codex");
-        if (status.loggedIn) { popup.close(); return status; }
+        if (status.loggedIn) {
+          popup.close();
+          return status;
+        }
         if (popup.closed) throw new Error("登入視窗已關閉，尚未完成登入。");
       }
     } catch (error) {
       popup.close();
-      if (loginId) await request("/api/subscriptions/codex/login/cancel", { method: "POST", body: JSON.stringify({ loginId }) });
+      if (loginId)
+        await request("/api/subscriptions/codex/login/cancel", {
+          method: "POST",
+          body: JSON.stringify({ loginId }),
+        });
       throw error;
     }
   },
   subLogout: async (provider: Provider) => {
-    if (provider === "codex") return request("/api/subscriptions/codex/logout", { method: "POST" });
+    if (provider === "codex")
+      return request("/api/subscriptions/codex/logout", { method: "POST" });
     // 待接后端：Gemini / Kimi
     await delay(400);
-    Object.assign(demoSubscriptions[provider], { loggedIn: false, account: "", plan: "" });
+    Object.assign(demoSubscriptions[provider], {
+      loggedIn: false,
+      account: "",
+      plan: "",
+    });
   },
-  subModels: (provider: Provider): Promise<string[]> => provider === "codex"
-    ? request("/api/subscriptions/codex/models")
-    : Promise.resolve(provider === "gemini" ? ["gemini-3-pro", "gemini-3-flash"] : ["kimi-k3", "kimi-k3-turbo"]), // 待接后端
+  subModels: (provider: Provider): Promise<string[]> =>
+    provider === "codex"
+      ? request("/api/subscriptions/codex/models")
+      : Promise.resolve(
+          provider === "gemini"
+            ? ["gemini-3-pro", "gemini-3-flash"]
+            : ["kimi-k3", "kimi-k3-turbo"],
+        ), // 待接后端
   saveSubConfig: async (provider: Provider, cfg: { model: string }) => {
-    if (provider === "codex") return api.saveConfig({ ...await api.getConfig(), model: cfg.model });
+    if (provider === "codex")
+      return api.saveConfig({ ...(await api.getConfig()), model: cfg.model });
     // 待接后端：Gemini / Kimi
     await delay(300);
     demoSubscriptions[provider].model = cfg.model;
@@ -134,12 +164,21 @@ export const api = {
     await delay(600);
     return { left: 96, resetAt: "11月20日 01:59" };
   },
-  apiPresets: () => request<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
-  saveApiPreset: (preset: ApiPreset) => request<ApiPreset>("/api/api-presets", { method: "POST", body: JSON.stringify(preset) }),
-  deleteApiPreset: (id: string) => request<void>(`/api/api-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
-  useApiPreset: (id: string) => request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
-  apiModels: (cfg: ApiPreset) => request<string[]>("/api/api-models", { method: "POST", body: JSON.stringify(cfg) }),
-  apiTest: (cfg: ApiPreset) => request<void>("/api/api-test", { method: "POST", body: JSON.stringify(cfg) }),
+  apiPresets: () =>
+    request<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
+  saveApiPreset: (preset: ApiPreset) =>
+    request<ApiPreset>("/api/api-presets", {
+      method: "POST",
+      body: JSON.stringify(preset),
+    }),
+  deleteApiPreset: (id: string) =>
+    request<void>(`/api/api-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  useApiPreset: (id: string) =>
+    request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
+  apiModels: (cfg: ApiPreset) =>
+    request<string[]>("/api/api-models", { method: "POST", body: JSON.stringify(cfg) }),
+  apiTest: (cfg: ApiPreset) =>
+    request<void>("/api/api-test", { method: "POST", body: JSON.stringify(cfg) }),
   // 待接后端：以下设置接口保留设计稿的预留实现。
   saveFontStyle: async (_page: HTMLElement) => {},
   testFontStyle: async (_page: HTMLElement) => {},
@@ -152,8 +191,7 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(config),
     }),
-  test: () =>
-    request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
+  test: () => request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
   listConversations: () =>
     request<{
       defaultConversationId: string;
@@ -176,19 +214,15 @@ export const api = {
       `/api/conversations/${encodeURIComponent(conversationId)}`,
       { method: "PATCH", body: JSON.stringify(patch) },
     ),
-  updateConversationActivity: (
-    conversationId: string,
-    patch: ConversationActivity,
-  ) =>
+  updateConversationActivity: (conversationId: string, patch: ConversationActivity) =>
     request<{ conversation: ConversationRecord }>(
       `/api/conversations/${encodeURIComponent(conversationId)}/activity`,
       { method: "PATCH", body: JSON.stringify(patch) },
     ),
   archiveConversation: (conversationId: string) =>
-    request<void>(
-      `/api/conversations/${encodeURIComponent(conversationId)}`,
-      { method: "DELETE" },
-    ),
+    request<void>(`/api/conversations/${encodeURIComponent(conversationId)}`, {
+      method: "DELETE",
+    }),
   send: async (text: string, conversationId: string) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
@@ -246,39 +280,29 @@ export const api = {
       ws.onmessage = (message) => {
         try {
           const value: unknown = JSON.parse(String(message.data));
-          if (
-            typeof value !== "object" ||
-            value === null ||
-            !("kind" in value)
-          )
+          if (typeof value !== "object" || value === null || !("kind" in value))
             throw new Error("实时消息缺少 kind");
           if (value.kind === "session") {
             const session = value as SessionEnvelope;
             const reset =
-              !cursor ||
-              cursor.streamId !== session.streamId ||
-              session.reset;
+              !cursor || cursor.streamId !== session.streamId || session.reset;
             const previousSeq = cursor?.seq ?? 0;
             cursor = {
               streamId: session.streamId,
-              seq: reset
-                ? session.seq
-                : Math.max(previousSeq, session.seq),
+              seq: reset ? session.seq : Math.max(previousSeq, session.seq),
             };
             saveStreamCursor(cursor);
             onSession?.({ ...session, reset });
             return;
           }
-          if (value.kind !== "event")
-            throw new Error("未知的实时消息类型");
+          if (value.kind !== "event") throw new Error("未知的实时消息类型");
           const envelope = value as EventEnvelope;
           if (!cursor || cursor.streamId !== envelope.streamId)
             cursor = { streamId: envelope.streamId, seq: 0 };
           if (envelope.seq <= cursor.seq) return;
           onEvent({
             ...envelope.event,
-            conversationId:
-              envelope.event.conversationId ?? envelope.conversationId,
+            conversationId: envelope.event.conversationId ?? envelope.conversationId,
           });
           cursor = { streamId: envelope.streamId, seq: envelope.seq };
           saveStreamCursor(cursor);
@@ -310,7 +334,8 @@ export const api = {
   },
 };
 
-const delay = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 const demoSubscriptions: Record<"gemini" | "kimi", Subscription> = {
   gemini: { loggedIn: false, account: "", plan: "", model: "" },
   kimi: { loggedIn: false, account: "", plan: "", model: "" },

@@ -95,6 +95,26 @@ assert.equal(
 const rootResult = await jsonRequest("/api/conversations", { method: "POST" });
 assert.equal(rootResult.status, 201);
 const root = rootResult.body.conversation;
+const turnSocket = new WebSocket(baseUrl.replace(/^http/, "ws") + "/ws");
+await new Promise((resolve, reject) => {
+  turnSocket.once("open", resolve);
+  turnSocket.once("error", reject);
+});
+// 等真实流开始后再测试中断，避免把请求已受理当成正在生成。
+const generating = new Promise((resolve, reject) => {
+  const timer = setTimeout(() => {
+    turnSocket.close();
+    reject(new Error("real turn did not start generating"));
+  }, 60_000);
+  turnSocket.on("message", raw => {
+    const message = JSON.parse(String(raw));
+    if (message.kind !== "event" || message.event.conversationId !== root.conversationId) return;
+    if (!["assistant-delta", "thinking-delta"].includes(message.event.type)) return;
+    clearTimeout(timer);
+    turnSocket.close();
+    resolve();
+  });
+});
 const rootTurn = await jsonRequest("/api/turn", {
   method: "POST",
   body: JSON.stringify({
@@ -104,6 +124,7 @@ const rootTurn = await jsonRequest("/api/turn", {
 });
 assert.equal(rootTurn.status, 200);
 const activeAtTurnResponse = await activeTurns();
+await generating;
 const interrupt = await jsonRequest(
   `/api/turn/${encodeURIComponent(rootTurn.body.turnId)}/interrupt`,
   {
@@ -114,7 +135,7 @@ const interrupt = await jsonRequest(
 assert.equal(
   interrupt.status,
   200,
-  `immediate interrupt failed: ${JSON.stringify({ interrupt: interrupt.body, rootTurn: rootTurn.body, activeAtTurnResponse })}`,
+  `active-turn interrupt failed: ${JSON.stringify({ interrupt: interrupt.body, rootTurn: rootTurn.body, activeAtTurnResponse })}`,
 );
 await waitForIdle(root.conversationId);
 const archivedRoot = await jsonRequest(

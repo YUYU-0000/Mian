@@ -1,4 +1,4 @@
-/* Mobile compatibility corrections, loaded after the reference rules. */
+/* 移动端布局补充。 */
 .home-date,
 .home-time,
 .home-time span {
@@ -56,7 +56,7 @@
   appearance: none;
 }
 
-/* Original envelope tie construction. */
+/* 档案袋的扣子和绳子。 */
 .tie-container-v,
 .tie-container-h {
   cursor: pointer;
@@ -123,7 +123,7 @@
   stroke-width: 1.5;
 }
 
-/* Original collapsible motion for real reasoning and tool events. */
+/* 思考与工具步骤的展开动画。 */
 .archive-chat {
   --archive-block-gap: 6px;
   --mask-solid: #000;
@@ -182,187 +182,6 @@
   transition:
     opacity 240ms ease 20ms,
     transform 240ms ease 20ms;
-}
-/* Paper-only local font and custom stamp selector. */
-.status-chinese {
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
-  font-weight: 400;
-}
-.paper-result {
-  width: 100%;
-  max-width: 100%;
-  text-align: right;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-.status-result {
-  white-space: normal;
-}
-.status-result-short {
-  display: inline-block;
-  white-space: nowrap;
-}
-.paper-result .status-result-transition {
-  position: relative;
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  vertical-align: baseline;
-}
-.paper-status-transition {
-  position: relative;
-  display: grid;
-  text-align: right;
-}
-.paper-status-transition::before {
-  content: "LOGIN REQUIRED";
-  grid-area: 1 / 1;
-  display: block;
-  visibility: hidden;
-  pointer-events: none;
-  white-space: nowrap;
-}
-.paper-status-text {
-  grid-area: 1 / 1;
-  justify-self: end;
-  align-self: baseline;
-  display: block;
-  text-align: right;
-  white-space: nowrap;
-}
-.paper-result .status-result-text {
-  display: block;
-  width: 100%;
-  text-align: right;
-}
-.status-text-node {
-  will-change: opacity, filter;
-  transform: none;
-}
-.paper-content {
-  max-height: calc(85svh - 50px);
-}
-.field-select-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-.custom-select-wrapper {
-  position: relative;
-  width: 100%;
-}
-.custom-select-trigger {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  min-height: 18px;
-  width: 100%;
-  font:
-    13px "ZSFT-br", "LXGW Heart Serif", sans-serif;
-  outline: none;
-}
-.custom-select-trigger:focus {
-  box-shadow: 0 1px #1a1a1a;
-}
-.stamp-dropdown {
-  display: none;
-  position: fixed;
-  width: 144px;
-  box-sizing: border-box;
-  padding: 9px;
-  background: #fff;
-  filter: drop-shadow(0 6px 12px rgba(59, 77, 90, 0.35));
-  z-index: 150;
-  -webkit-mask-image:
-    linear-gradient(#000, #000), linear-gradient(#000, #000),
-    linear-gradient(#000, #000), linear-gradient(#000, #000),
-    linear-gradient(#000, #000),
-    radial-gradient(circle at 6px 6px, transparent 3px, #000 3.5px);
-  -webkit-mask-position:
-    center,
-    0 0,
-    100% 0,
-    0 100%,
-    100% 100%,
-    -6px -6px;
-  -webkit-mask-size:
-    calc(100% - 12px) calc(100% - 12px),
-    6px 6px,
-    6px 6px,
-    6px 6px,
-    6px 6px,
-    12px 12px;
-  -webkit-mask-repeat:
-    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
-  mask-image:
-    linear-gradient(#000, #000), linear-gradient(#000, #000),
-    linear-gradient(#000, #000), linear-gradient(#000, #000),
-    linear-gradient(#000, #000),
-    radial-gradient(circle at 6px 6px, transparent 3px, #000 3.5px);
-  mask-position:
-    center,
-    0 0,
-    100% 0,
-    0 100%,
-    100% 100%,
-    -6px -6px;
-  mask-size:
-    calc(100% - 12px) calc(100% - 12px),
-    6px 6px,
-    6px 6px,
-    6px 6px,
-    6px 6px,
-    12px 12px;
-  mask-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
-}
-.stamp-inner {
-  background: #3b4d5a;
-  padding: 6px 8px;
-  border-radius: 1px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  position: relative;
-  z-index: 1;
-  width: 100%;
-}
-.stamp-option {
-  font:
-    500 10px "ZSFT-br", "LXGW Heart Serif", sans-serif;
-  color: rgba(241, 239, 233, 0.65);
-  padding: 4px 8px;
-  cursor: pointer;
-  position: relative;
-  border-radius: 2px;
-  transition:
-    color 0.15s,
-    background-color 0.15s;
-  user-select: none;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-.stamp-option:hover,
-.stamp-option.is-focused {
-  color: #f1efe9;
-}
-.stamp-option.is-selected {
-  color: #f1efe9;
-  font-weight: 700;
-}
-.stamp-option.is-selected::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  background: #f1efe9;
-  border-radius: 50%;
 }
 
 .env-top-flap-wrapper {
@@ -430,7 +249,7 @@
   margin-top: var(--archive-block-gap);
 }
 
-/* Collapsible headers and tool steps follow the reference DOM geometry. */
+/* 折叠标题和工具步骤的布局。 */
 .archive-module > summary::before {
   display: none;
 }
@@ -549,7 +368,7 @@
   margin-top: 0;
 }
 
-/* A tool turn uses the same vertical rhythm as adjacent chat bubbles. */
+/* 工具步骤与相邻气泡保持一致间距。 */
 .tool-calls-module .collapsible-content,
 .archive-tool-path,
 .archive-step-body {
@@ -582,7 +401,7 @@
   white-space: pre-wrap;
 }
 
-/* Only nodes created during this mount receive the reference entrance. */
+/* 新挂载的消息执行入场动画。 */
 .archive-pop-in {
   will-change: transform, opacity;
   animation: bubblePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
@@ -632,7 +451,7 @@
   }
 }
 
-/* Home connection status: exact two-state capsule colors from the reference. */
+/* 主界面的连接状态颜色。 */
 .indicator-capsule {
   background-color: #e2dfd5;
 }
@@ -649,7 +468,7 @@
   color: currentColor;
 }
 
-/* Explicit route motion: only active navigation receives these classes. */
+/* 页面切换时的按钮反馈与淡入淡出。 */
 .route-transition-frame {
   width: 100%;
   max-width: 480px;
@@ -681,8 +500,7 @@ body,
 }
 .route-transition-press[data-transition-target="/chat"] .icon-1,
 .route-transition-press[data-transition-target="/connections"] .dock-1,
-.route-transition-press[data-transition-target="/"] .ribbon-back-hit,
-.route-transition-press[data-transition-target="/"] .connection-header button {
+.route-transition-press[data-transition-target="/"] .ribbon-back-hit {
   animation: routeControlPress 40ms ease-out both;
 }
 .route-transition-outgoing {
@@ -728,77 +546,15 @@ body,
   }
 }
 
-/* Restored interaction feedback from the Connections reference. */
-.connection-header button {
-  display: inline-flex;
-  align-items: flex-start;
-  position: relative;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-.connection-header button::after {
-  content: "";
-  position: absolute;
-  top: -10px;
-  right: -15px;
-  bottom: -10px;
-  left: -15px;
-}
-.connection-header button:active {
-  opacity: 0.6;
-  transform: translateX(-4px);
-}
-.mail-envelope {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    outline 0.2s ease,
-    outline-offset 0.2s ease;
-}
-.mail-envelope:focus-visible {
-  outline: 2px solid #3b4d5a;
-  outline-offset: 3px;
-}
-.mail-envelope.is-active {
-  transform: translateY(calc(-2px / var(--mail-scale)))
-    scale(var(--mail-scale));
-  box-shadow:
-    -18px 30px 50px rgba(90, 112, 130, 0.3),
-    -5px 12px 18px rgba(0, 0, 0, 0.12);
-}
-.mail-envelope:active {
-  transform: translateY(calc(1px / var(--mail-scale)))
-    scale(var(--mail-scale));
-  box-shadow:
-    -12px 20px 36px rgba(90, 112, 130, 0.24),
-    -3px 6px 10px rgba(0, 0, 0, 0.1);
-}
+/* 档案袋扣子和遮罩的交互反馈。 */
 .tie-btn {
   transition: background-color 0.2s ease;
 }
 @media (hover: hover) {
-  .mail-envelope:hover {
-    transform: translateY(calc(-4px / var(--mail-scale)))
-      scale(var(--mail-scale));
-    box-shadow:
-      -20px 35px 55px rgba(90, 112, 130, 0.35),
-      -6px 15px 22px rgba(0, 0, 0, 0.15);
-  }
   .tie-container-v:hover .tie-btn,
   .tie-container-h:hover .tie-btn {
     background-color: #688094;
   }
-}
-.mail-envelope:hover:active,
-.mail-envelope:active {
-  transform: translateY(calc(1px / var(--mail-scale)))
-    scale(var(--mail-scale));
-  box-shadow:
-    -12px 20px 36px rgba(90, 112, 130, 0.24),
-    -3px 6px 10px rgba(0, 0, 0, 0.1);
-}
-.connection-page.paper-is-open > .connection-header,
-.connection-page.paper-is-open > .mail-envelope {
-  pointer-events: none;
 }
 .paper-overlay {
   opacity: 0;
@@ -809,75 +565,10 @@ body,
   opacity: 1;
   pointer-events: auto;
 }
-.connection-paper {
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -40%);
-  transition:
-    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-    opacity 0.3s ease;
-}
-.connection-paper.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate(-50%, -50%);
-}
-.paper-status {
-  transition: color 0.3s ease;
-}
-.paper-content input {
-  transition: box-shadow 0.15s ease;
-}
-.paper-content footer button {
-  transition: opacity 0.2s ease, transform 0.1s ease;
-}
-.paper-content footer button:hover:not(:disabled) {
-  opacity: 0.7;
-}
-.paper-content footer button:active:not(:disabled) {
-  transform: scale(0.95);
-}
-.paper-content footer button:disabled {
-  cursor: wait;
-  opacity: 0.45;
-}
-.stamp-dropdown {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-4px) scale(0.98);
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease,
-    visibility 0s linear 0.16s;
-}
-.stamp-dropdown.is-open {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-  animation: none;
-  transition:
-    opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-    transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-    visibility 0s;
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .connection-header button,
-  .mail-envelope,
   .tie-btn,
-  .paper-overlay,
-  .connection-paper,
-  .paper-content input,
-  .paper-content footer button,
-  .stamp-dropdown,
-  .stamp-dropdown.is-open,
-  .status-text-node {
+  .paper-overlay {
     transition-duration: 0.001ms;
     animation-duration: 0.001ms;
   }

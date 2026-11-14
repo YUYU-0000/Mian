@@ -21,10 +21,21 @@ export function useSettingsCarousel(count: number, voice = false) {
   };
   useLayoutEffect(update, [index, count]);
   const start = (x: number, target: EventTarget) => {
-    if ((target as Element).closest(voice ? "input, .vc-stub, .vc-add, .vc-del" : "input, .apiBtnAdd, .apiBtnDel, .btnSaveStyle, .btnTestStyle")) return;
-    startX.current = currentX.current = x; dragging.current = true; dragged.current = false;
+    if (
+      (target as Element).closest(
+        voice
+          ? "input, .vc-stub, .vc-add, .vc-del"
+          : "input, .apiBtnAdd, .apiBtnDel, .btnSaveStyle, .btnTestStyle",
+      )
+    )
+      return;
+    startX.current = currentX.current = x;
+    dragging.current = true;
+    dragged.current = false;
     track.current!.style.transition = "none";
-    Array.from(track.current!.children).forEach(page => (page as HTMLElement).style.transition = "none");
+    Array.from(track.current!.children).forEach(
+      (page) => ((page as HTMLElement).style.transition = "none"),
+    );
   };
   const move = (x: number) => {
     if (!dragging.current) return;
@@ -52,13 +63,25 @@ export function useSettingsCarousel(count: number, voice = false) {
   };
   useEffect(() => {
     const mousemove = (event: MouseEvent) => move(event.clientX);
-    window.addEventListener("mousemove", mousemove); window.addEventListener("mouseup", end);
-    return () => { window.removeEventListener("mousemove", mousemove); window.removeEventListener("mouseup", end); };
+    window.addEventListener("mousemove", mousemove);
+    window.addEventListener("mouseup", end);
+    return () => {
+      window.removeEventListener("mousemove", mousemove);
+      window.removeEventListener("mouseup", end);
+    };
   }, [index, count]);
-  return { track, viewport, index, setIndex, dragged, handlers: {
-    onTouchStart: (event: React.TouchEvent) => start(event.touches[0].clientX, event.target),
-    onTouchMove: (event: React.TouchEvent) => move(event.touches[0].clientX),
-    onTouchEnd: end,
-    onMouseDown: (event: React.MouseEvent) => start(event.clientX, event.target),
-  } };
+  return {
+    track,
+    viewport,
+    index,
+    setIndex,
+    dragged,
+    handlers: {
+      onTouchStart: (event: React.TouchEvent) =>
+        start(event.touches[0].clientX, event.target),
+      onTouchMove: (event: React.TouchEvent) => move(event.touches[0].clientX),
+      onTouchEnd: end,
+      onMouseDown: (event: React.MouseEvent) => start(event.clientX, event.target),
+    },
+  };
 }

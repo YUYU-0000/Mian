@@ -302,22 +302,28 @@ try {
     type: "touchEnd",
     touchPoints: [],
   });
-  await sleep(600);
+  await waitUntil(
+    () => evaluate(`(() => {
+      const motion = document.querySelector('.mini-ticket-container[data-id=${JSON.stringify(victim.conversationId)}] .mini-ticket-motion');
+      if (!motion || motion.style.transform) return false;
+      const style = getComputedStyle(motion);
+      return new DOMMatrixReadOnly(style.transform).isIdentity && style.opacity === '1';
+    })()`),
+    "last ticket did not finish rebounding",
+  );
   const reboundState = await evaluate(`(() => {
     const ticket = document.querySelector('.mini-ticket-container[data-id=${JSON.stringify(victim.conversationId)}]');
     const motion = ticket?.querySelector('.mini-ticket-motion');
     return {
       ticketPresent: Boolean(ticket),
       transform: motion ? getComputedStyle(motion).transform : null,
+      atRest: motion ? new DOMMatrixReadOnly(getComputedStyle(motion).transform).isIdentity : false,
       opacity: motion ? getComputedStyle(motion).opacity : null,
     };
   })()`);
   assert.equal(deleteRequestCount, 1, "the last ticket attempted a DELETE");
   assert.equal(reboundState.ticketPresent, true);
-  assert.ok(
-    reboundState.transform === "none" ||
-      reboundState.transform === "matrix(1, 0, 0, 1, 0, 0)",
-  );
+  assert.equal(reboundState.atRest, true);
   assert.equal(reboundState.opacity, "1");
   console.log(
     JSON.stringify(
