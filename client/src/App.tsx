@@ -7,6 +7,8 @@ import {
 } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
+import { applyBubbleFont } from "./bubbleFont";
+import { loadAvatars } from "./avatars";
 import {
   hasCompletedConversation,
   lastVisibleMessageSummary,
@@ -77,6 +79,17 @@ type ConversationViewState = {
 };
 
 export default function App() {
+  useEffect(() => {
+    void api
+      .fontPresets()
+      .then(applyBubbleFont)
+      .catch((error) => notify.fail("字體讀取失敗", error));
+    void loadAvatars().catch((error) => notify.fail("頭像讀取失敗", error));
+    if (sessionStorage.getItem("mian.imported")) {
+      sessionStorage.removeItem("mian.imported");
+      notify.ok("已導入");
+    }
+  }, []);
   useEffect(() => {
     const preload = () => {
       void preloadReplyMarkdown();

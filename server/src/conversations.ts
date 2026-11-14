@@ -56,25 +56,42 @@ function defaultConversation(): ConversationRecord {
 export function normalizeConversationRecord(
   value: Partial<ConversationRecord>,
 ): ConversationRecord | null {
-  if (typeof value.conversationId !== "string" || !value.conversationId) return null;
+  if (typeof value.conversationId !== "string" || !value.conversationId)
+    return null;
   const timestamp = now();
   return {
     conversationId: value.conversationId,
-    threadId: typeof value.threadId === "string" && value.threadId ? value.threadId : null,
+    threadId:
+      typeof value.threadId === "string" && value.threadId
+        ? value.threadId
+        : null,
     parentConversationId:
-      typeof value.parentConversationId === "string" ? value.parentConversationId : null,
-    rootNumber: Number.isSafeInteger(value.rootNumber) && Number(value.rootNumber) > 0
-      ? Number(value.rootNumber)
-      : 1,
+      typeof value.parentConversationId === "string"
+        ? value.parentConversationId
+        : null,
+    rootNumber:
+      Number.isSafeInteger(value.rootNumber) && Number(value.rootNumber) > 0
+        ? Number(value.rootNumber)
+        : 1,
     branchPath: Array.isArray(value.branchPath)
-      ? value.branchPath.filter((part) => Number.isSafeInteger(part) && part > 0)
+      ? value.branchPath.filter(
+          (part) => Number.isSafeInteger(part) && part > 0,
+        )
       : [],
-    branchCounter: Number.isSafeInteger(value.branchCounter) && Number(value.branchCounter) >= 0
-      ? Number(value.branchCounter)
-      : 0,
+    branchCounter:
+      Number.isSafeInteger(value.branchCounter) &&
+      Number(value.branchCounter) >= 0
+        ? Number(value.branchCounter)
+        : 0,
     abbr: typeof value.abbr === "string" && value.abbr ? value.abbr : "C-01",
-    title: typeof value.title === "string" && value.title.trim() ? value.title.trim() : "ARCHIVE CHAT",
-    frontName: typeof value.frontName === "string" && value.frontName.trim() ? value.frontName.trim() : "Mian",
+    title:
+      typeof value.title === "string" && value.title.trim()
+        ? value.title.trim()
+        : "ARCHIVE CHAT",
+    frontName:
+      typeof value.frontName === "string" && value.frontName.trim()
+        ? value.frontName.trim()
+        : "Mian",
     image: typeof value.image === "string" ? value.image : "",
     pinned: value.pinned === true,
     model: normalizeNullableText(value.model),
@@ -94,8 +111,10 @@ export function normalizeConversationRecord(
     lastActivityAt: normalizeNullableText(value.lastActivityAt),
     lastMessage: normalizeNullableText(value.lastMessage),
     collaborationMode: normalizeNullableText(value.collaborationMode),
-    createdAt: typeof value.createdAt === "string" ? value.createdAt : timestamp,
-    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : timestamp,
+    createdAt:
+      typeof value.createdAt === "string" ? value.createdAt : timestamp,
+    updatedAt:
+      typeof value.updatedAt === "string" ? value.updatedAt : timestamp,
   };
 }
 
@@ -112,19 +131,21 @@ export class ConversationRegistry {
 
   static async load(storageFile = file) {
     try {
-      const parsed = JSON.parse(await readFile(storageFile, "utf8")) as Partial<PersistedConversations>;
+      const parsed = JSON.parse(
+        await readFile(storageFile, "utf8"),
+      ) as Partial<PersistedConversations>;
       const records = Array.isArray(parsed.records)
-        ? parsed.records.map(normalizeConversationRecord).filter((record): record is ConversationRecord => Boolean(record))
+        ? parsed.records
+            .map(normalizeConversationRecord)
+            .filter((record): record is ConversationRecord => Boolean(record))
         : [];
-      // C-01 is created only for first-run/legacy migration. Once a persisted
-      // registry contains other conversations, deleting C-01 must survive a
-      // service restart instead of silently recreating it.
+      // 只在首次启动或旧档案为空时创建 C-01。
       if (records.length === 0) records.push(defaultConversation());
       const registry = new ConversationRegistry(records, storageFile);
       if (parsed.version !== 2)
-        await registry.persist().catch((error) =>
-          console.error("[conversations:migration]", error),
-        );
+        await registry
+          .persist()
+          .catch((error) => console.error("[conversations:migration]", error));
       return registry;
     } catch {
       return new ConversationRegistry([defaultConversation()], storageFile);
@@ -149,7 +170,9 @@ export class ConversationRegistry {
   }
 
   get(conversationId: string) {
-    return this.records.find((record) => record.conversationId === conversationId);
+    return this.records.find(
+      (record) => record.conversationId === conversationId,
+    );
   }
 
   require(conversationId: string) {
@@ -167,8 +190,13 @@ export class ConversationRegistry {
     await this.persist();
   }
 
-  async createRoot(binding: Omit<ConversationThreadBinding, "threadId"> & { threadId: string | null }) {
-    const rootNumber = Math.max(0, ...this.records.map((record) => record.rootNumber)) + 1;
+  async createRoot(
+    binding: Omit<ConversationThreadBinding, "threadId"> & {
+      threadId: string | null;
+    },
+  ) {
+    const rootNumber =
+      Math.max(0, ...this.records.map((record) => record.rootNumber)) + 1;
     const number = String(rootNumber).padStart(2, "0");
     const timestamp = now();
     const record: ConversationRecord = {
@@ -197,14 +225,18 @@ export class ConversationRegistry {
 
   async createBranch(
     parentConversationId: string,
-    binding: Omit<ConversationThreadBinding, "threadId"> & { threadId: string | null },
+    binding: Omit<ConversationThreadBinding, "threadId"> & {
+      threadId: string | null;
+    },
   ) {
     const parent = this.require(parentConversationId);
     parent.branchCounter += 1;
     parent.updatedAt = now();
     const branchPath = [...parent.branchPath, parent.branchCounter];
     const rootText = String(parent.rootNumber).padStart(2, "0");
-    const pathText = branchPath.map((part) => String(part).padStart(2, "0")).join("-");
+    const pathText = branchPath
+      .map((part) => String(part).padStart(2, "0"))
+      .join("-");
     const timestamp = now();
     const record: ConversationRecord = {
       ...parent,
@@ -227,10 +259,7 @@ export class ConversationRegistry {
     return record;
   }
 
-  async setThread(
-    conversationId: string,
-    binding: ConversationThreadBinding,
-  ) {
+  async setThread(conversationId: string, binding: ConversationThreadBinding) {
     const record = this.require(conversationId);
     record.threadId = binding.threadId;
     if (Object.keys(binding.metadata).length)
@@ -285,15 +314,18 @@ export class ConversationRegistry {
 
   async update(
     conversationId: string,
-    patch: Partial<Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">>,
+    patch: Partial<
+      Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">
+    >,
   ) {
     const record = this.require(conversationId);
-    if (typeof patch.title === "string" && patch.title.trim()) record.title = patch.title.trim();
-    if (typeof patch.frontName === "string" && patch.frontName.trim()) record.frontName = patch.frontName.trim();
+    if (typeof patch.title === "string" && patch.title.trim())
+      record.title = patch.title.trim();
+    if (typeof patch.frontName === "string" && patch.frontName.trim())
+      record.frontName = patch.frontName.trim();
     if (typeof patch.image === "string") record.image = patch.image;
     if (typeof patch.pinned === "boolean") {
-      if (patch.pinned)
-        for (const item of this.records) item.pinned = false;
+      if (patch.pinned) for (const item of this.records) item.pinned = false;
       record.pinned = patch.pinned;
     }
     record.updatedAt = now();
@@ -315,6 +347,11 @@ export class ConversationRegistry {
       this.records.splice(index, 0, removed);
       throw error;
     }
+  }
+
+  async replace(records: ConversationRecord[]) {
+    this.records = records;
+    await this.persist();
   }
 
   private persist() {

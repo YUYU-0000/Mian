@@ -1,3 +1,4 @@
+import ChineseText from "../components/ChineseText";
 import {
   Fragment,
   memo,
@@ -332,7 +333,7 @@ export default memo(function ChatMessage({
                   <div
                     className={`archive-bubble ${historicalAnimationIds.has(userAnimationId(record.messageId)) ? "" : "archive-pop-in"}`}
                   >
-                    {record.text}
+                    <ChineseText text={record.text} />
                   </div>
                 )}
               </Fragment>

@@ -17,7 +17,10 @@ import { FileDrafts } from "../client/src/fileDrafts.ts";
 import { api } from "../client/src/api.ts";
 import { CodexBridge } from "../server/src/codex.ts";
 import { chatHistory } from "../client/src/chatModel.ts";
-import { conversationExport } from "../client/src/chatExport.ts";
+import {
+  completeBackup,
+  type ServerBackup,
+} from "../client/src/settingsBackup.ts";
 import type { ChatFile, ConversationRecord } from "../client/src/types.ts";
 
 async function fixture(t: test.TestContext) {
@@ -405,24 +408,27 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   });
   branch.seedFrom(snapshot);
   assert.deepEqual(branch.getSnapshot().messages, snapshot.messages);
-  const exported = conversationExport(
-    [
-      {
-        conversationId: "branch",
-        title: "附件对话",
-        frontName: "Mian",
-      } as ConversationRecord,
-    ],
+  const exported = completeBackup(
+    {
+      conversations: [
+        {
+          conversationId: "branch",
+          title: "附件对话",
+          frontName: "Mian",
+        } as ConversationRecord,
+      ],
+    } as ServerBackup,
     storage,
   );
   assert.deepEqual(
-    exported.conversations[0].messages.map((message) => message.files),
-    [[{ name: "input.txt", size: 12 }], [{ name: "reply.txt", size: 12 }]],
+    exported.chats.branch.flatMap((group) =>
+      group.role === "user"
+        ? group.records.flatMap((record) => record.files ?? [])
+        : (group.files ?? []),
+    ),
+    [input, output],
   );
-  assert.doesNotMatch(
-    JSON.stringify(exported),
-    /input-id|output-id|base64|mimeType|\/files\//,
-  );
+  assert.doesNotMatch(JSON.stringify(exported), /base64|\/files\//);
   reloaded.dispose();
   branch.dispose();
 });
