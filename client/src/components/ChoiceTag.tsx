@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import WorkspaceEditor from "../pages/WorkspaceEditor";
 import AnimatedText from "./AnimatedText";
 import ScrollText from "./ScrollText";
@@ -29,18 +29,23 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
   anchor: () => HTMLElement;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const roofText = useRef<SVGTextElement>(null);
+  const roofPath = useRef<SVGPathElement>(null);
+  const hanging = useRef<HTMLDivElement>(null);
+  const roofId = useId();
   const [titleArmed, setTitleArmed] = useState(false);
   const close = () => {
     setTitleArmed(false);
     onTagClose();
   };
   const updateFade = () => {
-    const list = root.current!.querySelector<HTMLElement>("#tagList")!;
-    list.classList.toggle("is-overflow", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
+    const element = list.current!;
+    element.classList.toggle("is-overflow", element.scrollTop + element.clientHeight < element.scrollHeight - 1);
   };
   const fitRoof = () => {
-    const line = root.current!.querySelector<SVGTextElement>("#tagRoofLine")!;
-    const room = root.current!.querySelector<SVGPathElement>("#roofLine")!.getTotalLength() - 14;
+    const line = roofText.current!;
+    const room = roofPath.current!.getTotalLength() - 14;
     let size = 6.2;
     line.setAttribute("font-size", String(size));
     while (line.getComputedTextLength() > room && size > 4) {
@@ -61,11 +66,11 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
     setTitleArmed(false);
     if (!tag || !tagVisible) return;
     fitRoof();
-    root.current!.querySelector("#tagList")!.scrollTop = 0;
+    list.current!.scrollTop = 0;
     updateFade();
     const rect = anchor().getBoundingClientRect();
     const cardH = root.current!.querySelector<HTMLElement>(".tag-card")!.offsetHeight;
-    root.current!.querySelector<HTMLElement>("#hangTag")!.style.setProperty(
+    hanging.current!.style.setProperty(
       "--tag-string", Math.max(20, rect.top + rect.height / 2 - cardH / 2 + 16) + "px",
     );
   }, [tag, tagVisible]);
@@ -73,11 +78,12 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
       <div
         className={`tag-overlay${tagVisible ? " is-visible" : ""}`}
         onClick={close}
-        id="tagOverlay"
       ></div>
       <div
         className={`hang-tag${tagVisible ? " is-visible" : ""}`}
-        id="hangTag"
+        ref={hanging}
+        inert={!tagVisible}
+        aria-hidden={!tagVisible}
         role="dialog"
       >
         <div className="tag-string"></div>
@@ -85,7 +91,8 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
           <svg className="tag-roof" viewBox="0 0 188 150" aria-hidden="true">
             <defs>
               <path
-                id="roofLine"
+                id={roofId}
+                ref={roofPath}
                 d="M 24 90 L 84 52 Q 94 45.5 104 52 L 164 90"
               />
             </defs>
@@ -110,19 +117,18 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
             />
 
             <text
-              id="tagRoofLine"
+              ref={roofText}
               xmlSpace="preserve"
               style={{ whiteSpace: "pre" }}
               fontSize="6.2"
               letterSpacing="1.3"
               fill="rgba(241,239,233,.5)"
             >
-              <textPath href="#roofLine" startOffset="50%" textAnchor="middle">
+              <textPath href={`#${roofId}`} startOffset="50%" textAnchor="middle">
                 SOFTLY REMEMBERING WARMLY
               </textPath>
             </text>
             <text
-              id="tagGiant"
               x="94"
               y={tag?.giantY || 117}
               textAnchor="middle"
@@ -137,8 +143,7 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
               {tag?.giant || "MODEL"}
             </text>
             <text
-              id="tagTitle"
-              className={tag?.titleAction ? "is-action" : ""}
+              className={`tag-title${tag?.titleAction ? " is-action" : ""}`}
               onClick={() => {
                 if (tag?.titleAction) {
                   if (tag.titleConfirm && !titleArmed) setTitleArmed(true);
@@ -161,10 +166,10 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
             </text>
           </svg>
           <div className="tag-walls">
-            <div className="tag-kicker" id="tagKicker">
+            <div className="tag-kicker">
               {tag?.kicker || "SELECT"}
             </div>
-            <div className="tag-list" id="tagList" onScroll={updateFade}>
+            <div className="tag-list" ref={list} onScroll={updateFade}>
               {tag?.workspace && (
                 <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />
               )}

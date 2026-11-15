@@ -184,6 +184,7 @@ export default function ConnectionLayout({
         {...subLayer}
         className={`stack${open === "sub" ? " is-visible" : ""}`}
         id="subStack"
+        inert={open !== "sub"}
         role="dialog"
         aria-label="CLOUD PLANS"
       >
@@ -199,6 +200,7 @@ export default function ConnectionLayout({
         {...apiLayer}
         className={`stack${open === "api" ? " is-visible" : ""}`}
         id="apiStack"
+        inert={open !== "api"}
         role="dialog"
         aria-label="REMOTE CONNECT"
       >

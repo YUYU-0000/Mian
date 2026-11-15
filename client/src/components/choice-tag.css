@@ -26,13 +26,13 @@
 .choice-tag .tag-roof text {
   font-family: var(--font-main);
 }
-.choice-tag .tag-roof #tagTitle.is-action {
+.choice-tag .tag-roof .tag-title.is-action {
   cursor: pointer;
   fill: rgba(241, 239, 233, 0.9);
   font-weight: 600;
   transform: translateY(2px);
 }
-.choice-tag .tag-roof #tagTitle.is-action:active {
+.choice-tag .tag-roof .tag-title.is-action:active {
   opacity: 0.6;
 }
 

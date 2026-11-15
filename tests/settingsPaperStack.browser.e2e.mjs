@@ -309,8 +309,8 @@ try {
   await click(".vc-page.current .vc-id");
   await evaluate("window.resolveVoiceList([{id:'speaker-fixture',name:'夜晚聲音'}])");
   await waitFor(() => evaluate("!!document.querySelector('.choice-tag .tag-option.is-selected')"), "Voice selected mark missing");
-  const clickTagTitle = () => evaluate("document.querySelector('.choice-tag #tagTitle').dispatchEvent(new MouseEvent('click', {bubbles:true}))");
-  const tagTitle = text => waitFor(() => evaluate(`document.querySelector('.choice-tag #tagTitle').textContent === ${JSON.stringify(text)}`), `Tag title did not become ${text}`);
+  const clickTagTitle = () => evaluate("document.querySelector('.choice-tag .tag-title').dispatchEvent(new MouseEvent('click', {bubbles:true}))");
+  const tagTitle = text => waitFor(() => evaluate(`document.querySelector('.choice-tag .tag-title').textContent === ${JSON.stringify(text)}`), `Tag title did not become ${text}`);
   await clickTagTitle();
   await tagTitle("你寫");
   assert.equal(await evaluate("document.querySelector('.choice-tag .hang-tag').classList.contains('is-visible')"), true);
