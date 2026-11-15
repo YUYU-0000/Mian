@@ -233,7 +233,7 @@
   left: 0;
   right: 0;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -245,6 +245,7 @@
 .file-draft {
   position: relative;
   flex: 0 0 228px;
+  min-width: 0;
   max-width: 100%;
   touch-action: pan-x;
   user-select: none;
