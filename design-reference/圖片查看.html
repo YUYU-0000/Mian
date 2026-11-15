@@ -4,7 +4,7 @@
   - 遮罩：rgba(59,77,90,.42)，後面的聊天隱約可見。
   - 拍立得：米白相紙帶紙紋，rotate(-1.2deg)；後面墊兩張錯開的紙（#5f7789、#7f95a5，兩張都是灰藍，深淺只差一檔）。
   - 照片長寬比跟著圖片本身：完整顯示不裁切；最寬 78vw（減去相紙內邊距），最高 60vh，超出等比縮小。相紙白邊和底部留白固定。
-  - 底部白邊：左邊 IMAGE · 圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫日期（月.日），不寫編號。
+  - 底部白邊：左邊 IMAGE  圖片 小標籤 + 文件名（霞鶩銘心宋，放不下才左右滑動）；右邊花體手寫日期（月.日），不寫編號。
   - 保存：相紙長按一秒保存，按住時輕微下沉，移動超過 10px 或提前鬆手取消；遮罩不放操作按鈕。
   - 手勢：兩指縮放；下拉跟手淡出，鬆手繼續下滑關閉；點遮罩空白處關閉，相紙本身不關閉。
   - 動畫：打開從下方 16px、scale(.96) 淡入並轉到 -1.2deg，320ms，底紙晚 40ms；關閉下移 10px、scale(.97) 淡出，220ms。緩動 cubic-bezier(.22,.8,.3,1)。
@@ -38,7 +38,7 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
 /* 相紙下方白邊 */
 .pv-foot{width:var(--w);max-width:calc(78vw - 32px);box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-end;padding:14px 2px 16px}
 .pv-info{min-width:0;flex:1;margin-right:12px}
-.pv-kicker{font-family:"ZSFT-br",serif;font-weight:500;font-size:6.5px;letter-spacing:2.2px;color:var(--muted)}
+.pv-kicker{white-space: pre;font-family:"ZSFT-br",serif;font-weight:500;font-size:6.5px;letter-spacing:2.2px;color:var(--muted)}
 .pv-name{margin-top:4px;font-size:13px;letter-spacing:.4px;color:var(--ink);white-space:nowrap;overflow-x:auto;scrollbar-width:none;
   -webkit-mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000);mask:linear-gradient(90deg,#000 calc(100% - 14px),#0000)}
 .pv-hand{flex-shrink:0;font-family:"ZSFT-l",cursive;font-size:22px;line-height:.9;color:#4a5560;text-align:right;transform:rotate(-6deg);margin-bottom:-2px}
@@ -57,7 +57,7 @@ body{background:#f1efe9;font-family:"LXGW Heart Serif",serif;overflow:hidden;pos
   <div class="pv-card">
     <div class="pv-photo"></div>
     <div class="pv-foot">
-      <div class="pv-info"><div class="pv-kicker">IMAGE · 圖片</div><div class="pv-name">morning-sea.png</div></div>
+      <div class="pv-info"><div class="pv-kicker">IMAGE  圖片</div><div class="pv-name">morning-sea.png</div></div>
       <div class="pv-hand">11.14</div>
     </div>
   </div>

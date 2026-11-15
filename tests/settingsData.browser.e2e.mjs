@@ -87,7 +87,7 @@ try {
     await waitFor(
       () =>
         evaluate(
-          `!document.documentElement.dataset.oldPage && !!document.querySelector(${JSON.stringify(route === "/settings" ? ".settings-page" : ".archive-bubble")})`,
+          `!document.documentElement?.dataset.oldPage && !!document.querySelector(${JSON.stringify(route === "/settings" ? ".settings-page" : ".archive-bubble")})`,
         ),
       `打开 ${route}`,
     );
@@ -109,16 +109,18 @@ try {
   });
   await call("Emulation.setTouchEmulationEnabled", {
     enabled: true,
-    maxTouchPoints: 1,
+    maxTouchPoints: 2,
   });
   await call("Browser.setDownloadBehavior", {
     behavior: "allow",
     downloadPath: path.join(backend.directory, "downloads"),
   });
   await navigate("/settings");
+  const reply =
+    "中文 English 456\n\n行內 `代碼 code 123`\n\n```javascript\nconst 中文 = 123;\n```";
   await evaluate(`localStorage.setItem('mian.conversation.c1.mian.chat-groups.v2', JSON.stringify([
     {role:'user',groupId:'u',time:'12:00',pending:false,records:[{messageId:'m',text:'中文 English 123',time:'12:00'}]},
-    {role:'assistant',replyGroupId:'r',time:'12:01',format:'plain',raw:'中文 English 456',thinking:'',activeReasoningItemIds:[],preToolBubbles:[],preToolBubbleIds:[],preToolBubbleComplete:[],preToolComplete:true,bubbles:['中文 English 456'],bubbleIds:['b'],bubbleComplete:[true],tools:[],approvals:[],status:'completed'}
+    {role:'assistant',replyGroupId:'r',time:'12:01',format:'plain',raw:${JSON.stringify(reply)},thinking:'',activeReasoningItemIds:[],preToolBubbles:[],preToolBubbleIds:[],preToolBubbleComplete:[],preToolComplete:true,bubbles:[${JSON.stringify(reply)}],bubbleIds:['b'],bubbleComplete:[true],tools:[],approvals:[],status:'completed'}
   ]))`);
   await navigate("/settings");
   await folder("#folderApiSettings");
@@ -150,8 +152,59 @@ try {
     await evaluate("document.querySelector('.mail-reason').textContent"),
     /完整的 @font-face/,
   );
+  const sample = await readFile(
+    new URL("./fixtures/zeoseven-2438.css", import.meta.url),
+    "utf8",
+  );
+  const originalBodyFont = await evaluate(
+    "getComputedStyle(document.body).fontFamily",
+  );
+  await input(`${current} .api-field-input`, sample);
+  await click(`${current} .btnTestStyle`);
+  const faces = await evaluate(`(() => {
+    const id=document.querySelector('${current}').dataset.id;
+    return Array.from(document.getElementById('mian-font-'+id).sheet.cssRules).map(rule=>({family:rule.style.fontFamily,weight:rule.style.fontWeight,style:rule.style.fontStyle,src:rule.style.getPropertyValue('src')}));
+  })()`);
+  assert.equal(faces.length, 10);
+  assert.equal(new Set(faces.map((face) => face.family)).size, 1);
+  assert.match(faces[0].family, /MianFont_/);
+  assert.deepEqual(
+    faces.map((face) => [face.weight, face.style]),
+    [
+      ["700", "normal"],
+      ["700", "italic"],
+      ["400", "italic"],
+      ["300", "normal"],
+      ["300", "italic"],
+      ["400", "normal"],
+      ["600", "normal"],
+      ["600", "italic"],
+      ["100", "normal"],
+      ["100", "italic"],
+    ],
+  );
+  assert.ok(
+    faces.every((face) =>
+      face.src.includes("https://fontsapi.zeoseven.com/2438/"),
+    ),
+  );
+  assert.equal(
+    await evaluate("getComputedStyle(document.body).fontFamily"),
+    originalBodyFont,
+  );
+  for (const invalid of [
+    "body { font-family: serif; }",
+    '@font-face { font-family: Local; src: local("Arial"); }',
+  ]) {
+    await input(`${current} .api-field-input`, invalid);
+    await click(`${current} .btnTestStyle`);
+    assert.equal(
+      await evaluate("document.querySelector('.mail-title')?.textContent"),
+      "字體無效",
+    );
+  }
   const face =
-    '@font-face { font-family: "LXGW Heart Serif"; src: url("/fonts/lxgw/1e991472a5af02b5.woff2"); }';
+    '/* 字體網站附帶的使用示例 */ body { font-family: Paper; } @font-face { font-family: Paper; src: url("/fonts/zsft/main.woff2"); }';
   await input(`${current} .api-field-input`, face);
   await input(
     `${current} .api-field-row:nth-child(2) input`,
@@ -167,7 +220,7 @@ try {
   );
   assert.equal(
     await evaluate(
-      "document.documentElement.style.getPropertyValue('--bubble-chinese-scale')",
+      "document.documentElement.style.getPropertyValue('--bubble-font-scale')",
     ),
     "1",
   );
@@ -175,7 +228,7 @@ try {
   await waitFor(
     () =>
       evaluate(
-        "Number(document.documentElement.style.getPropertyValue('--bubble-chinese-scale')) > 1",
+        "Number(document.documentElement.style.getPropertyValue('--bubble-font-scale')) > 1",
       ),
     "保存应用字体",
   );
@@ -187,28 +240,45 @@ try {
   await waitFor(
     () =>
       evaluate(
-        "Number(document.documentElement.style.getPropertyValue('--bubble-chinese-scale')) > 1",
+        "Number(document.documentElement.style.getPropertyValue('--bubble-font-scale')) > 1",
       ),
     "读取已保存的气泡字体",
   );
   await waitFor(
     () =>
       evaluate(
-        "document.querySelectorAll('.archive-bubble .bubble-chinese').length === 2",
+        "document.querySelectorAll('.archive-bubble').length === 2 && !!document.querySelector('.archive-bubble .reply-code pre code')",
       ),
-    "双方中文气泡",
+    "双方气泡及代码",
   );
   const typography =
     await evaluate(`Array.from(document.querySelectorAll('.archive-bubble')).map(bubble=>{
-    const chinese=getComputedStyle(bubble.querySelector('.bubble-chinese'));
-    return {size:chinese.fontSize,base:getComputedStyle(bubble).fontSize,family:chinese.fontFamily};
+    const style=getComputedStyle(bubble);
+    return {size:style.fontSize,family:style.fontFamily};
   })`);
   assert.equal(typography.length, 2);
   for (const item of typography) {
     assert.equal(item.size, "16.5px");
-    assert.equal(item.base, "14.5px");
-    assert.match(item.family, /ZSFT-br.*MianFont_active/);
+    assert.match(
+      item.family,
+      /^MianFont_active, "LXGW Heart Serif", sans-serif$/,
+    );
   }
+  const codeStyles = await evaluate(
+    `Array.from(document.querySelectorAll('.archive-bubble code')).map(code=>({size:parseFloat(getComputedStyle(code).fontSize),family:getComputedStyle(code).fontFamily,block:!!code.closest('pre')}))`,
+  );
+  for (const code of codeStyles) {
+    assert.ok(
+      Math.abs(code.size - (code.block ? (12 * 16.5) / 14.5 : 16.5 * 0.86)) <
+        0.001,
+    );
+    assert.match(code.family, /monospace/);
+    assert.doesNotMatch(code.family, /MianFont/);
+  }
+  assert.equal(
+    await evaluate("document.querySelectorAll('.bubble-chinese').length"),
+    0,
+  );
   assert.equal(
     await evaluate(
       "getComputedStyle(document.querySelector('.archive-avatar time')).fontSize",
@@ -229,17 +299,127 @@ try {
     ),
     0,
   );
-  // 直接生成本地长方形图片，覆盖裁切和 IndexedDB 保存。
+  // 长方形原图中间透明，左右不同颜色，可同时观察移动、比例和透明底色。
   await evaluate(`(async () => {
     const canvas=document.createElement('canvas'); canvas.width=180; canvas.height=100;
-    const ctx=canvas.getContext('2d'); ctx.fillStyle='#93a7b5'; ctx.fillRect(0,0,180,100);
-    const blob=await new Promise(resolve=>canvas.toBlob(resolve));
-    for(const role of ['assistant','user']) {
-      const input=document.querySelector('.avatar-page[data-role='+role+'] input');
-      const data=new DataTransfer(); data.items.add(new File([blob],role+'.png',{type:'image/png'}));
-      input.files=data.files; input.dispatchEvent(new Event('change',{bubbles:true}));
-    }
+    const ctx=canvas.getContext('2d'); ctx.fillStyle='#ff0000'; ctx.fillRect(0,0,60,100);
+    ctx.fillStyle='#0000ff'; ctx.fillRect(120,0,60,100);
+    window.avatarBlob=await new Promise(resolve=>canvas.toBlob(resolve));
   })()`);
+  const openCrop = async (role) => {
+    await evaluate(`(() => {
+      const role=${JSON.stringify(role)};
+      const input=document.querySelector('.avatar-page[data-role='+role+'] input');
+      const data=new DataTransfer(); data.items.add(new File([window.avatarBlob],role+'.png',{type:'image/png'}));
+      input.files=data.files; input.dispatchEvent(new Event('change',{bubbles:true}));
+    })()`);
+    await waitFor(
+      () => evaluate("!!document.querySelector('.avatar-cropper .is-ready')"),
+      "打开头像裁切框",
+    );
+    await evaluate(
+      "Promise.all(document.querySelector('.avatar-cropper').getAnimations({subtree:true}).map(animation=>animation.finished))",
+    );
+  };
+  const closeCrop = () =>
+    waitFor(
+      () => evaluate("!document.querySelector('.avatar-cropper')"),
+      "关闭裁切框",
+    );
+  await openCrop("assistant");
+  await click(".avatar-crop-actions button:last-child");
+  await closeCrop();
+  assert.equal(
+    await evaluate(
+      "document.documentElement.style.getPropertyValue('--avatar-assistant')",
+    ),
+    "",
+  );
+  await openCrop("assistant");
+  const frame = await evaluate(
+    `(() => { const rect=document.querySelector('.avatar-crop-frame').getBoundingClientRect();return {x:rect.x+rect.width/2,y:rect.y+rect.height/2}; })()`,
+  );
+  const touch = (type, points) =>
+    call("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: points.map(([id, x, y]) => ({
+        id,
+        x,
+        y,
+        radiusX: 2,
+        radiusY: 2,
+        force: 1,
+      })),
+    });
+  await touch("touchStart", [
+    [1, frame.x - 25, frame.y],
+    [2, frame.x + 25, frame.y],
+  ]);
+  await touch("touchMove", [
+    [1, frame.x - 50, frame.y],
+    [2, frame.x + 50, frame.y],
+  ]);
+  await touch("touchEnd", []);
+  assert.ok(
+    Number(
+      await evaluate("document.querySelector('.avatar-crop-zoom').value"),
+    ) > 1.5,
+  );
+  await call("Input.dispatchMouseEvent", {
+    type: "mouseWheel",
+    x: frame.x,
+    y: frame.y,
+    deltaX: 0,
+    deltaY: 2000,
+  });
+  await waitFor(
+    () => evaluate("document.querySelector('.avatar-crop-zoom').value === '1'"),
+    "滚轮最小缩放",
+  );
+  await call("Emulation.setTouchEmulationEnabled", { enabled: false });
+  await input(".avatar-crop-zoom", "2");
+  await call("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: frame.x - 110,
+    y: frame.y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+  });
+  await call("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    button: "left",
+    x: frame.x + 190,
+    y: frame.y + 200,
+    buttons: 1,
+  });
+  await call("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: frame.x + 190,
+    y: frame.y + 200,
+    button: "left",
+    clickCount: 1,
+  });
+  const coverage = await evaluate(`(() => {
+    const circle=document.querySelector('.avatar-crop-circle').getBoundingClientRect(), image=document.querySelector('.avatar-crop-frame img').getBoundingClientRect();
+    return {covered:image.left<=circle.left+0.01 && image.top<=circle.top+0.01 && image.right>=circle.right-0.01 && image.bottom>=circle.bottom-0.01,ratio:image.width/image.height,left:image.left,circleLeft:circle.left};
+  })()`);
+  assert.equal(coverage.covered, true);
+  assert.ok(Math.abs(coverage.ratio - 1.8) < 0.001);
+  const screenshot = await call("Page.captureScreenshot", { format: "png" });
+  await writeFile(
+    ".tmp-avatar-crop.png",
+    Buffer.from(screenshot.data, "base64"),
+  );
+  assert.ok(
+    Math.abs(coverage.left - coverage.circleLeft) < 0.1,
+    "拖动到图像边缘: " + JSON.stringify(coverage),
+  );
+  await click(".avatar-crop-actions button:first-child");
+  await closeCrop();
+  await openCrop("user");
+  await click(".avatar-crop-actions button:first-child");
+  await closeCrop();
   await waitFor(
     () =>
       evaluate(
@@ -250,9 +430,17 @@ try {
   const dimensions = await evaluate(`(async()=>{
     const db=await new Promise(resolve=>{const request=indexedDB.open('LauncherDB',1);request.onsuccess=()=>resolve(request.result)});
     const image=await new Promise(resolve=>{const request=db.transaction('mediaStore').objectStore('mediaStore').get('savedMediaFile_avatar_user');request.onsuccess=()=>resolve(request.result)});
-    const bitmap=await createImageBitmap(image);return [bitmap.width,bitmap.height];
+    const bitmap=await createImageBitmap(image);
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=100;
+    const context=canvas.getContext('2d');context.drawImage(bitmap,0,0);
+    return {size:[bitmap.width,bitmap.height],center:Array.from(context.getImageData(50,50,1,1).data),left:Array.from(context.getImageData(0,50,1,1).data),right:Array.from(context.getImageData(99,50,1,1).data)};
   })()`);
-  assert.deepEqual(dimensions, [100, 100]);
+  assert.deepEqual(dimensions, {
+    size: [100, 100],
+    center: [251, 250, 246, 255],
+    left: [255, 0, 0, 255],
+    right: [0, 0, 255, 255],
+  });
   await navigate("/chat");
   await waitFor(
     () =>
@@ -271,6 +459,24 @@ try {
     ],
   );
   await navigate("/settings");
+  await folder("#folderWallpaperSettings");
+  await click(".avatar-page[data-role=assistant] input[type=file]");
+  await waitFor(
+    () => evaluate("!!document.querySelector('.avatar-cropper .is-ready')"),
+    "重新调整已保存头像",
+  );
+  assert.equal(
+    await evaluate("document.querySelector('.avatar-crop-zoom').value"),
+    "2",
+  );
+  assert.deepEqual(
+    await evaluate(
+      "[document.querySelector('.avatar-crop-frame img').naturalWidth,document.querySelector('.avatar-crop-frame img').naturalHeight]",
+    ),
+    [180, 100],
+  );
+  await click(".avatar-crop-actions button:last-child");
+  await closeCrop();
   await folder("#folderStorageSettings");
   await click("#stExportBtn");
   let exported;
@@ -342,19 +548,19 @@ try {
   await waitFor(
     () =>
       evaluate(
-        "document.documentElement.style.getPropertyValue('--bubble-chinese-scale') === '1'",
+        "document.documentElement.style.getPropertyValue('--bubble-font-scale') === '1'",
       ),
     "预设恢复原样",
   );
   assert.equal(
     await evaluate(
-      "document.documentElement.style.getPropertyValue('--bubble-chinese-family')",
+      "document.documentElement.style.getPropertyValue('--bubble-font-family')",
     ),
-    '"LXGW Heart Serif"',
+    '"ZSFT-br", "LXGW Heart Serif", sans-serif',
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS settings: 中文字体作用域、预览/保存/恢复、头像裁切与持久化、JSON 导出与二次确认导入。",
+    "PASS settings: 十条混合字体规则、整段气泡与等宽代码缩放、头像拖动/双指/滚轮/滑杆/取消/透明底色/重新调整、JSON 导出与导入。",
   );
 } finally {
   const exited = once(browser, "exit");

@@ -150,7 +150,7 @@ try {
     height: 74,
     paper: "#6b8396",
     ink: "#f5f2ec",
-    kicker: "IMAGE · 圖片",
+    kicker: "IMAGE  圖片",
     action: "查看",
     thumb: true,
     size: true,

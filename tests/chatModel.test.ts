@@ -64,7 +64,7 @@ test("tool title uses the model summary while raw command and result stay intern
 test("tool title falls back by real tool kind and never exposes a raw command", () => {
   assert.equal(visibleToolSummary({id:"1",name:"a very long command",detail:"",state:"running",kind:"commandExecution"}),"执行命令");
   assert.equal(visibleToolSummary({id:"2",name:"read_file",detail:"",state:"success",kind:"read_file"}),"读取文件");
-  assert.equal(visibleToolSummary({id:"3",name:"server · tool",detail:"",state:"success",kind:"mcpToolCall"}),"调用外部工具");
+  assert.equal(visibleToolSummary({id:"3",name:"server  tool",detail:"",state:"success",kind:"mcpToolCall"}),"调用外部工具");
 });
 
 test("Get-Location keeps the raw command internal and exposes a readable real path", () => {

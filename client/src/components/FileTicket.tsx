@@ -45,7 +45,7 @@ export default memo(function FileTicket({
   const nameAndMeta = (
     <>
       <div className="ft-kicker">
-        {image ? "IMAGE · 圖片" : mine ? "SENT · 寄出" : "FILE · 檔案"}
+        {image ? "IMAGE  圖片" : mine ? "SENT  寄出" : "FILE  檔案"}
       </div>
       <ScrollText className="ft-name">{file.name}</ScrollText>
       <div className="ft-meta">

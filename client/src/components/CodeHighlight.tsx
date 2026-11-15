@@ -1,5 +1,4 @@
 import { memo, useMemo } from "react";
-import ChineseText, { chineseHighlight } from "./ChineseText";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import cpp from "highlight.js/lib/languages/cpp";
@@ -79,16 +78,14 @@ export default memo(function CodeHighlight({ text, language }: ReplyCode) {
   const html = useMemo(
     () =>
       hljs.getLanguage(language)
-        ? chineseHighlight(
-            cleanHighlight(
-              hljs.highlight(text, { language, ignoreIllegals: true }).value,
-            ),
+        ? cleanHighlight(
+            hljs.highlight(text, { language, ignoreIllegals: true }).value,
           )
         : null,
     [text, language],
   );
   return html === null ? (
-    <ChineseText text={text} />
+    text
   ) : (
     <span dangerouslySetInnerHTML={{ __html: html }} />
   );

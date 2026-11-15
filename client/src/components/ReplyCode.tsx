@@ -1,7 +1,6 @@
 import { lazy, memo, Suspense, useState } from "react";
 import type { ReplyCode as Code } from "../replyMarkup";
 import HtmlPreview from "./HtmlPreview";
-import ChineseText from "./ChineseText";
 import { notify } from "./Notify";
 
 // 第一段代码出现时才下载高亮器，加载期间保留完整代码。
@@ -49,7 +48,7 @@ export default memo(function ReplyCode({
       </div>
       <pre>
         <code>
-          <Suspense fallback={<ChineseText text={text} />}>
+          <Suspense fallback={text}>
             <CodeHighlight text={text} language={language} />
           </Suspense>
           {typing && <span className="cursor-blink" />}

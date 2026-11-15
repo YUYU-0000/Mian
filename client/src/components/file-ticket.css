@@ -54,6 +54,7 @@
   flex-direction: column;
 }
 .ft-kicker {
+  white-space: pre;
   font-family: "ZSFT-br", "LXGW Heart Serif", serif;
   font-weight: 500;
   font-size: 6.5px;

@@ -35,7 +35,7 @@ export default function FontPage({
   const { id, name, size, face, view } = draft;
   const fixed = id === DEFAULT_FONT_ID;
   const [direction, setDirection] = useState(-1);
-  const [previewFamily, setPreviewFamily] = useState("LXGW Heart Serif");
+  const [previewFamily, setPreviewFamily] = useState("ZSFT-br");
   const minimum = DEFAULT_BUBBLE_SIZE - 3;
   const maximum = DEFAULT_BUBBLE_SIZE + 3;
   const change = (patch: Partial<FontPreset>) =>
@@ -43,7 +43,7 @@ export default function FontPage({
   const preview = () => {
     try {
       const font = fixed
-        ? { family: "LXGW Heart Serif", css: "" }
+        ? { family: "ZSFT-br", css: "" }
         : parseFontFace(face, id);
       installFont(font, id);
       setPreviewFamily(font.family);
@@ -147,7 +147,7 @@ export default function FontPage({
             onChange={(e) => change({ view: e.target.value })}
             onBlur={() => onChange(draft)}
             style={{
-              fontFamily: `"ZSFT-br", "${previewFamily}", sans-serif`,
+              fontFamily: `"${previewFamily}", "LXGW Heart Serif", sans-serif`,
               fontSize: size,
             }}
           />

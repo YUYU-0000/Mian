@@ -647,7 +647,7 @@ export class CodexBridge extends EventEmitter {
         : item.type === "fileChange"
           ? "文件修改"
           : item.type === "mcpToolCall"
-            ? `${item.server} · ${item.tool}`
+            ? `${item.server}  ${item.tool}`
             : item.tool || item.type;
     let state: "running" | "success" | "failed" | "rejected" = started
       ? "running"

@@ -116,6 +116,16 @@ app.get("/api/api-presets", (_req, res) =>
     activeId: "paper-0",
   }),
 );
+const fonts = {
+  presets: [{ id: "1", name: "預設", face: "", view: "Still water.", size: 14.5 }],
+  activeId: "1",
+  style: { face: "", size: 14.5 },
+};
+app.get("/api/font-presets", (_req, res) => res.json(fonts));
+app.post("/api/font-presets", (req, res) => {
+  fonts.presets.push(req.body.preset);
+  res.json(fonts);
+});
 app.get("/api/subscriptions/codex", (_req, res) =>
   res.json({ loggedIn: true, account: "fixture", plan: "plus", model: "test" }),
 );

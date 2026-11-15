@@ -581,7 +581,8 @@ svg {
   width: fit-content;
   max-width: 100%;
   line-height: 1.45;
-  font-size: 14.5px;
+  font-family: var(--bubble-font-family, "ZSFT-br", "LXGW Heart Serif", sans-serif);
+  font-size: calc(14.5px * var(--bubble-font-scale, 1));
   letter-spacing: 1px;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -595,10 +596,8 @@ svg {
 .archive-msg[data-role="user"] .archive-bubble {
   background: #ebe7de;
 }
-.archive-bubble .bubble-chinese {
-  font-family:
-    "ZSFT-br", var(--bubble-chinese-family, "LXGW Heart Serif"), sans-serif;
-  font-size: calc(1em * var(--bubble-chinese-scale, 1));
+.archive-bubble .reply-code pre code {
+  font-size: calc(12px * var(--bubble-font-scale, 1));
 }
 .archive-bubble.stopped {
   border-color: #7590a3;

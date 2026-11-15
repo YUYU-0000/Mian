@@ -13,24 +13,18 @@ export function parseFontFace(face: string, id: string): ParsedFont {
       `@font-face { font-family: ${JSON.stringify(family)}; src: url(${JSON.stringify(url.href)}); font-display: swap; }`,
     );
   } else {
-    if (!source.startsWith("@font-face") || !source.endsWith("}"))
-      throw new Error(INVALID_FONT);
     sheet.replaceSync(source);
   }
-  const rules = Array.from(sheet.cssRules);
+  const rules = Array.from(sheet.cssRules).filter(
+    (rule): rule is CSSFontFaceRule => rule instanceof CSSFontFaceRule,
+  );
   if (
     !rules.length ||
-    rules.some(
-      (rule) =>
-        !(rule instanceof CSSFontFaceRule) ||
-        !rule.style.fontFamily ||
-        !rule.style.getPropertyValue("src").includes("url("),
-    )
+    rules.some((rule) => !/url\(/i.test(rule.style.getPropertyValue("src")))
   )
     throw new Error(INVALID_FONT);
   // 私有字体名避免覆盖全局字库，同名的两张纸片也互不影响。
-  for (const rule of rules as CSSFontFaceRule[])
-    rule.style.fontFamily = JSON.stringify(family);
+  for (const rule of rules) rule.style.fontFamily = JSON.stringify(family);
   return { family, css: rules.map((rule) => rule.cssText).join("\n") };
 }
 
@@ -48,14 +42,14 @@ export function installFont(font: ParsedFont, id: string) {
 export function applyBubbleFont(settings: FontSettings) {
   const font = settings.style.face
     ? parseFontFace(settings.style.face, "active")
-    : { family: "LXGW Heart Serif", css: "" };
+    : { family: "ZSFT-br", css: "" };
   installFont(font, "active");
   document.documentElement.style.setProperty(
-    "--bubble-chinese-family",
-    JSON.stringify(font.family),
+    "--bubble-font-family",
+    `${JSON.stringify(font.family)}, "LXGW Heart Serif", sans-serif`,
   );
   document.documentElement.style.setProperty(
-    "--bubble-chinese-scale",
+    "--bubble-font-scale",
     String(settings.style.size / DEFAULT_BUBBLE_SIZE),
   );
 }

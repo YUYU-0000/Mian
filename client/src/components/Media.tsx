@@ -1,7 +1,14 @@
 import { openMediaDatabase, writeMedia } from "../mediaStorage";
-import { applyAvatar, cropAvatar, type AvatarRole } from "../avatars";
+import {
+  INITIAL_AVATAR_CROP,
+  readAvatarEditor,
+  saveAvatar,
+  type AvatarEditor,
+  type AvatarRole,
+} from "../avatars";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { notify } from "./Notify";
+import AvatarCropper from "./AvatarCropper";
 
 type Picture = { url: string; video: boolean; developing: boolean };
 export default function Media({
@@ -19,6 +26,7 @@ export default function Media({
   const [loading, setLoading] = useState(true);
   const [icon, setIcon] = useState(true);
   const [playButton, setPlayButton] = useState(false);
+  const [editor, setEditor] = useState<AvatarEditor | null>(null);
   const container = useRef<HTMLSpanElement>(null);
   const urls = useRef(new Set<string>());
   const timers = useRef<number[]>([]);
@@ -139,30 +147,43 @@ export default function Media({
         type="file"
         className={cover ? "cover-art-file js-file" : "file-input"}
         accept={cover || avatar ? "image/*" : "image/*, video/*"}
+        onClick={(event) => {
+          if (!avatar || !pictures.length) return;
+          event.preventDefault();
+          void readAvatarEditor(avatar)
+            .then(setEditor)
+            .catch((error) => notify.fail("讀取失敗", error));
+        }}
         onChange={async (event) => {
           const file = event.currentTarget.files?.[0];
           if (!file) return;
           event.currentTarget.value = "";
+          if (avatar) {
+            setEditor({ file, crop: INITIAL_AVATAR_CROP });
+            return;
+          }
           if (!cover && !avatar && file.size > 5 * 1024 * 1024) {
             notify.fail("文件太大", "請選擇小於 5MB 的文件。");
             return;
           }
           try {
-            const picture = avatar ? await cropAvatar(file) : file;
-            show(picture, true);
-            await writeMedia(name, store, key, picture);
-            if (avatar) {
-              applyAvatar(avatar, picture);
-              notify.ok("已更換");
-            }
+            show(file, true);
+            await writeMedia(name, store, key, file);
           } catch (error) {
-            notify.fail(
-              avatar ? "上傳失敗" : cover ? "封面存失敗" : "保存失敗",
-              error,
-            );
+            notify.fail(cover ? "封面存失敗" : "保存失敗", error);
           }
         }}
       />
+      {editor && avatar && (
+        <AvatarCropper
+          editor={editor}
+          onClose={() => setEditor(null)}
+          onSave={async (next) => {
+            show(await saveAvatar(avatar, next), true);
+            notify.ok("已更換");
+          }}
+        />
+      )}
       {pictures.map((picture, index) =>
         picture.video ? (
           <video

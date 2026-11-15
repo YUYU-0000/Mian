@@ -132,7 +132,7 @@ export default function FilePreview({
       availableHeight === null ? "60vh" : `${availableHeight}px`,
   } as CSSProperties;
   const date = new Date(file.createdAt);
-  const label = image ? "IMAGE · 圖片" : "FILE · 檔案";
+  const label = image ? "IMAGE  圖片" : "FILE  檔案";
 
   return createPortal(
     <dialog
