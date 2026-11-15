@@ -215,6 +215,12 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+@property --attachment-space {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .archive-stream {
   overflow-anchor: none;
   -webkit-mask-image: linear-gradient(

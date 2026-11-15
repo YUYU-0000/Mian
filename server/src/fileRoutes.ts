@@ -32,6 +32,7 @@ export function fileRoutes(
     try {
       requireConversation(request.params.id);
       const stored = await files.get(request.params.id, request.params.fileId);
+      response.setHeader("X-File-Created-At", stored.file.createdAt);
       response.setHeader("X-Content-Type-Options", "nosniff");
       if (
         request.query.inline === "1" &&

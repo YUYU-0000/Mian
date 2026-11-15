@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { stripVoiceTags, type VoiceClip } from "../../../shared/voice.mjs";
 import { cacheLazyImport } from "../lazyImport";
+import { api } from "../api";
 import { voicePlayer } from "../voicePlayer";
 import { notify } from "./Notify";
 import ScrollText from "./ScrollText";
@@ -21,14 +22,23 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
   const active = player.id === clip.url;
   const playing = active && player.playing;
   const [viewing, setViewing] = useState(false);
+  const [sentAt, setSentAt] = useState(() => clip.url ? "" : new Date().toISOString());
   const closePreview = useCallback(() => setViewing(false), []);
   const [knownDuration, setKnownDuration] = useState<number | null>(null);
   const duration = clip.duration ?? knownDuration;
   const failureText = fallback === "stopped" ? "已停止" : "生成失敗";
   const durationText = fallback ? failureText : duration === null ? "--:--" : durationLabel(duration);
-  const previewName = !clip.url && !fallback ? "生成中" : durationText;
+  const previewName = sentAt ? `${sentAt.slice(0, 10).replaceAll("-", ".")}  沈眠` : "沈眠";
   const transcript = stripVoiceTags(clip.text);
   const progress = active && duration ? player.currentTime / duration : 0;
+  useEffect(() => {
+    if (!viewing || !clip.url) return;
+    const controller = new AbortController();
+    void api.fileCreatedAt(clip.url, controller.signal).then(setSentAt).catch(error => {
+      if (!controller.signal.aborted) notify.fail("日期讀取失敗", error);
+    });
+    return () => controller.abort();
+  }, [viewing, clip.url]);
   useEffect(() => {
     if (active && player.duration !== null) setKnownDuration(player.duration);
   }, [active, player.duration]);
@@ -87,7 +97,7 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
           <div className="pv-photo pv-document">
             <div className="pv-file-head">
               <div className="pv-kicker">VOICE  語音</div>
-              <ScrollText className="pv-name"><AnimatedText text={previewName} /></ScrollText>
+              <ScrollText className="pv-name" style={{ whiteSpace: "pre" }}><AnimatedText text={previewName} /></ScrollText>
             </div>
             <div className="pv-file-content">
               <div className="pv-source reply-code pv-voice-text">

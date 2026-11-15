@@ -122,8 +122,8 @@ export default function Chat({
         conversationId: session.conversationId,
         html: element.innerHTML,
         scrollTop: element.scrollTop,
-        inputTopY: element.style.getPropertyValue("--input-top-y"),
-        inputAreaHeight: element.style.getPropertyValue("--input-area-height"),
+        inputTopY: getComputedStyle(element).getPropertyValue("--input-top-y"),
+        inputAreaHeight: getComputedStyle(element).getPropertyValue("--input-area-height"),
       };
     }, [session.conversationId]);
   useLayoutEffect(() => {
@@ -185,23 +185,30 @@ export default function Chat({
     let forcedFrames = 0;
     let stableFrames = 0;
     let lastGeometry = "";
-    const updateNow = (forceBottom = false) => {
+    let attachmentSpace: number | undefined;
+    let attachmentAnimation: Animation | null = null;
+    const updateNow = (forceBottom = false, animateAttachments = true) => {
       const streamRect = streamElement.getBoundingClientRect();
       const inputRect = inputElement.getBoundingClientRect();
-      const draftRect = inputElement
-        .querySelector(".file-drafts")
-        ?.getBoundingClientRect();
-      const top = Math.max(
-        53,
-        Math.min(
-          streamElement.clientHeight,
-          (draftRect?.top ?? inputRect.top) - streamRect.top,
-        ),
-      );
-      streamElement.style.setProperty("--input-top-y", `${top}px`);
+      const drafts = inputElement.querySelector(".file-drafts");
+      const nextSpace = drafts?.querySelector(".file-draft:not([data-exiting])")
+        ? inputRect.top - drafts.getBoundingClientRect().top
+        : 0;
+      if (attachmentSpace !== nextSpace) {
+        const from = getComputedStyle(streamElement).getPropertyValue("--attachment-space");
+        attachmentAnimation?.cancel();
+        attachmentSpace = nextSpace;
+        streamElement.style.setProperty("--attachment-space", `${nextSpace}px`);
+        attachmentAnimation = animateAttachments ? streamElement.animate([
+          { "--attachment-space": from },
+          { "--attachment-space": `${nextSpace}px` },
+        ], { duration: 260, easing: "ease-out" }) : null;
+      }
+      streamElement.style.setProperty("--input-top-y",
+        `clamp(53px, calc(${inputRect.top - streamRect.top}px - var(--attachment-space)), ${streamElement.clientHeight}px)`);
       streamElement.style.setProperty(
         "--input-area-height",
-        `${inputRect.bottom - (draftRect?.top ?? inputRect.top) + 30}px`,
+        `calc(${inputRect.height + 30}px + var(--attachment-space))`,
       );
       if (forceBottom || shouldFollowBottom.current)
         streamElement.scrollTop = streamElement.scrollHeight;
@@ -219,10 +226,10 @@ export default function Chat({
       if (forcedFrames > 0) forcedFrames -= 1;
       stableFrames = geometry === lastGeometry ? stableFrames + 1 : 0;
       lastGeometry = geometry;
-      if (forcedFrames > 0 && stableFrames < 2) {
+      if (attachmentAnimation?.playState === "finished") attachmentAnimation = null;
+      if (stableFrames >= 2) forcedFrames = 0;
+      if (attachmentAnimation || forcedFrames > 0) {
         frame = requestAnimationFrame(settleLayout);
-      } else if (stableFrames >= 2) {
-        forcedFrames = 0;
       }
     };
     const scheduleUpdate = (forceBottom = false) => {
@@ -265,9 +272,10 @@ export default function Chat({
     window.addEventListener("orientationchange", onWindowLayout);
     window.visualViewport?.addEventListener("resize", onViewportLayout);
     window.visualViewport?.addEventListener("scroll", onViewportLayout);
-    updateNow();
+    updateNow(false, false);
     return () => {
       cancelAnimationFrame(frame);
+      attachmentAnimation?.cancel();
       observer.disconnect();
       mutationObserver.disconnect();
       requestViewportSync.current = () => {};
@@ -276,7 +284,7 @@ export default function Chat({
       window.visualViewport?.removeEventListener("resize", onViewportLayout);
       window.visualViewport?.removeEventListener("scroll", onViewportLayout);
     };
-  }, []);
+  }, [session]);
   useLayoutEffect(() => {
     const element = stream.current;
     if (!element) return;
@@ -465,6 +473,7 @@ export default function Chat({
                 draft={draft}
                 conversationId={session.conversationId}
                 onRemove={() => session.attachments.remove(draft.draftId)}
+                onExitStart={() => requestViewportSync.current()}
               />
             ))}
           </div>

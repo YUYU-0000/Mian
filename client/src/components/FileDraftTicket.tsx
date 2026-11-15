@@ -2,10 +2,11 @@ import type { FileDraft } from "../fileDrafts";
 import { useTicketSwipe } from "../useTicketSwipe";
 import FileTicket from "./FileTicket";
 
-export default function FileDraftTicket({ draft, conversationId, onRemove }: {
+export default function FileDraftTicket({ draft, conversationId, onRemove, onExitStart }: {
   draft: FileDraft;
   conversationId: string;
   onRemove: () => void;
+  onExitStart?: () => void;
 }) {
   const slot = useRef<HTMLDivElement>(null);
   const [floating, setFloating] = useState<DOMRect | null>(null);
@@ -25,6 +26,10 @@ export default function FileDraftTicket({ draft, conversationId, onRemove }: {
     direction: "down",
     onDragStart: () => setFloating(slot.current!.getBoundingClientRect()),
     onReboundComplete: () => setFloating(null),
+    onExitStart: () => {
+      slot.current!.dataset.exiting = "true";
+      onExitStart?.();
+    },
     onExitComplete: remove,
   });
   const ticket = <FileTicket file={draft.file} conversationId={conversationId} mine pending

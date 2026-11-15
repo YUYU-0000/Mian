@@ -45,7 +45,7 @@ wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8
 wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28);
 wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
 for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(Math.sin(i / 8000 * Math.PI * 880) * 12000), 44 + i * 2);
-app.get('/tone.wav', (_req, res) => res.type('audio/wav').send(wav));
+app.get('/tone.wav', (_req, res) => res.set('X-File-Created-At', '2024-02-03T12:34:56.000Z').type('audio/wav').send(wav));
 const server = app.listen(0, "127.0.0.1");
 await once(server, "listening");
 const debugPort = 9359;
@@ -143,7 +143,7 @@ try {
   await waitFor(() => evaluate("!!document.querySelector('.pv.is-ready')"), 'pending transcript preview');
   await settled();
   assert.equal(await evaluate("document.querySelector('.pv-kicker').textContent"), 'VOICE  語音');
-  assert.equal(await evaluate("document.querySelector('.pv-name').textContent"), '生成中');
+  assert.match(await evaluate("document.querySelector('.pv-name').textContent"), /^\d{4}\.\d{2}\.\d{2}  沈眠$/);
   assert.equal(await evaluate("document.querySelector('.pv-file-content').textContent"), '陪你等天亮。');
   assert.equal(await evaluate("voicePlayer.getSnapshot().id"), null);
   const transcript = '[softly, close] ' + '陪你等天亮。\n'.repeat(80);
@@ -155,14 +155,15 @@ try {
     return animate.call(this,frames,options);
   }`);
   await show(clip);
-  await waitFor(() => evaluate("document.querySelectorAll('.voice-wave i').length === 38 && document.querySelector('.pv-name').textContent === '00:07'"), 'generated voice and duration');
+  await waitFor(() => evaluate("document.querySelectorAll('.voice-wave i').length === 38 && document.querySelector('.pv-name').textContent === '2024.02.03  沈眠'"), 'generated voice and original send date');
   await waitFor(() => evaluate("voiceAnimations.some(a => a.target === 'voice-wave-slot' && a.duration === 180)"), 'barcode fade in');
   const animations = await evaluate('voiceAnimations');
   assert.deepEqual(animations.filter(a => a.target === 'voice-wave-slot').map(a => a.duration), [140,180]);
   assert.ok(animations.some(a => a.target === 'B' && a.duration === 140));
   assert.ok(animations.some(a => a.target === 'scroll-text-content' && a.duration === 180));
   assert.equal(await evaluate("document.querySelector('.ft-meta').textContent"), '00:07台詞');
-  assert.equal(await evaluate("document.querySelector('.pv-name').textContent"), '00:07');
+  assert.equal(await evaluate("document.querySelector('.pv-name').textContent"), '2024.02.03  沈眠');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.pv-name')).whiteSpace"), 'pre');
   assert.equal(await evaluate("document.querySelector('.pv-voice-text').textContent.includes('[')"), false);
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.pv-voice-text code')).fontSize"), '12px');
   assert.equal(await evaluate("document.querySelectorAll('.pv-under').length"), 2);
@@ -200,14 +201,16 @@ try {
   await show(failed, null, 'failed');
   await click('.voice-ticket .ft');
   await waitFor(() => evaluate("!!document.querySelector('.pv.is-ready')"), 'failure preview begins pending');
+  const failedName = await evaluate("document.querySelector('.pv-name').textContent");
   await show(failed, 'failed', 'failed');
-  await waitFor(() => evaluate("document.querySelector('.archive-bubble')?.textContent === '陪你。' && document.querySelector('.pv-name')?.textContent === '生成失敗'"), 'failed generation fades to text and updates preview');
+  await waitFor(() => evaluate("document.querySelector('.archive-bubble')?.textContent === '陪你。'"), 'failed generation fades to text');
+  assert.equal(await evaluate("document.querySelector('.pv-name').textContent"), failedName);
   assert.equal(await evaluate("document.querySelector('.voice-ticket')"), null);
   assert.equal(await evaluate("document.querySelector('.pv-foot .voice-play').disabled"), true);
   assert.equal(await evaluate("document.querySelector('.pv-file-content').textContent"), '陪你。');
   await closePreview();
   assert.deepEqual(errors, []);
-  console.log('PASS voice transcript shared preview, text/barcode transitions, duration-only labels, scrolling, synchronized playback, seek, drag/mask close and failure fallback.');
+  console.log('PASS voice transcript preview date and signature, ticket duration, transitions, scrolling, synchronized playback, seek, drag/mask close and failure fallback.');
 } finally {
   cdp?.close();
   const exited = once(browser, "exit");
