@@ -72,6 +72,7 @@
     inset -1px -2px 3px rgba(0, 0, 0, 0.3),
     1px 3px 6px rgba(0, 0, 0, 0.25);
   z-index: 10;
+  transition: background-color 0.2s ease;
 }
 .tie-btn::after {
   content: "";
@@ -557,9 +558,6 @@ body,
 }
 
 /* 档案袋扣子和遮罩的交互反馈。 */
-.tie-btn {
-  transition: background-color 0.2s ease;
-}
 @media (hover: hover) {
   .tie-container-v:hover .tie-btn,
   .tie-container-h:hover .tie-btn {

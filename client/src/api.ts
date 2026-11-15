@@ -4,7 +4,7 @@ import { localDateTime } from "./format";
 import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
 import { blobToDataURL, compressImage } from "./imageCompression";
 import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
-import type { ChatGroup, UserGroup } from "./chatModel";
+import type { ChatGroup, UserGroup } from "../../shared/chatModel.mjs";
 import {
   backupFilename,
   completeBackup,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CodexBridge } from "../server/src/codex.ts";
-import { applyReplyEvent, type ChatGroup } from "../client/src/chatModel.ts";
+import { applyReplyEvent, type ChatGroup } from "../shared/chatModel.mjs";
 import { visualTarget } from "../client/src/replyTimeline.ts";
 import type { ChatEvent } from "../client/src/types.ts";
 

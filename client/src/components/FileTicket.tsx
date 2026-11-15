@@ -6,7 +6,7 @@ import ScrollText from "./ScrollText";
 
 const FilePreview = lazy(() => import("./FilePreview"));
 
-export function fileSize(size: number) {
+function fileSize(size: number) {
   if (size < 1024) return { value: String(size), unit: "B" };
   if (size < 1024 * 1024)
     return { value: (size / 1024).toFixed(1), unit: "KB" };

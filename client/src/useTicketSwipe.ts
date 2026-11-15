@@ -43,7 +43,6 @@ export function useTicketSwipe({
     velocity: number;
     direction: TicketSwipeDirection;
     phase: "drag" | "waiting" | "rebound" | "exit";
-    completed: boolean;
     height: number;
     claimed: boolean;
   } | null>(null);
@@ -86,25 +85,24 @@ export function useTicketSwipe({
         return;
       }
     } else if (state.phase === "exit") {
-      state.offset += ((direction === "left" ? -220 : 220) - state.offset) * 0.2;
+      state.offset += (-220 - state.offset) * 0.2;
       state.angle += (0 - state.angle) * 0.2;
-      if ((direction === "left" ? -state.offset : state.offset) > 200 && !state.completed) {
-        state.completed = true;
+      if (state.offset < -200) {
         onExitComplete();
         frameRef.current = null;
         return;
       }
     }
 
-    const absX = Math.abs(state.offset);
+    const distance = Math.abs(state.offset);
     let opacity = 1;
     let blurPx = 0;
-    if (absX > 18) {
-      const progress = Math.min(1, (absX - 18) / 54);
+    if (distance > 18) {
+      const progress = Math.min(1, (distance - 18) / 54);
       opacity = Math.max(0.72, 1 - progress * 0.28);
       blurPx = Math.min(0.45, progress * 0.45);
       if (state.phase === "exit")
-        opacity = Math.max(0, opacity - Math.max(0, (absX - 72) / 148) * 0.72);
+        opacity = Math.max(0, opacity - Math.max(0, (distance - 72) / 148) * 0.72);
     }
     motion.style.transform = `${direction === "left" ? `translate3d(${state.offset}px, 0, 0)` : `translate3d(0, ${state.offset}px, 0)`} rotate(${state.angle}deg)`;
     if (state.phase !== "rebound" || direction === "down") {
@@ -149,7 +147,6 @@ export function useTicketSwipe({
       velocity: 0,
       direction: null,
       phase: "drag",
-      completed: false,
       height: event.currentTarget.offsetHeight,
       claimed: false,
     };

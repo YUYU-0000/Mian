@@ -1,4 +1,4 @@
-import { mergeUserGroups, type ChatGroup, type UserGroup } from "./chatModel";
+import { mergeUserGroups, type ChatGroup, type UserGroup } from "../../shared/chatModel.mjs";
 
 export type MessageSnapshot = { groups: ChatGroup[]; exists: boolean; eventSeq: number; streamId: string };
 export type MessageApi = {

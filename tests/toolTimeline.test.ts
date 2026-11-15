@@ -6,7 +6,7 @@ import {
   saveChatGroups,
   type ChatGroup,
   type ReplyGroup,
-} from "../client/src/chatModel.ts";
+} from "../shared/chatModel.mjs";
 import {
   isToolTimelineVisible,
   visualTarget,

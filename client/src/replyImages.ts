@@ -2,7 +2,7 @@ import { api } from "./api";
 import type { ChatFile } from "./types";
 
 export type ReplyImage = { src: string; alt: string };
-export type ReplyPart =
+type ReplyPart =
   | { kind: "text"; fragment: DocumentFragment }
   | { kind: "image"; image: ReplyImage };
 

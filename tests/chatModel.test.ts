@@ -8,12 +8,12 @@ import {
   pendingUserGroup,
   saveChatGroups,
   type ChatGroup,
-} from "../client/src/chatModel.ts";
+} from "../shared/chatModel.mjs";
 import {
   readableToolResult,
   visibleToolSummary,
 } from "../client/src/toolPresentation.ts";
-import { buildPublicReplyPrompt } from "../client/src/replyProtocol.ts";
+import { buildPublicReplyPrompt } from "../shared/replyProtocol.mjs";
 import { MIAN_PUBLIC_REPLY_PROTOCOL } from "../server/src/publicReplyProtocol.ts";
 
 class MemoryStorage {

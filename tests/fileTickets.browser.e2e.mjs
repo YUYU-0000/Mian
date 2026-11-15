@@ -227,10 +227,25 @@ try {
       mask: true,
     },
   );
-  await evaluate(`document.querySelectorAll('.file-draft-remove')[1].click()`);
-  assert.equal(
-    await evaluate(`document.querySelectorAll('.file-draft').length`),
-    1,
+  const draft = await evaluate(`(() => {
+    const ticket = document.querySelectorAll('.file-draft')[1];
+    ticket.parentElement.scrollLeft = ticket.offsetLeft;
+    const rect = ticket.getBoundingClientRect();
+    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, height: rect.height };
+  })()`);
+  const draftPoint = { x: draft.x, y: draft.y };
+  await call("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [draftPoint] });
+  for (let step = 1; step <= 4; step++) {
+    await call("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ ...draftPoint, y: draftPoint.y + draft.height * 0.7 * step / 4 }],
+    });
+    await sleep(25);
+  }
+  await call("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await waitFor(
+    () => evaluate(`document.querySelectorAll('.file-draft').length === 1`),
+    "下拖删除附件",
   );
   await selectFiles([imagePath]);
   await waitFor(

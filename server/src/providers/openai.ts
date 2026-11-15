@@ -1,4 +1,4 @@
-export type ApiFormat = "openai";
+type ApiFormat = "openai";
 export type ProviderConfig = {
   endpoint: string;
   key: string;

@@ -1,4 +1,4 @@
-export type ConversationRuntimeState = {
+type ConversationRuntimeState = {
   conversationId: string;
   threadId: string | null;
   loaded: boolean;

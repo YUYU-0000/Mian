@@ -25,7 +25,7 @@ export function pinPosition(wall: ClueWall, pin: CluePin) {
   return [rect.x + rect.w / 2 + x, rect.y + rect.h / 2 + y];
 }
 
-export function relativePosition(rect: WallRect, x: number, y: number) {
+function relativePosition(rect: WallRect, x: number, y: number) {
   const [dx, dy] = rotate(
     x - rect.x - rect.w / 2,
     y - rect.y - rect.h / 2,

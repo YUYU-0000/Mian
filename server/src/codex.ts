@@ -35,7 +35,7 @@ type ConnectionStatus = {
   account?: string;
 };
 
-export type AppServerLifecycleState =
+type AppServerLifecycleState =
   "idle" | "starting" | "ready" | "stopping" | "exited" | "failed";
 
 export type AppServerSpawner = (

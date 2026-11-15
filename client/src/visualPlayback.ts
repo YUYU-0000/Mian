@@ -2,7 +2,7 @@ export const ASSISTANT_CHARACTER_MS = 50;
 export const FAST_CHARACTER_MS = 30;
 export const BUBBLE_PAUSE_MS = 300;
 
-export type VisualCursor =
+type VisualCursor =
   | { kind: "thinking" }
   | { kind: "tool"; toolId: string }
   | { kind: "preToolBubble"; index: number }
@@ -44,7 +44,7 @@ const segmenter =
     ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
     : null;
 
-export function splitGraphemes(value: string): string[] {
+function splitGraphemes(value: string): string[] {
   if (segmenter)
     return Array.from(segmenter.segment(value), (part) => part.segment);
   return Array.from(value);

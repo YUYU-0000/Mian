@@ -14,7 +14,7 @@ import {
   applyReplyEvent,
   appendUserRecord,
   type ReplyGroup,
-} from "../client/src/chatModel.ts";
+} from "../shared/chatModel.mjs";
 
 test("字体纸片保存草稿、切换快照、恢复预设并禁止删除预设", async () => {
   const server = await fileTicketServer();

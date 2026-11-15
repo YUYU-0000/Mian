@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
-import { chatHistory } from "../client/src/chatModel.ts";
-import type { UserGroup } from "../client/src/chatModel.ts";
+import { chatHistory, type UserGroup } from "../shared/chatModel.mjs";
 
 class MemoryStorage {
   values = new Map<string, string>();
@@ -23,7 +22,7 @@ const options = () => ({
   cancelSchedule: () => {},
 });
 
-test("API requests send only the new user group after reload and fork", async () => {
+test("API requests send only the new user group after reload", async () => {
   const shared = options();
   const sent: UserGroup[] = [];
   const apiClient = {
@@ -58,17 +57,10 @@ test("API requests send only the new user group after reload and fork", async ()
     apiClient,
     conversationId: "c1",
   });
-  const branch = new ChatSessionStore({
-    ...options(),
-    apiClient,
-    conversationId: "branch",
-  });
-  branch.seedFrom(restored.getSnapshot());
-  branch.saveUserRecord("分支问题");
-  await branch.startPendingTurn();
-  assert.deepEqual(sent[1].records.map(record => record.text), ["分支问题"]);
   assert.equal(restored.getSnapshot().messages.length, 2);
-  branch.dispose();
+  restored.saveUserRecord("第二问");
+  await restored.startPendingTurn();
+  assert.deepEqual(sent[1].records.map(record => record.text), ["第二问"]);
   restored.dispose();
 });
 

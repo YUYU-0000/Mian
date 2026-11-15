@@ -15,7 +15,7 @@ import {
   saveChatGroups,
   type ChatGroup,
   type UserGroup,
-} from "./chatModel";
+} from "../../shared/chatModel.mjs";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
 import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
 import type {
@@ -49,7 +49,7 @@ type SessionApi = {
   ) => Promise<unknown>;
 };
 
-export type TurnPhase = "idle" | "starting" | "running" | "playing";
+type TurnPhase = "idle" | "starting" | "running" | "playing";
 
 export type ChatSessionSnapshot = {
   conversationId: string;
@@ -420,25 +420,6 @@ export class ChatSessionStore {
     if (!this.apiClient.decide) throw new Error("Approval API is unavailable");
     await this.apiClient.decide(requestId, allow, this.conversationId);
     this.dismissApproval(replyGroupId, requestId);
-  }
-
-  seedFrom(source: ChatSessionSnapshot) {
-    if (this.messages.length > 0) return;
-    this.messages = structuredClone(source.messages);
-    this.activeTurnId = null;
-    this.turnPhase = "idle";
-    this.visualReplies = Object.fromEntries(
-      this.messages
-        .filter(
-          (group): group is Extract<ChatGroup, { role: "assistant" }> =>
-            group.role === "assistant",
-        )
-        .map((group) => [
-          group.replyGroupId,
-          hydrateVisualReply(visualTarget(group)),
-        ]),
-    );
-    this.commit(true, true);
   }
 
   clearPersistedData() {

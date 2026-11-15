@@ -4,8 +4,8 @@ import {
   applyReplyEvent,
   type ChatGroup,
   type ReplyGroup,
-} from "../client/src/chatModel.ts";
-import { parsePublicReply } from "../client/src/replyProtocol.ts";
+} from "../shared/chatModel.mjs";
+import { parsePublicReply } from "../shared/replyProtocol.mjs";
 import { localDateTime } from "../client/src/format.ts";
 import { api } from "../client/src/api.ts";
 import { ApiChat } from "../server/src/apiChat.ts";

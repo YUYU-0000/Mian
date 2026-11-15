@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from "react";
-import { type ChatGroup } from "../chatModel";
+import { type ChatGroup } from "../../../shared/chatModel.mjs";
 import { readableToolResult, visibleToolSummary } from "../toolPresentation";
 import { ChatSessionStore } from "../chatSession";
 import { isToolTimelineVisible } from "../replyTimeline";

@@ -1,4 +1,4 @@
-import type { ChatGroup } from "./chatModel";
+import type { ChatGroup } from "../../shared/chatModel.mjs";
 import { readableToolResult } from "./toolPresentation";
 import type { VisualReply, VisualTarget } from "./visualPlayback";
 
@@ -22,7 +22,7 @@ export function visualTarget(
   };
 }
 
-export function hasCompletedPreToolBubble(
+function hasCompletedPreToolBubble(
   message: Extract<ChatGroup, { role: "assistant" }>,
 ) {
   return message.preToolBubbles.length > 0 && message.preToolComplete;

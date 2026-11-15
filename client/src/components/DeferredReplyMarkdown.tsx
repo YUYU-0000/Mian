@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { stripProtocolMarkers } from "../replyProtocol";
+import { stripProtocolMarkers } from "../../../shared/replyProtocol.mjs";
 import type { ReplyMarkdownProps } from "./ReplyMarkdown";
 
 let markdownModule: Promise<typeof import("./ReplyMarkdown")> | null = null;

@@ -25,7 +25,7 @@ export type ApiClues = {
   markToolsUnsupported: () => Promise<void>;
 };
 
-export const READ_CLUE_TOOL: ChatTool = {
+const READ_CLUE_TOOL: ChatTool = {
   type: "function",
   function: {
     name: "read_clue",

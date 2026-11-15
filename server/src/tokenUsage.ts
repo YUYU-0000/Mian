@@ -1,9 +1,9 @@
-export type CumulativeTokenUsagePatch = {
+type CumulativeTokenUsagePatch = {
   totalTokens?: number;
   uncachedTotalTokens?: number;
 };
 
-export type ParsedCumulativeTokenUsage = {
+type ParsedCumulativeTokenUsage = {
   patch: CumulativeTokenUsagePatch;
   warning?: string;
 };

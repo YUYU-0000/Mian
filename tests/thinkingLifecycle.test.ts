@@ -6,7 +6,7 @@ import {
   loadChatGroups,
   saveChatGroups,
   type ChatGroup,
-} from "../client/src/chatModel.ts";
+} from "../shared/chatModel.mjs";
 import { CodexBridge } from "../server/src/codex.ts";
 
 class MemoryStorage {

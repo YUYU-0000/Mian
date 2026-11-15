@@ -35,7 +35,7 @@ const textExtensions = new Set(
 );
 const extension = (name: string) => path.extname(name).slice(1).toLowerCase();
 
-export function fileMimeType(name: string, supplied = "") {
+function fileMimeType(name: string, supplied = "") {
   return (
     imageTypes[extension(name)] ||
     (textExtensions.has(extension(name))
@@ -44,7 +44,7 @@ export function fileMimeType(name: string, supplied = "") {
   );
 }
 
-export type FileMessage = {
+type FileMessage = {
   role: "user" | "assistant";
   content: string;
   files?: Pick<ChatFile, "id">[];

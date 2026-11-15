@@ -11,7 +11,7 @@ import {
   CLUE_SELECTION_INSTRUCTION,
 } from "../server/src/clueSelection.ts";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
-import { recentClueMessages, type UserGroup } from "../client/src/chatModel.ts";
+import { recentClueMessages, type UserGroup } from "../shared/chatModel.mjs";
 import { completeBackup } from "../client/src/settingsBackup.ts";
 import { createId } from "../client/src/id.ts";
 import { fileTicketServer } from "./fileTickets.server.mjs";

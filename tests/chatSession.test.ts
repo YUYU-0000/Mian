@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
-import { CHAT_STORAGE_KEY } from "../client/src/chatModel.ts";
+import { CHAT_STORAGE_KEY } from "../shared/chatModel.mjs";
 
 class MemoryStorage {
   values = new Map<string, string>();

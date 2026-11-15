@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { ConversationMessages } from "../server/src/messages.ts";
 import { ChatFiles } from "../server/src/chatFiles.ts";
-import { appendUserRecord, applyReplyEvent, chatHistory, type ChatGroup, type UserGroup } from "../client/src/chatModel.ts";
+import { appendUserRecord, applyReplyEvent, chatHistory, type ChatGroup, type UserGroup } from "../shared/chatModel.mjs";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
 import { flushMessageSyncs, type MessageSnapshot } from "../client/src/messageSync.ts";
 import { fileTicketServer, imageBytes } from "./fileTickets.server.mjs";

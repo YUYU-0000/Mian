@@ -1,7 +1,7 @@
 import {
   isThinkingRunning,
   type ReplyGroup,
-} from "./chatModel";
+} from "../../shared/chatModel.mjs";
 import type { VisualReply } from "./visualPlayback";
 
 const THINKING_OPEN = "<mian-thinking>";

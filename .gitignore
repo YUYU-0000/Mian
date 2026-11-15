@@ -42,6 +42,7 @@ tmp/
 temp/
 
 # Local backups and generated verification artifacts
+/docs/pr-3-comparison/
 .backups/
 Mian.backups/
 /*.png

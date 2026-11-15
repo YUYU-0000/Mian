@@ -6,7 +6,7 @@ export type AvatarEditor = { file: Blob; crop: AvatarCrop };
 export const INITIAL_AVATAR_CROP: AvatarCrop = { x: 0, y: 0, zoom: 1 };
 const urls = new Map<AvatarRole, string>();
 
-export function applyAvatar(role: AvatarRole, file: Blob) {
+function applyAvatar(role: AvatarRole, file: Blob) {
   const previous = urls.get(role);
   if (previous) URL.revokeObjectURL(previous);
   const url = URL.createObjectURL(file);
@@ -64,7 +64,7 @@ export async function saveAvatar(role: AvatarRole, editor: AvatarEditor) {
 }
 
 // 位移以圆形取景框的直径为单位，预览与导出使用同一裁切区域。
-export async function cropAvatar(file: Blob, crop: AvatarCrop): Promise<Blob> {
+async function cropAvatar(file: Blob, crop: AvatarCrop): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const side = Math.min(bitmap.width, bitmap.height) / crop.zoom;
   const canvas = document.createElement("canvas");

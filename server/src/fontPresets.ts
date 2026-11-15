@@ -40,7 +40,7 @@ export async function readFontSettings(): Promise<FontSettings> {
   }
 }
 
-export function fontPreset(input: FontPreset): FontPreset {
+function fontPreset(input: FontPreset): FontPreset {
   if (
     !input ||
     typeof input.id !== "string" ||
@@ -62,7 +62,7 @@ export function fontPreset(input: FontPreset): FontPreset {
       };
 }
 
-export function validFontSize(size: number) {
+function validFontSize(size: number) {
   return (
     Number.isInteger(size - DEFAULT_BUBBLE_SIZE) &&
     size >= DEFAULT_BUBBLE_SIZE - 3 &&

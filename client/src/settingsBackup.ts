@@ -1,6 +1,6 @@
 import { pad2 } from "./format";
 import type { ClueWall } from "./clueTypes";
-import { CHAT_STORAGE_KEY, type ChatGroup } from "./chatModel";
+import { CHAT_STORAGE_KEY, type ChatGroup } from "../../shared/chatModel.mjs";
 import type { Config, ConversationRecord } from "./types";
 import type { ApiPreset } from "./connectionTypes";
 import type { FontSettings } from "./settingsTypes";
