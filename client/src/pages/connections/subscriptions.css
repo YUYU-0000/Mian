@@ -1,0 +1,218 @@
+/* ================= 訂閱封面 ================= */
+.connections-page .cover {
+  display: flex;
+}
+
+/* 左側：封面圖上傳與顯影 */
+.connections-page .cover-art {
+  position: relative;
+  width: 56%;
+  height: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #a4b8c6;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.connections-page .cover-art .uploaded-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition:
+    opacity 0.5s ease,
+    filter 0.8s ease,
+    transform 0.75s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.connections-page .cover-art .uploaded-media.developing {
+  opacity: 0;
+  filter: blur(8px) grayscale(1) brightness(1.2);
+  transform: scale(1.04);
+}
+.connections-page .cover-art.has-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: rgba(117, 144, 163, 0.22);
+  mix-blend-mode: multiply;
+}
+.connections-page .upload-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 26px;
+  font-weight: 300;
+}
+.connections-page .upload-text {
+  margin-top: 8px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.connections-page .loading-text {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.75);
+}
+.connections-page .cover-art-file {
+  display: none;
+}
+.connections-page .cover-count {
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  z-index: 4;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+}
+
+/* 右側：訂閱名稱、帳號、模型與額度 */
+.connections-page .cover-band {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  background: var(--sheet);
+  box-shadow: -6px 0 14px -10px rgba(59, 77, 90, 0.35);
+}
+.connections-page .cover-giant {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  right: -14px;
+  z-index: 1;
+  writing-mode: vertical-rl;
+  user-select: none;
+  pointer-events: none;
+  font-size: 118px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: rgba(164, 184, 198, 0.34);
+}
+.connections-page .cover-band-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 16px 0 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.connections-page .cover-title {
+  align-self: flex-start;
+  min-width: 76%;
+  padding-bottom: 1px;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+.connections-page .cover-sub {
+  margin-top: 5px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.connections-page .cover-links {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.connections-page .cover-link {
+  all: unset;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.connections-page .cover-link-label {
+  font-size: 8px;
+  letter-spacing: 2.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.connections-page .cover-link-value {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  transition: transform 0.2s ease;
+}
+.connections-page .cover-link-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.connections-page .cover-link-text::after {
+  content: "›";
+  font-size: 13px;
+  color: rgba(59, 77, 90, 0.4);
+}
+.connections-page .cover-link:active .cover-link-value {
+  transform: translateX(3px);
+  opacity: 0.7;
+}
+.connections-page .cover-foot {
+  position: absolute;
+  left: 18px;
+  right: 16px;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.connections-page .cover-status {
+  white-space: nowrap;
+}
+.connections-page .cover-status.is-connected {
+  color: var(--btn);
+}
+.connections-page .cover-workspace {
+  all: unset;
+  cursor: pointer;
+}
+.connections-page .workspace-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.connections-page .workspace-editor textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 3px 0;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font:
+    11px/1.5 ui-monospace,
+    "SF Mono",
+    Consolas,
+    monospace;
+}

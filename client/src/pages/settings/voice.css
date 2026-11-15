@@ -1,0 +1,362 @@
+/* ===== 语音设置：唱片套 + 票根 ===== */
+.settings-page .voice-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: none;
+}
+.settings-page .vc-page {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  background-color: var(--paper-layer-top);
+  border-radius: 2px;
+  box-sizing: border-box;
+  box-shadow: inset 0 0 40px rgba(160, 150, 130, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+.settings-page .vc-page.current {
+  pointer-events: auto;
+}
+
+/* 黑胶 */
+.settings-page .vc-record {
+  position: absolute;
+  top: 23px;
+  left: 35px;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  z-index: 4;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 21px,
+      rgba(255, 255, 255, 0.05) 22px,
+      transparent 23px
+    ),
+    repeating-radial-gradient(circle, #1c1c1e 0 1.6px, #2a2a2d 1.6px 3.2px);
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.18);
+  transition: transform 1.1s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+.settings-page .vc-record-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.settings-page .vc-record-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 35%,
+    transparent 65%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+.settings-page .vc-ring-text {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.settings-page .vc-ring-text text {
+  font-family: var(--font-main);
+  font-size: 6.5px;
+  letter-spacing: 1.6px;
+  fill: rgba(241, 239, 233, 0.75);
+  text-transform: uppercase;
+}
+.settings-page .vc-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 42px;
+  height: 42px;
+  margin: -21px 0 0 -21px;
+  border-radius: 50%;
+  background: #8fa6b5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+.settings-page .vc-label::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #2f3d48;
+}
+.settings-page .vc-record,
+.settings-page .vc-sleeve {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.settings-page .vc-page.out .vc-record {
+  transform: translateX(64px);
+}
+.settings-page .vc-page.out .vc-record-inner {
+  animation: vcSpin 5s linear infinite;
+}
+.settings-page .vc-page.out .vc-record {
+  box-shadow: 4px 8px 18px rgba(0, 0, 0, 0.22);
+}
+@keyframes vcSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 唱片套 */
+.settings-page .vc-sleeve {
+  position: absolute;
+  top: 16px;
+  left: 30px;
+  width: 128px;
+  height: 132px;
+  z-index: 5;
+  background-color: #ebe7de;
+  box-shadow:
+    1px 3px 8px rgba(0, 0, 0, 0.1),
+    4px 0 10px -2px rgba(0, 0, 0, 0.28),
+    inset 0 0 30px rgba(160, 150, 130, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  transform: rotate(-1.2deg);
+}
+.settings-page .vc-sleeve-side {
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  font-family: var(--font-main);
+  font-size: 8.5px;
+  letter-spacing: 2.5px;
+  color: rgba(140, 131, 117, 0.7);
+  text-transform: uppercase;
+}
+.settings-page .vc-sleeve-birds {
+  position: absolute;
+  top: 19px;
+  left: 14px;
+  width: 26px;
+  height: 14px;
+}
+.settings-page .vc-note-input {
+  position: absolute;
+  left: 10px;
+  right: 16px;
+  bottom: 30px;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: #6b6256;
+  letter-spacing: 1px;
+}
+.settings-page .vc-note-input::placeholder {
+  color: rgba(107, 98, 86, 0.35);
+}
+.settings-page .vc-sleeve-line {
+  position: absolute;
+  left: 10px;
+  right: 16px;
+  bottom: 28px;
+  height: 1px;
+  background: rgba(140, 131, 117, 0.35);
+}
+.settings-page .vc-sleeve-bar {
+  position: absolute;
+  left: 10px;
+  right: 16px;
+  bottom: 9px;
+  height: 15px;
+  border-radius: 8px;
+  background: var(--icon-bg-4);
+  display: flex;
+  align-items: center;
+  padding: 0 7px 0 3px;
+  gap: 5px;
+  box-sizing: border-box;
+  opacity: 0.9;
+}
+.settings-page .vc-bar-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--paper-layer-top);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-page .vc-bar-icon::after {
+  content: "";
+  border-left: 3.5px solid var(--icon-bg-4);
+  border-top: 2.2px solid transparent;
+  border-bottom: 2.2px solid transparent;
+  margin-left: 1px;
+}
+.settings-page .vc-bar-wave {
+  flex: 1;
+  height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.settings-page .vc-bar-wave i {
+  display: block;
+  width: 1.2px;
+  border-radius: 1px;
+  background: rgba(245, 242, 236, 0.9);
+  height: var(--h);
+}
+.settings-page .vc-page.playing .vc-bar-wave i {
+  animation: vcWave 1.6s ease-in-out infinite alternate;
+}
+@keyframes vcWave {
+  from {
+    height: calc(var(--h) * 0.4);
+  }
+  to {
+    height: var(--h);
+  }
+}
+
+/* 页码计数器（沿用字体页） */
+.settings-page .vc-counter {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 65px;
+  height: 90px;
+  z-index: 12;
+  pointer-events: none;
+  transform: scale(0.68);
+  transform-origin: top right;
+}
+
+/* 票根 */
+.settings-page .vc-ticket {
+  position: absolute;
+  top: 160px;
+  left: 30px;
+  right: 20px;
+  height: 196px;
+  z-index: 6;
+  background-color: #fcfbf8;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 6px 14px rgba(0, 0, 0, 0.05);
+  transform: rotate(0.6deg);
+  -webkit-mask:
+    radial-gradient(circle 6px at 0 144px, transparent 98%, #000),
+    radial-gradient(circle 6px at 100% 144px, transparent 98%, #000);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.settings-page .vc-ticket-frame {
+  position: absolute;
+  inset: 6px 6px 58px 6px;
+  border: 1px solid rgba(117, 144, 163, 0.55);
+}
+.settings-page .vc-ticket-title {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 2.5px;
+  color: var(--icon-bg-1);
+  text-transform: uppercase;
+}
+.settings-page .vc-ticket-no {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-family: "ZSFT-l", sans-serif;
+  font-size: 13px;
+  color: var(--icon-bg-4);
+}
+.settings-page .vc-form {
+  position: absolute;
+  top: 28px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.settings-page .vc-form .api-field-row {
+  height: 16px;
+}
+.settings-page .vc-form .api-field-label {
+  font-size: 9px;
+  width: 44px;
+}
+.settings-page .vc-form .api-field-input {
+  font-size: 10px;
+  min-width: 0;
+}
+.settings-page .vc-perf {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 144px;
+  border-top: 2px dotted rgba(140, 131, 117, 0.45);
+}
+.settings-page .vc-stub {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 7px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.settings-page .vc-stub:active {
+  opacity: 0.7;
+}
+.settings-page .vc-barcode {
+  flex: 1;
+  height: 26px;
+  background: repeating-linear-gradient(
+    90deg,
+    #4f6475 0 1px,
+    transparent 1px 3px,
+    #4f6475 3px 5px,
+    transparent 5px 6px,
+    #4f6475 6px 7px,
+    transparent 7px 10px
+  );
+  opacity: 0.8;
+}
+.settings-page .vc-play {
+  font-family: var(--font-main);
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #6b6256;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.settings-page .vc-play b {
+  display: block;
+  font-family: var(--font-main);
+  font-weight: normal;
+  font-size: 10px;
+  letter-spacing: 3px;
+  margin-top: 2px;
+}
+.settings-page .vc-page.playing .vc-play {
+  color: var(--icon-bg-4);
+}

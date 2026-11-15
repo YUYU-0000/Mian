@@ -7,12 +7,10 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from "react";
-import {
-  readableToolResult,
-  visibleToolSummary,
-  type ChatGroup,
-} from "../chatModel";
-import { ChatSessionStore, isToolTimelineVisible } from "../chatSession";
+import { type ChatGroup } from "../chatModel";
+import { readableToolResult, visibleToolSummary } from "../toolPresentation";
+import { ChatSessionStore } from "../chatSession";
+import { isToolTimelineVisible } from "../replyTimeline";
 import type { Approval, ToolEvent } from "../types";
 import {
   cursorMatches,

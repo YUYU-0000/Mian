@@ -14,7 +14,7 @@ test("ribbon title crossfades only its overlapping text layers", async () => {
   assert.match(title, /data-title-transition-generation/);
   assert.match(css, /archiveTitleInkOut 90ms ease-out forwards/);
   assert.match(css, /archiveTitleInkIn 130ms ease-out 30ms forwards/);
-  assert.match(css, /blur\(\.6px\)/);
+  assert.match(css, /blur\(0?\.6px\)/);
   assert.match(
     css,
     /#archiveRibbonTitle[\s\S]*width:\s*180px[\s\S]*height:\s*20px[\s\S]*background:\s*#e2dacf/,

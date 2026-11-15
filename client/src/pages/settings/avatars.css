@@ -1,0 +1,260 @@
+/* 头像沿用标本卡排版。 */
+.settings-page .wallpaper-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: none;
+}
+.settings-page .wp-layout {
+  position: absolute;
+  top: 25px;
+  left: 55px;
+  width: 135px;
+  z-index: 5;
+}
+.settings-page .wp-backing-wrapper {
+  position: absolute;
+  top: -15px;
+  left: -20px;
+  width: 240px;
+  height: 215px;
+  filter: drop-shadow(1px 3px 6px rgba(0, 0, 0, 0.08));
+  z-index: 0;
+}
+.settings-page .wp-backing {
+  width: 100%;
+  height: 100%;
+  background-color: #e2dacf;
+  clip-path: polygon(
+    1% 4%,
+    6% 1%,
+    14% 3%,
+    22% 1%,
+    32% 4%,
+    45% 1%,
+    55% 3%,
+    68% 0%,
+    80% 4%,
+    92% 1%,
+    99% 5%,
+    98% 18%,
+    100% 30%,
+    97% 42%,
+    99% 55%,
+    98% 68%,
+    100% 80%,
+    98% 92%,
+    97% 99%,
+    85% 97%,
+    72% 100%,
+    60% 98%,
+    48% 100%,
+    35% 97%,
+    22% 100%,
+    10% 98%,
+    1% 99%,
+    2% 85%,
+    0% 72%,
+    3% 60%,
+    1% 48%,
+    2% 35%,
+    0% 22%,
+    3% 10%
+  );
+}
+.settings-page .wp-photo-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  transform: rotate(-1.5deg);
+}
+.settings-page .wp-photo-container .polaroid {
+  padding: 6px;
+  border-radius: 0;
+}
+.settings-page .wp-photo-container .polaroid-img-placeholder {
+  aspect-ratio: 4 / 5;
+  background-color: #8a9ca8;
+}
+.settings-page .wp-photo-container .polaroid-img-placeholder:hover {
+  background-color: #798b97;
+}
+.settings-page .wp-tape {
+  position: absolute;
+  top: -6px;
+  left: 12px;
+  width: 70px;
+  height: 16px;
+  background-color: rgba(235, 235, 232, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transform: rotate(-3deg);
+  z-index: 5;
+  clip-path: polygon(2% 0, 98% 1%, 100% 99%, 0 98%);
+}
+.settings-page .wp-typography {
+  position: absolute;
+  top: 250px;
+  left: -15px;
+  width: 160px;
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.settings-page .wp-typo-title {
+  font-family: var(--font-main);
+  font-size: 26px;
+  font-weight: 800;
+  color: #6b6256;
+  letter-spacing: 5px;
+  line-height: 1;
+  margin-bottom: 0;
+  text-shadow: 0.5px 0.5px 0px rgba(255, 255, 255, 0.8);
+}
+.settings-page .wp-typo-divider {
+  width: 70px;
+  height: 1px;
+  background-color: rgba(140, 131, 117, 0.4);
+  margin-bottom: 0;
+  border-radius: 1px;
+}
+.settings-page .wp-typo-subtitle {
+  font-family: var(--font-main);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #8c8376;
+  line-height: 1.5;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.settings-page .wp-typo-vertical {
+  position: absolute;
+  top: 175px;
+  height: 160px;
+  right: -80px;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 4px;
+  z-index: 5;
+  pointer-events: none;
+}
+.settings-page .wp-typo-vertical span {
+  writing-mode: vertical-rl;
+  font-family: var(--font-main);
+  font-size: 6px;
+  letter-spacing: 2px;
+  color: rgba(140, 131, 117, 0.6);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.settings-page .wp-flower-container {
+  position: absolute;
+  top: 175px;
+  right: -80px;
+  width: 80px;
+  height: 160px;
+  z-index: 4;
+  transform: rotate(3deg);
+  pointer-events: none;
+}
+.settings-page .wp-flower-tape {
+  position: absolute;
+  top: 100px;
+  left: 27px;
+  width: 24px;
+  height: 12px;
+  background-color: #edece4;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.12);
+  transform: rotate(-10deg);
+  z-index: 5;
+  border-radius: 1px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  pointer-events: none;
+}
+.settings-page .wp-flower-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.08));
+}
+.settings-page .clickable-flora {
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transform-origin: var(--origin-x) var(--origin-y);
+  transform-box: view-box;
+}
+.settings-page .clickable-flora.wobble {
+  animation: floraWobble 1.2s ease-in-out forwards;
+}
+@keyframes floraWobble {
+  0% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(-5deg);
+  }
+  35% {
+    transform: rotate(3deg);
+  }
+  55% {
+    transform: rotate(-1.5deg);
+  }
+  75% {
+    transform: rotate(0.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+.settings-page .wp-note-card {
+  position: absolute;
+  top: 55px;
+  right: -45px;
+  width: 100px;
+  height: 110px;
+  background-color: #f8f8f8;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 12px 12px;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.15);
+  transform: rotate(6deg);
+  z-index: 2;
+  padding: 20px 8px 8px 10px;
+  box-sizing: border-box;
+}
+.settings-page .wp-note-text {
+  font-family: var(--font-main);
+  font-size: 7px;
+  line-height: 1.5;
+  color: #444;
+  text-align: left;
+  letter-spacing: 0px;
+  font-weight: 300;
+  opacity: 0.7;
+}
+.settings-page .wp-note-clip {
+  position: absolute;
+  top: -14px;
+  left: 14px;
+  width: 16px;
+  height: 50px;
+  z-index: 5;
+  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.2));
+}
+.settings-page .video-play-btn {
+  position: absolute;
+  z-index: 10;
+  background-color: rgba(117, 144, 163, 0.9);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-family: var(--font-main);
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}

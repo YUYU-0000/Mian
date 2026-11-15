@@ -1,10 +1,13 @@
+import { pad2 } from "../format";
 import { useId, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
 
 const mask = (value: string) =>
-  value.length > 4 ? "•".repeat(Math.min(12, value.length - 4)) + value.slice(-4) : value;
+  value.length > 4
+    ? "•".repeat(Math.min(12, value.length - 4)) + value.slice(-4)
+    : value;
 export default function VoicePage({
   index,
   total,
@@ -51,7 +54,7 @@ export default function VoicePage({
     }
     if (playback.current === current) setPlaying(false);
   };
-  const number = String(index + 1).padStart(2, "0");
+  const number = pad2(index + 1);
   return (
     <div
       className={`vc-page${current ? " current" : ""}${pulled || playing ? " out" : ""}${playing ? " playing" : ""}`}
@@ -73,7 +76,9 @@ export default function VoicePage({
             strokeLinejoin="round"
           />
         </svg>
-        <div className="acc-num-top vc-total">{String(total).padStart(3, "0")}</div>
+        <div className="acc-num-top vc-total">
+          {String(total).padStart(3, "0")}
+        </div>
         <div
           className="apiBtnAdd vc-add"
           onClick={(e) => {
@@ -137,19 +142,19 @@ export default function VoicePage({
         <div className="vc-sleeve-bar">
           <span className="vc-bar-icon" />
           <span className="vc-bar-wave">
-            {[3, 6, 4, 8, 5, 9, 4, 7, 3, 6, 9, 5, 8, 4, 6, 3, 7, 5, 9, 4, 6].map(
-              (height, i) => (
-                <i
-                  key={i}
-                  style={
-                    {
-                      "--h": `${height}px`,
-                      animationDelay: `${(i % 5) * 0.12}s`,
-                    } as CSSProperties
-                  }
-                />
-              ),
-            )}
+            {[
+              3, 6, 4, 8, 5, 9, 4, 7, 3, 6, 9, 5, 8, 4, 6, 3, 7, 5, 9, 4, 6,
+            ].map((height, i) => (
+              <i
+                key={i}
+                style={
+                  {
+                    "--h": `${height}px`,
+                    animationDelay: `${(i % 5) * 0.12}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
           </span>
         </div>
       </div>

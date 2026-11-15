@@ -34,9 +34,9 @@ test("the layered dissolve overlaps a frozen outgoing frame with one live incomi
   assert.ok(exitBody);
   assert.ok(enterBody);
   assert.match(exitBody, /opacity:\s*0/);
-  assert.match(exitBody, /blur\(\.8px\)/);
+  assert.match(exitBody, /blur\(0?\.8px\)/);
   assert.match(enterBody, /opacity:\s*0/);
-  assert.match(enterBody, /blur\(\.8px\)/);
+  assert.match(enterBody, /blur\(0?\.8px\)/);
   assert.doesNotMatch(`${exitBody}${enterBody}`, /translate|scale|rotate/);
   assert.match(
     css,

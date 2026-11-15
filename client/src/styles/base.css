@@ -1,0 +1,90 @@
+@import url("/fonts/lxgw/result.css");
+@font-face {
+  font-family: "ZSFT-l";
+  src: url("/fonts/zsft-l/Qwigley-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: ZSFT-br;
+  src: url("/fonts/zsft/light.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: ZSFT-br;
+  src: url("/fonts/zsft/main.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: ZSFT-br;
+  src: url("/fonts/zsft/medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: ZSFT-br;
+  src: url("/fonts/zsft/semi-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: ZSFT-br;
+  src: url("/fonts/zsft/bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+:root {
+  --font-main: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  --bg: #f1efe9;
+  --ink: #3b4d5a;
+  --muted: #5a7082;
+  --line: #6b6256;
+  --blue: #7590a3;
+  --green: #7a936e;
+  --red: #b6625b;
+  --home-size: 50px;
+  --home-gap: 15px;
+  --home-pad: 20px;
+}
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #e8e6df;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.home-screen,
+.archive-chat {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+}

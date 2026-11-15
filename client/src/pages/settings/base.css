@@ -1,0 +1,468 @@
+/* 主题颜色 & 字體設定 */
+.settings-page {
+  --bg-color: #f1efe9;
+  --font-main: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  --icon-bg-1: #7590a3;
+  --icon-bg-2: #a4b8c6;
+  --icon-bg-3: #8a98a3;
+  --icon-bg-4: #5a7082;
+  --icon-bg-4-rgb: 90, 112, 130;
+  --color-text-main: #4f6475;
+  --color-text-muted: #72828e;
+  --color-tab-text: #ffffff;
+
+  /* 纸张色调 */
+  --paper-layer-top: #f5f2ec;
+  --paper-layer-mid: #ebe7de;
+  --paper-layer-bot: #e1ddd2;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+  font-family: var(--font-main);
+  font-weight: normal;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 桌面端响应式适配 */
+@media (min-width: 768px) {
+  .route-layer-surface-settings {
+    background-color: #e8e6df;
+  }
+  .settings-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+    position: relative;
+  }
+}
+
+/* 顶部导航 */
+.settings-page .settings-header {
+  padding: 24px 16px 0px 16px;
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 10;
+}
+.settings-page .back-btn {
+  display: inline-flex;
+  align-items: flex-start;
+  cursor: pointer;
+  position: relative;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  margin-top: -2px;
+}
+.settings-page .back-btn::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  right: -15px;
+  bottom: -10px;
+  left: -15px;
+}
+.settings-page .back-btn:active {
+  opacity: 0.6;
+  transform: translateX(-4px);
+}
+
+.settings-page .right-decor {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+.settings-page .archive-en {
+  writing-mode: vertical-rl;
+  font-size: 8px;
+  letter-spacing: 2.5px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  opacity: 0.75;
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+  padding-top: 1px;
+}
+.settings-page .decor-line {
+  width: 1px;
+  height: 65px;
+  margin: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--icon-bg-4-rgb), 0.6) 0%,
+    rgba(var(--icon-bg-4-rgb), 0) 100%
+  );
+}
+.settings-page .archive-cn {
+  writing-mode: vertical-rl;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 12px;
+  line-height: 1;
+  margin: 0;
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    var(--icon-bg-4) 0%,
+    rgba(var(--icon-bg-4-rgb), 0.15) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 档案袋容器 */
+.settings-page .folders-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+.settings-page .folder {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+.settings-page .folder.active {
+  transform: translateY(-25px);
+}
+.settings-page .folder-body {
+  width: 100%;
+  height: calc(100% + 50px);
+  border-radius: 0;
+  box-shadow:
+    0 -2px 6px rgba(0, 0, 0, 0.12),
+    0 -8px 24px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.settings-page .f1 {
+  height: 56vh;
+  z-index: 1;
+}
+.settings-page .f1 .folder-body {
+  background-color: var(--icon-bg-4);
+}
+.settings-page .f1 .tab-wrapper {
+  left: 0;
+  width: 115px;
+}
+.settings-page .f1 .tab-bg {
+  background-color: var(--icon-bg-4);
+  clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
+}
+.settings-page .f1 .tab-text {
+  padding-right: 6px;
+}
+.settings-page .f2 {
+  height: 44vh;
+  z-index: 2;
+}
+.settings-page .f2 .folder-body {
+  background-color: var(--icon-bg-1);
+}
+.settings-page .f2 .tab-wrapper {
+  right: 0;
+  left: auto;
+  width: 115px;
+}
+.settings-page .f2 .tab-bg {
+  background-color: var(--icon-bg-1);
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+}
+.settings-page .f2 .tab-text {
+  padding-left: 10px;
+}
+.settings-page .f3 {
+  height: 32vh;
+  z-index: 3;
+}
+.settings-page .f3 .folder-body {
+  background-color: var(--icon-bg-3);
+}
+.settings-page .f3 .tab-wrapper {
+  left: 0;
+  width: 115px;
+}
+.settings-page .f3 .tab-bg {
+  background-color: var(--icon-bg-3);
+  clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
+}
+.settings-page .f3 .tab-text {
+  padding-right: 6px;
+}
+.settings-page .f4 {
+  height: 20vh;
+  z-index: 4;
+}
+.settings-page .f4 .folder-body {
+  background-color: var(--icon-bg-2);
+}
+.settings-page .f4 .tab-wrapper {
+  right: 0;
+  left: auto;
+  width: 115px;
+}
+.settings-page .f4 .tab-bg {
+  background-color: var(--icon-bg-2);
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+}
+.settings-page .f4 .tab-text {
+  padding-left: 10px;
+}
+@media (max-height: 640px) {
+  .settings-page .f1 {
+    height: 50vh;
+  }
+  .settings-page .f2 {
+    height: 40vh;
+  }
+  .settings-page .f3 {
+    height: 30vh;
+  }
+  .settings-page .f4 {
+    height: 20vh;
+  }
+}
+
+.settings-page .tab-wrapper {
+  position: absolute;
+  top: -30px;
+  height: 31px;
+  filter: drop-shadow(0px -3px 5px rgba(0, 0, 0, 0.15));
+}
+.settings-page .tab-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
+.settings-page .tab-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-tab-text);
+  font-size: 10px;
+  letter-spacing: 3px;
+  font-weight: 400;
+  padding-top: 3px;
+  z-index: 2;
+}
+
+/* 文件夹 4（存儲設置）封面上的文字 */
+.settings-page .front-deco {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: rotate(-3.5deg);
+}
+.settings-page .front-hand {
+  font-family: "ZSFT-l", cursive;
+  font-size: 50px;
+  color: var(--color-text-main);
+  margin: 0;
+  line-height: 0.8;
+  margin-top: 6px;
+  margin-right: 40px;
+  text-transform: uppercase;
+}
+.settings-page .front-sub {
+  font-size: 8.5px;
+  letter-spacing: 3px;
+  color: var(--icon-bg-4);
+  font-weight: 600;
+  margin: 0;
+  margin-top: 4px;
+  margin-left: 60px;
+  text-transform: uppercase;
+}
+
+/* 弹出特效层 */
+.settings-page .paper-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease,
+    visibility 0.5s ease;
+  backdrop-filter: blur(4px);
+  perspective: 1200px;
+}
+.settings-page .paper-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.settings-page .paper-stack-container {
+  width: 82%;
+  max-width: 340px;
+  aspect-ratio: 3.2 / 4.2;
+  position: relative;
+  transform: translateY(30px) scale(0.95) rotateX(-5deg);
+  opacity: 0;
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1),
+    opacity 0.4s ease;
+  transform-origin: center 80%;
+}
+.settings-page .paper-overlay.active .paper-stack-container {
+  transform: translateY(0) scale(1) rotateX(0deg);
+  opacity: 1;
+}
+
+.settings-page .paper-layer-bot {
+  position: absolute;
+  inset: 0;
+  background-color: var(--paper-layer-bot);
+  border-radius: 2px;
+  transform: rotate(-1.5deg) translate(-2px, 8px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  z-index: 1;
+}
+.settings-page .paper-layer-mid {
+  position: absolute;
+  inset: 0;
+  background-color: var(--paper-layer-mid);
+  border-radius: 2px;
+  transform: rotate(1deg) translate(3px, 4px);
+  box-shadow: -2px 6px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  z-index: 2;
+}
+.settings-page .paper-main {
+  position: absolute;
+  inset: 0;
+  background-color: var(--paper-layer-top);
+  border-radius: 2px;
+  z-index: 3;
+  transform: rotate(-0.2deg) translate(0, 0);
+  box-shadow:
+    -1px 3px 10px rgba(0, 0, 0, 0.05),
+    inset 0 0 40px rgba(160, 150, 130, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* 字体和语音使用连接中心同样的两层垫纸。 */
+.settings-page .has-paper-stack > .paper-layer-bot {
+  background: #e1ddd2;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.settings-page .has-paper-stack > .paper-layer-mid {
+  background: #ebe7de;
+}
+.settings-page .has-paper-stack > .paper-main,
+.settings-page .has-avatar-stack > .paper-main {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.settings-page .has-paper-stack > .paper-main > .paper-holes,
+.settings-page .has-avatar-stack > .paper-main > .paper-holes {
+  display: none;
+}
+
+.settings-page .paper-holes {
+  position: absolute;
+  left: 14px;
+  top: 10%;
+  bottom: 10%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 5;
+  pointer-events: none;
+}
+.settings-page .hole {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--paper-layer-mid);
+  box-shadow:
+    inset 1px 2px 4px rgba(0, 0, 0, 0.25),
+    0.5px 0.5px 0px rgba(255, 255, 255, 1);
+}
+
+.settings-page .polaroid {
+  background: #fcfbf8;
+  padding: 0;
+  border-radius: 1px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  position: relative;
+  box-shadow:
+    0px 2px 4px rgba(0, 0, 0, 0.03),
+    0px 6px 12px rgba(0, 0, 0, 0.04),
+    0px 12px 24px rgba(0, 0, 0, 0.05);
+}
+.settings-page .polaroid-img-placeholder {
+  width: 100%;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+.settings-page .upload-icon {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  font-weight: 300;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.settings-page .upload-text {
+  font-size: 8px;
+  font-family: var(--font-main);
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+.settings-page .file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.settings-page .loading-text {
+  display: none;
+  position: absolute;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  z-index: 2;
+  letter-spacing: 1px;
+  font-family: var(--font-main);
+}

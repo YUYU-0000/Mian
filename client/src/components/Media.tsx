@@ -132,20 +132,20 @@ export default function Media({
   return (
     <span ref={container} style={{ display: "contents" }}>
       <span
-        className={`upload-icon${cover ? " js-icon" : ""}`}
+        className="upload-icon"
         style={{ display: icon && !loading ? "flex" : "none" }}
       >
         +<span className="upload-text">點擊上傳</span>
       </span>
       <div
-        className={`loading-text${cover ? " js-loading" : ""}`}
+        className="loading-text"
         style={{ display: loading ? "block" : "none" }}
       >
         載入中
       </div>
       <input
         type="file"
-        className={cover ? "cover-art-file js-file" : "file-input"}
+        className={cover ? "cover-art-file" : "file-input"}
         accept={cover || avatar ? "image/*" : "image/*, video/*"}
         onClick={(event) => {
           if (!avatar || !pictures.length) return;

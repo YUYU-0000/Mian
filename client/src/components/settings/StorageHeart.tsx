@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 export const storageHeart = (
-  <svg className="st-svg" viewBox="0 0 258 432" preserveAspectRatio="xMidYMid meet">
+  <svg
+    className="st-svg"
+    viewBox="0 0 258 432"
+    preserveAspectRatio="xMidYMid meet"
+  >
     <g className="st-base-g">
       <path className="st-b" d="M91,8 L91,310" />
       <path
@@ -675,73 +679,5 @@ export const storageHeart = (
         d="M198.5,337.2 L198.1,338.0 L197.8,339.0 L197.5,340.0 L196.8,341.0 L196.1,342.0 L195.7,343.0 L195.1,344.0 L194.5,345.0 L194.0,346.0 L193.5,347.0 L192.8,348.0 L192.1,349.0 L191.7,350.0 L191.1,351.0 L190.4,352.0 L189.8,353.0 L189.1,354.0 L188.3,355.0 L187.3,356.0 L186.5,357.0 L185.7,357.9 L184.7,358.7 L183.7,359.5 L182.7,360.1 L181.7,360.9 L180.7,361.5 L179.7,362.2 L178.7,362.8 L177.7,363.3 L176.7,363.7 L175.7,364.2 L174.7,364.7 L173.7,365.1 L172.7,365.5 L171.7,365.8 L170.7,366.1 L169.7,366.4 L168.7,366.7 L167.7,367.0 L166.7,367.6 L158.0,371.1"
       />
     </g>
-  </svg>
-);
-export const wallpaperFlower = (
-  <svg className="wp-flower-svg" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M 40,45 Q 45,90 37,125 T 35,160"
-      fill="none"
-      stroke="#4a3e36"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-    />
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "41.5px", "--origin-y": "95px" } as CSSProperties}
-    >
-      <path d="M 41.5,95 C 47,92 52,85 54,80 C 49,85 43.5,88 41.5,95" fill="#5c6352" />
-    </g>
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "36.5px", "--origin-y": "130px" } as CSSProperties}
-    >
-      <path
-        d="M 36.5,130 C 30,128 25,122 22,118 C 26,122 32,124 36.5,130"
-        fill="#5c6352"
-      />
-    </g>
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "40px", "--origin-y": "45px" } as CSSProperties}
-    >
-      <path
-        d="M 40,45 C 22,32 25,15 40,16 C 55,17 58,32 40,45"
-        fill="rgba(102, 144, 204, 0.85)"
-        transform="rotate(-45 40 45)"
-      />
-    </g>
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "40px", "--origin-y": "45px" } as CSSProperties}
-    >
-      <path
-        d="M 40,45 C 20,33 28,14 41,15 C 54,16 60,33 40,45"
-        fill="rgba(88, 131, 191, 0.85)"
-        transform="rotate(45 40 45)"
-      />
-    </g>
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "40px", "--origin-y": "45px" } as CSSProperties}
-    >
-      <path
-        d="M 40,45 C 23,30 24,17 39,18 C 56,19 57,31 40,45"
-        fill="rgba(94, 137, 197, 0.8)"
-        transform="rotate(135 40 45)"
-      />
-    </g>
-    <g
-      className="clickable-flora"
-      style={{ "--origin-x": "40px", "--origin-y": "45px" } as CSSProperties}
-    >
-      <path
-        d="M 40,45 C 21,34 29,16 42,17 C 53,18 59,34 40,45"
-        fill="rgba(112, 154, 214, 0.85)"
-        transform="rotate(225 40 45)"
-      />
-    </g>
-    <circle cx="40" cy="45" r="3" fill="#242b47" opacity="0.95" />
-    <circle cx="40" cy="45" r="1.5" fill="#35406b" />
   </svg>
 );

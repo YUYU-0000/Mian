@@ -1,3 +1,4 @@
+import { pad2 } from "./format";
 const EMPTY_VALUE = "NONE";
 
 export function displayConversationValue(value: string | null | undefined) {
@@ -26,11 +27,11 @@ export function formatLastActivity(
     date.getFullYear() === current.getFullYear() &&
     date.getMonth() === current.getMonth() &&
     date.getDate() === current.getDate();
-  const hour = String(date.getHours()).padStart(2, "0");
-  const minute = String(date.getMinutes()).padStart(2, "0");
+  const hour = pad2(date.getHours());
+  const minute = pad2(date.getMinutes());
   if (sameDay) return `Today ${hour}:${minute}`;
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = pad2(date.getMonth() + 1);
+  const day = pad2(date.getDate());
   return `${date.getFullYear()}.${month}.${day}`;
 }
 

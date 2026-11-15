@@ -1,11 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type AnimationEvent,
-} from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useRouteTransition } from "./useRouteTransition";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./api";
 import { applyBubbleFont } from "./bubbleFont";
 import { loadAvatars } from "./avatars";
@@ -61,12 +56,6 @@ const defaultConversation: ConversationRecord = {
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 };
-type TransitionPhase = "press" | "crossfade";
-type RouteTransition = {
-  target: string;
-  phase: TransitionPhase;
-  fromLocation: ReturnType<typeof useLocation>;
-};
 type ConversationSwitch = {
   outgoingFrame: FrozenConversationFrame;
   generation: number;
@@ -101,14 +90,13 @@ export default function App() {
     const timer = window.setTimeout(preload, 1500);
     return () => window.clearTimeout(timer);
   }, []);
-  const nav = useNavigate();
-  const location = useLocation();
+  const { location, transition, navigateWithTransition, handleTransitionEnd } =
+    useRouteTransition();
   const [status, setStatus] = useState(initial);
   const [channel, setChannel] = useState<Channel>({
     kind: "codex",
     name: "CODEX",
   });
-  const [transition, setTransition] = useState<RouteTransition | null>(null);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
     defaultConversation,
   ]);
@@ -122,7 +110,6 @@ export default function App() {
   );
   const [conversationSwitch, setConversationSwitch] =
     useState<ConversationSwitch | null>(null);
-  const transitionLocked = useRef(false);
   const conversationSwitchGeneration = useRef(0);
   const conversationSwitchRef = useRef<ConversationSwitch | null>(null);
   const captureConversationFrameRef = useRef<
@@ -502,45 +489,6 @@ export default function App() {
       ...conversationViewStates.current.get(conversationId),
       ...patch,
     });
-  };
-
-  const navigateWithTransition = (target: string) => {
-    if (target === "/chat") void preloadReplyMarkdown();
-    if (target === location.pathname || transitionLocked.current) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      nav(target);
-      return;
-    }
-    transitionLocked.current = true;
-    setTransition({
-      target,
-      phase: "press",
-      fromLocation: location,
-    });
-  };
-
-  const finishTransition = () => {
-    transitionLocked.current = false;
-    setTransition(null);
-  };
-
-  const handleTransitionEnd = (event: AnimationEvent<HTMLDivElement>) => {
-    if (!transition) return;
-    if (
-      transition.phase === "press" &&
-      event.animationName === "routeControlPress"
-    ) {
-      nav(transition.target);
-      setTransition({ ...transition, phase: "crossfade" });
-      return;
-    }
-    if (
-      transition.phase === "crossfade" &&
-      event.animationName === "routePageEnter" &&
-      event.target instanceof HTMLElement &&
-      event.target.classList.contains("route-transition-incoming")
-    )
-      finishTransition();
   };
 
   const transitionClass = transition

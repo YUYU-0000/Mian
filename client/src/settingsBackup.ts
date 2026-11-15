@@ -1,3 +1,4 @@
+import { pad2 } from "./format";
 import { CHAT_STORAGE_KEY, loadChatGroups, type ChatGroup } from "./chatModel";
 import type { Config, ConversationRecord } from "./types";
 import type { ApiPreset } from "./connectionTypes";
@@ -83,6 +84,5 @@ export function restoreBrowserBackup(backup: Backup, storage: Storage) {
 }
 
 export function backupFilename(date = new Date()) {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `mian-backup-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}.json`;
+  return `mian-backup-${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}.json`;
 }

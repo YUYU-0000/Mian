@@ -1,3 +1,4 @@
+import { pad2 } from "../format";
 import { useEffect, useState } from "react";
 import { installFont, INVALID_FONT, parseFontFace } from "../bubbleFont";
 import {
@@ -120,9 +121,7 @@ export default function FontPage({
         >
           DEL
         </div>
-        <div className="acc-num-bot apiCurrentPage">
-          {String(index + 1).padStart(2, "0")}
-        </div>
+        <div className="acc-num-bot apiCurrentPage">{pad2(index + 1)}</div>
       </div>
       <div className="api-postcard-form">
         <div className="api-field-row">

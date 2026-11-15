@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   applyReplyEvent,
-  parsePublicReply,
   type ChatGroup,
   type ReplyGroup,
 } from "../client/src/chatModel.ts";
+import { parsePublicReply } from "../client/src/replyProtocol.ts";
 import { localDateTime } from "../client/src/format.ts";
 import { api } from "../client/src/api.ts";
 import { ApiChat } from "../server/src/apiChat.ts";

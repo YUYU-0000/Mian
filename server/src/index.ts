@@ -11,14 +11,12 @@ import { ApiChat } from "./apiChat.js";
 import { ChatFiles } from "./chatFiles.js";
 import { fileRoutes } from "./fileRoutes.js";
 import { settingsRoutes } from "./settingsRoutes.js";
-import {
-  prepareConversationWorkspace,
-  WorkspaceFiles,
-} from "./workspaceFiles.js";
-import { readChannel, requirePreset } from "./apiPresets.js";
+import { WorkspaceFiles } from "./workspaceFiles.js";
+import { readChannel } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
-import { requestConversationId } from "./requestConversation.js";
+import { conversationRoutes } from "./conversationRoutes.js";
+import { turnRoutes } from "./turnRoutes.js";
 import type {
   ConversationRecord,
   ConversationRuntimeMetadata,
@@ -303,269 +301,22 @@ app.post("/api/connection/test", async (_request, response) => {
     response.status(500).json({ error: status.message });
   }
 });
-app.get("/api/conversations", (_request, response) =>
-  response.json({
-    defaultConversationId: conversations.defaultConversationId(),
-    conversations: conversations.list(),
+const chatServices = {
+  bridge,
+  apiChat,
+  conversations,
+  files,
+  publishConversation,
+};
+app.use("/api", conversationRoutes({ ...chatServices, activityTimers }));
+app.use(
+  "/api",
+  turnRoutes({
+    ...chatServices,
+    workspaceFiles,
+    waitForConversationWrites: () => conversationWriteQueue,
   }),
 );
-app.post("/api/conversations", async (_request, response) => {
-  try {
-    const config = await readConfig();
-    const conversationId = randomUUID();
-    await prepareConversationWorkspace(config.workingDirectory, conversationId);
-    if (config.channel.kind === "api") {
-      const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.createRoot(
-        { threadId: null, metadata: { model: preset.model } },
-        conversationId,
-      );
-      bridge.restoreConversationThreads([conversation]);
-      publishConversation(conversation);
-      response.status(201).json({ conversation });
-      return;
-    }
-    await bridge.connect(await readConfig());
-    const binding = await bridge.createConversationThread(conversationId);
-    const conversation = await conversations.createRoot(binding, conversationId);
-    bridge.registerConversationThread(
-      conversation.conversationId,
-      binding.threadId,
-      true,
-    );
-    publishConversation(conversation);
-    response.status(201).json({ conversation });
-  } catch (error) {
-    response.status(409).json({ error: (error as Error).message });
-  }
-});
-app.post("/api/conversations/:id/fork", async (request, response) => {
-  try {
-    conversations.require(request.params.id);
-    const config = await readConfig();
-    const conversationId = randomUUID();
-    await prepareConversationWorkspace(config.workingDirectory, conversationId);
-    if (config.channel.kind === "api") {
-      if (
-        bridge.isConversationBusy(request.params.id) ||
-        apiChat.isBusy(request.params.id)
-      )
-        throw new Error("当前会话仍在运行或等待权限处理");
-      const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.createBranch(
-        request.params.id,
-        {
-          threadId: null,
-          metadata: {
-            model: preset.model,
-            reasoningEffort: null,
-            collaborationMode: null,
-          },
-        },
-        conversationId,
-      );
-      await files.copyConversation(
-        request.params.id,
-        conversation.conversationId,
-      );
-      bridge.restoreConversationThreads([conversation]);
-      publishConversation(conversation);
-      response.status(201).json({ conversation });
-      return;
-    }
-    await bridge.connect(await readConfig());
-    await prepareConversationWorkspace(
-      config.workingDirectory,
-      request.params.id,
-    );
-    const binding = await bridge.forkConversationThread(
-      request.params.id,
-      conversationId,
-    );
-    const conversation = await conversations.createBranch(
-      request.params.id,
-      binding,
-      conversationId,
-    );
-    await files.copyConversation(
-      request.params.id,
-      conversation.conversationId,
-    );
-    bridge.registerConversationThread(
-      conversation.conversationId,
-      binding.threadId,
-      true,
-    );
-    publishConversation(conversation);
-    response.status(201).json({ conversation });
-  } catch (error) {
-    response.status(409).json({ error: (error as Error).message });
-  }
-});
-app.patch("/api/conversations/:id", async (request, response) => {
-  try {
-    const patch = request.body as Record<string, unknown>;
-    const conversation = await conversations.update(request.params.id, {
-      title: typeof patch.title === "string" ? patch.title : undefined,
-      frontName:
-        typeof patch.frontName === "string" ? patch.frontName : undefined,
-      image: typeof patch.image === "string" ? patch.image : undefined,
-      pinned: typeof patch.pinned === "boolean" ? patch.pinned : undefined,
-    });
-    response.json({ conversation });
-  } catch (error) {
-    response.status(404).json({ error: (error as Error).message });
-  }
-});
-app.patch("/api/conversations/:id/activity", async (request, response) => {
-  try {
-    const patch = request.body as Record<string, unknown>;
-    const conversation = await conversations.updateActivity(request.params.id, {
-      lastActivityAt:
-        typeof patch.lastActivityAt === "string"
-          ? patch.lastActivityAt
-          : undefined,
-      lastMessage:
-        typeof patch.lastMessage === "string" ? patch.lastMessage : undefined,
-    });
-    publishConversation(conversation);
-    response.json({ conversation });
-  } catch (error) {
-    response.status(404).json({ error: (error as Error).message });
-  }
-});
-app.delete("/api/conversations/:id", async (request, response) => {
-  try {
-    const conversationId = request.params.id;
-    if (conversations.list().length <= 1)
-      throw new Error("最后一个会话不能归档");
-    const conversation = conversations.require(conversationId);
-    if (
-      bridge.isConversationBusy(conversationId) ||
-      apiChat.isBusy(conversationId)
-    )
-      throw new Error("当前会话仍在运行或等待权限处理");
-    if (conversation.threadId) await bridge.connect(await readConfig());
-    await bridge.archiveConversationThread(conversationId);
-    await conversations.remove(conversationId);
-    bridge.forgetConversation(conversationId);
-    const activityTimer = activityTimers.get(conversationId);
-    if (activityTimer) clearTimeout(activityTimer);
-    activityTimers.delete(conversationId);
-    response.status(204).end();
-  } catch (error) {
-    response.status(409).json({ error: (error as Error).message });
-  }
-});
-app.post("/api/turn", async (request, response) => {
-  try {
-    if (typeof request.body?.text !== "string" || !request.body.text.trim())
-      throw new Error("消息不能为空");
-    const conversationId = requestConversationId(
-      request.body,
-      conversations.defaultConversationId(),
-    );
-    conversations.require(conversationId);
-    const config = await readConfig();
-    if (
-      bridge.isConversationBusy(conversationId) ||
-      apiChat.isBusy(conversationId)
-    )
-      throw new Error("当前会话已有正在运行的 turn");
-    if (config.channel.kind === "api") {
-      const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.updateRuntime(conversationId, {
-        model: preset.model,
-        reasoningEffort: null,
-        collaborationMode: null,
-      });
-      publishConversation(conversation);
-      const messages = await files.apiMessages(
-        conversationId,
-        request.body.messages ?? [
-          {
-            role: "user",
-            content: request.body.text.trim(),
-            files: (request.body.files ?? []).map((id: string) => ({ id })),
-          },
-        ],
-      );
-      response.json(
-        apiChat.startTurn(
-          conversationId,
-          preset,
-          messages,
-          request.body.localTime,
-        ),
-      );
-      return;
-    }
-    await bridge.connect(config);
-    const workspace = await prepareConversationWorkspace(
-      config.workingDirectory,
-      conversationId,
-    );
-    const prompt = await files.codexPrompt(
-      conversationId,
-      workspace,
-      request.body.text.trim(),
-      request.body.files ?? [],
-    );
-    const capture = await WorkspaceFiles.start(workspace);
-    workspaceFiles.set(conversationId, capture);
-    let result;
-    try {
-      result = await bridge.startTurn(prompt, conversationId);
-    } catch (error) {
-      workspaceFiles.delete(conversationId);
-      throw error;
-    }
-    // 先保存线程映射，再通知前端已开始回复。
-    await conversationWriteQueue;
-    if (conversations.require(conversationId).threadId !== result.threadId) {
-      const conversation = await conversations.setThread(conversationId, {
-        threadId: result.threadId,
-        metadata: {},
-      });
-      publishConversation(conversation);
-    }
-    response.json(result);
-  } catch (error) {
-    response.status(409).json({ error: (error as Error).message });
-  }
-});
-app.post("/api/turn/:id/interrupt", async (request, response) => {
-  try {
-    const conversationId = requestConversationId(
-      request.body,
-      conversations.defaultConversationId(),
-    );
-    conversations.require(conversationId);
-    if (apiChat.isBusy(conversationId))
-      apiChat.interrupt(request.params.id, conversationId);
-    else await bridge.interrupt(request.params.id, conversationId);
-    response.json({ ok: true });
-  } catch (error) {
-    response.status(409).json({ error: (error as Error).message });
-  }
-});
-app.post("/api/approval/:id", async (request, response) => {
-  try {
-    const conversationId = requestConversationId(
-      request.body,
-      conversations.defaultConversationId(),
-    );
-    conversations.require(conversationId);
-    bridge.decide(
-      request.params.id,
-      request.body?.allow === true,
-      conversationId,
-    );
-    response.json({ ok: true });
-  } catch (error) {
-    response.status(404).json({ error: (error as Error).message });
-  }
-});
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(here, "../../client/dist");

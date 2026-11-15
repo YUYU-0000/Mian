@@ -1,0 +1,116 @@
+/* ================= 吊牌（小房子） ================= */
+.connections-page .hang-tag {
+  --tag-string: 30svh;
+  width: 188px;
+  margin-left: -94px;
+}
+.connections-page .tag-string {
+  margin-bottom: -16px;
+}
+.connections-page .tag-card {
+  position: relative;
+  width: 188px;
+}
+
+/* 上半部：屋頂、標題與操作文字 */
+.connections-page .tag-roof {
+  display: block;
+  width: 188px;
+  height: 150px;
+}
+.connections-page .tag-roof text {
+  font-family: var(--font-main);
+}
+.connections-page .tag-roof #tagTitle.is-action {
+  cursor: pointer;
+  fill: rgba(241, 239, 233, 0.9);
+  font-weight: 600;
+  transform: translateY(2px);
+}
+.connections-page .tag-roof #tagTitle.is-action:active {
+  opacity: 0.6;
+}
+
+/* 下半部：固定高度的選項列表，可垂直捲動。 */
+.connections-page .tag-walls {
+  position: relative;
+  z-index: 1;
+  margin: -6px 8px 0;
+  height: 81px;
+  box-sizing: border-box;
+  padding: 5px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  background: var(--sheet);
+  border-radius: 0 0 10px 10px;
+}
+.connections-page .tag-walls::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
+  mix-blend-mode: multiply;
+}
+.connections-page .tag-kicker {
+  font-size: 7.5px;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.connections-page .tag-list {
+  flex: 1;
+  min-height: 0;
+  margin-top: 3px;
+  padding-top: 3px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(59, 77, 90, 0.4);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.connections-page .tag-list::-webkit-scrollbar {
+  display: none;
+}
+.connections-page .tag-list.is-overflow {
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+.connections-page .tag-option {
+  all: unset;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1.5px 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: #5b6a75;
+  word-break: break-all;
+  -webkit-tap-highlight-color: transparent;
+}
+.connections-page .tag-option::before {
+  content: "";
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(59, 77, 90, 0.45);
+}
+.connections-page .tag-option.is-selected {
+  color: var(--ink);
+  font-weight: 600;
+}
+.connections-page .tag-option.is-selected::before {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.connections-page .tag-option.is-static {
+  cursor: default;
+}
+.connections-page .tag-option:not(.is-static):active {
+  opacity: 0.6;
+}

@@ -1,5 +1,11 @@
 import { pad2 } from "../format";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { api } from "../api";
 import type { ApiPreset } from "../connectionTypes";
 import type { Draft } from "../apiDrafts";
@@ -12,7 +18,7 @@ function apiAccent(i: number, count: number) {
   const t = count === 1 ? 0 : i / (count - 1);
   return `rgb(${Math.round(81 + 83 * t)}, ${Math.round(101 + 83 * t)}, ${Math.round(117 + 81 * t)})`;
 }
-export default function ApiSheet({
+export default function ConnectionSheet({
   draft,
   index,
   total,
@@ -66,7 +72,13 @@ export default function ApiSheet({
     format: draft.format,
   });
   const isOn = !!draft.id && activeId === draft.id;
-  const status = testing ? "TESTING" : !draft.id ? "NEW" : isOn ? "IN USE" : "STANDBY";
+  const status = testing
+    ? "TESTING"
+    : !draft.id
+      ? "NEW"
+      : isOn
+        ? "IN USE"
+        : "STANDBY";
   const model = async () => {
     const cfg = form();
     if (!cfg.endpoint || (!cfg.key && !draft.hasKey)) {
@@ -84,7 +96,11 @@ export default function ApiSheet({
         giant: "MODEL",
         kicker: "SELECT",
         title: "模型",
-        items: list.map((m) => ({ label: m, value: m, selected: m === cfg.model })),
+        items: list.map((m) => ({
+          label: m,
+          value: m,
+          selected: m === cfg.model,
+        })),
         onPick: (value) => onChange({ model: value }),
       });
     } catch (error) {
@@ -213,7 +229,11 @@ export default function ApiSheet({
         <span>A QUIET LINE</span>
         <span className="api-rule-line" />
         {!draft.plus && (
-          <button className="api-del js-del" type="button" onClick={() => void remove()}>
+          <button
+            className="api-del js-del"
+            type="button"
+            onClick={() => void remove()}
+          >
             <AnimatedText text={armed ? "再點一次刪除" : "DELETE"} />
           </button>
         )}
@@ -250,16 +270,18 @@ export default function ApiSheet({
               value={draft.key ?? ""}
               onChange={(e) => onChange({ key: e.target.value })}
             />
-            {draft.key && <button
-              className="api-mini js-toggle"
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowKey((value) => !value);
-              }}
-            >
-              {showKey ? "HIDE" : "SHOW"}
-            </button>}
+            {draft.key && (
+              <button
+                className="api-mini js-toggle"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowKey((value) => !value);
+                }}
+              >
+                {showKey ? "HIDE" : "SHOW"}
+              </button>
+            )}
           </span>
         </label>
         <div className="api-field">
@@ -267,26 +289,32 @@ export default function ApiSheet({
             <b>03</b>MODEL
           </span>
           <span className="api-row">
-            {manualModel ? <ScrollInput
-              className="api-input js-model"
-              type="text"
-              aria-label="MODEL 模型名稱"
-              autoComplete="off"
-              spellCheck={false}
-              autoFocus
-              placeholder="輸入模型名稱"
-              value={draft.model}
-              onChange={event => onChange({ model: event.target.value })}
-              onBlur={() => onChange({ model: draft.model.trim() })}
-            /> : <button
-              className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
-              type="button"
-              onClick={() => void model()}
-            >
-              <ScrollText><AnimatedText
-                text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
-              /></ScrollText>
-            </button>}
+            {manualModel ? (
+              <ScrollInput
+                className="api-input js-model"
+                type="text"
+                aria-label="MODEL 模型名稱"
+                autoComplete="off"
+                spellCheck={false}
+                autoFocus
+                placeholder="輸入模型名稱"
+                value={draft.model}
+                onChange={(event) => onChange({ model: event.target.value })}
+                onBlur={() => onChange({ model: draft.model.trim() })}
+              />
+            ) : (
+              <button
+                className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
+                type="button"
+                onClick={() => void model()}
+              >
+                <ScrollText>
+                  <AnimatedText
+                    text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
+                  />
+                </ScrollText>
+              </button>
+            )}
           </span>
         </div>
       </div>
@@ -296,7 +324,11 @@ export default function ApiSheet({
           text={status}
         />
         <span className="api-actions">
-          <button className="api-act js-test" type="button" onClick={() => void test()}>
+          <button
+            className="api-act js-test"
+            type="button"
+            onClick={() => void test()}
+          >
             TEST
           </button>
           {draft.id && (

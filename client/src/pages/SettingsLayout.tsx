@@ -4,7 +4,7 @@ import type {
   ChangeEventHandler,
   CSSProperties,
 } from "react";
-import { storageHeart } from "./SettingsArt";
+import { storageHeart } from "../components/settings/StorageHeart";
 type Props = {
   rootRef: RefObject<HTMLElement | null>;
   active: number | null;

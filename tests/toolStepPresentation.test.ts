@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
-import { readableToolResult } from "../client/src/chatModel.ts";
+import { readableToolResult } from "../client/src/toolPresentation.ts";
 import { ToolRow } from "../client/src/pages/ChatMessage.tsx";
 import type { ToolEvent } from "../client/src/types.ts";
 
@@ -78,15 +78,23 @@ test("the whole step head toggles by click, Enter, and Space without bubbling", 
   const { head } = renderTool(timeTool, false, () => {
     toggles += 1;
   });
-  head.props.onClick({ stopPropagation: () => { stopped += 1; } });
+  head.props.onClick({
+    stopPropagation: () => {
+      stopped += 1;
+    },
+  });
   assert.equal(toggles, 1);
   assert.equal(stopped, 1);
 
   for (const key of ["Enter", " "]) {
     head.props.onKeyDown({
       key,
-      preventDefault: () => { prevented += 1; },
-      stopPropagation: () => { stopped += 1; },
+      preventDefault: () => {
+        prevented += 1;
+      },
+      stopPropagation: () => {
+        stopped += 1;
+      },
     });
   }
   assert.equal(toggles, 3);
@@ -95,8 +103,12 @@ test("the whole step head toggles by click, Enter, and Space without bubbling", 
 
   head.props.onKeyDown({
     key: "ArrowDown",
-    preventDefault: () => { prevented += 1; },
-    stopPropagation: () => { stopped += 1; },
+    preventDefault: () => {
+      prevented += 1;
+    },
+    stopPropagation: () => {
+      stopped += 1;
+    },
   });
   assert.equal(toggles, 3);
   assert.equal(prevented, 2);

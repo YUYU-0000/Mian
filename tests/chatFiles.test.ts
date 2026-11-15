@@ -1,12 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import express from "express";
 import { ChatFiles, MAX_FILE_SIZE } from "../server/src/chatFiles.ts";
 import { fileRoutes } from "../server/src/fileRoutes.ts";
-import { prepareConversationWorkspace, WorkspaceFiles } from "../server/src/workspaceFiles.ts";
+import {
+  prepareConversationWorkspace,
+  WorkspaceFiles,
+} from "../server/src/workspaceFiles.ts";
 import {
   apiRequestMessages,
   API_FORMAT_REMINDER,
@@ -112,16 +124,14 @@ test("图片上传失败后移除草稿并释放预览地址", async (t) => {
   drafts.dispose();
 });
 
-test("Codex 只为成功的文件修改发出收集事件，工具事件保持原样", () => {
+test("Codex 文件修改保留原有工具事件", () => {
   const bridge = new CodexBridge(() => {
     throw new Error("不启动真实 Codex");
   });
   bridge.restoreConversationThreads([
     { conversationId: "c1", threadId: "thread-files" },
   ]);
-  const files: unknown[] = [],
-    tools: unknown[] = [];
-  bridge.on("files-changed", (event) => files.push(event));
+  const tools: unknown[] = [];
   bridge.on("event", (event) => tools.push(event));
   const notification = (
     bridge as unknown as {
@@ -140,7 +150,6 @@ test("Codex 只为成功的文件修改发出收集事件，工具事件保持�
       },
     });
   }
-  assert.deepEqual(files, [{ conversationId: "c1", paths: ["hello.txt"] }]);
   assert.equal(tools.length, 3);
   bridge.close();
 });
@@ -317,7 +326,9 @@ test("每轮快照只收集新建和修改的文件，排除旧文件与上传�
     "<p>new</p>",
   );
   await writeFile(inputPath, "edited input");
-  await files.codexPrompt("c1", workspace, "", [(await files.save("c1", "late.txt", Buffer.from("late upload"))).id]);
+  await files.codexPrompt("c1", workspace, "", [
+    (await files.save("c1", "late.txt", Buffer.from("late upload"))).id,
+  ]);
   const outputs = await capture.finish(files, "c1", "turn-files");
   assert.deepEqual(
     outputs.map((file) => file.name).sort(),
@@ -364,8 +375,16 @@ test("各对话目录独立，修改时间或大小变化都能生成票根", as
   await writeFile(changedSize, "different size");
   await utimes(changedSize, originalTime, originalTime);
   await writeFile(path.join(second, "other.txt"), "other conversation");
-  assert.deepEqual((await capture.finish(files, "c1", "turn-1")).map(file => file.name).sort(), ["mtime.txt", "size.txt"]);
-  assert.deepEqual((await other.finish(files, "c2", "turn-2")).map(file => file.name), ["other.txt"]);
+  assert.deepEqual(
+    (await capture.finish(files, "c1", "turn-1"))
+      .map((file) => file.name)
+      .sort(),
+    ["mtime.txt", "size.txt"],
+  );
+  assert.deepEqual(
+    (await other.finish(files, "c2", "turn-2")).map((file) => file.name),
+    ["other.txt"],
+  );
   assert.equal(await prepareConversationWorkspace(workspace, "c1"), first);
   assert.equal((await stat(changedTime)).isFile(), true);
 });

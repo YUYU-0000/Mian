@@ -1,6 +1,6 @@
 import Media from "../components/Media";
 import type { AvatarRole } from "../avatars";
-import { wallpaperFlower } from "./SettingsArt";
+import { avatarFlower } from "../components/settings/AvatarFlower";
 
 export default function SettingsAvatar({
   role,
@@ -50,7 +50,7 @@ export default function SettingsAvatar({
         </div>
         <div className="wp-flower-container">
           <div className="wp-flower-tape" />
-          {wallpaperFlower}
+          {avatarFlower}
         </div>
         <div className="wp-note-card">
           <svg
