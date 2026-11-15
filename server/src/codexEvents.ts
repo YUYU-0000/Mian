@@ -7,6 +7,7 @@ export function handleCodexNotification(
   emit: (event: string, ...args: any[]) => boolean,
   method: string,
   params: any,
+  codeModeCalls: Map<string, string>,
 ) {
   const conversationId = resolveConversationId(conversations, params);
   if (!conversationId) {
@@ -50,7 +51,16 @@ export function handleCodexNotification(
       turnId: params.turnId,
       delta: params.delta,
     });
-  else if (method === "item/started" || method === "item/completed") {
+  else if (method === "rawResponseItem/completed") {
+    const tool = codeModeToolFrom(params.item, params.turnId, codeModeCalls);
+    if (tool)
+      emit("event", {
+        type: "tool",
+        conversationId,
+        turnId: params.turnId,
+        tool,
+      });
+  } else if (method === "item/started" || method === "item/completed") {
     if (params.item?.type === "reasoning") {
       emit("event", {
         type:
@@ -117,6 +127,8 @@ export function handleCodexNotification(
       });
   } else if (method === "turn/completed") {
     const turnId = String(params.turn.id);
+    for (const key of codeModeCalls.keys())
+      if (key.startsWith(`${turnId}:`)) codeModeCalls.delete(key);
     conversations.clearActiveTurn(conversationId, turnId);
     emit("event", {
       type: "turn-completed",
@@ -131,6 +143,41 @@ export function handleCodexNotification(
       conversationId,
       message: params.error?.message || params.message || "Codex 错误",
     });
+}
+
+// code-mode 的 exec 只有原始调用和结果通知，没有对应的 item/started 事件。
+function codeModeToolFrom(
+  item: any,
+  turnId: string,
+  calls: Map<string, string>,
+) {
+  const key = `${turnId}:${item.call_id}`;
+  const started = item.type === "custom_tool_call" && item.name === "exec";
+  if (started) calls.set(key, item.input);
+  else if (item.type !== "custom_tool_call_output" || !calls.has(key))
+    return null;
+
+  const command = calls.get(key)!;
+  const detail = started
+    ? ""
+    : typeof item.output === "string"
+      ? item.output
+      : item.output
+          .filter((part: { type: string }) => part.type === "input_text")
+          .map((part: { text: string }) => part.text)
+          .join("\n");
+  if (!started) calls.delete(key);
+  return {
+    id: item.call_id,
+    name: "exec",
+    rawName: "exec",
+    kind: "customToolCall",
+    command,
+    arguments: command,
+    detail,
+    result: detail,
+    state: started ? "running" : "success",
+  };
 }
 
 export function resolveConversationId(

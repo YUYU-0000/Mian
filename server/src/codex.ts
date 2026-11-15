@@ -78,6 +78,7 @@ export class CodexBridge extends EventEmitter {
   private approvals = new Map<string, PendingApproval>();
   private readonly conversations = new ConversationRuntimeRegistry();
   private readonly clueSelection = new CodexClueSelection();
+  private readonly codeModeCalls = new Map<string, string>();
   version = "";
   config?: AppConfig;
 
@@ -214,6 +215,7 @@ export class CodexBridge extends EventEmitter {
       resolveExited,
     };
     this.current = instance;
+    this.codeModeCalls.clear();
     this.conversations.clearTransientState();
 
     const terminate = (code: number | null, signal: NodeJS.Signals | null) =>
@@ -472,6 +474,7 @@ export class CodexBridge extends EventEmitter {
       this.emit.bind(this),
       method,
       params,
+      this.codeModeCalls,
     );
   }
 
