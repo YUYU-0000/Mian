@@ -14,6 +14,7 @@ type Options = {
   beforeDismiss?: () => Promise<void>;
   onDragStart?: () => void;
   onReboundComplete?: () => void;
+  onExitStart?: () => void;
   onExitComplete: () => void;
 };
 
@@ -23,6 +24,7 @@ export function useTicketSwipe({
   beforeDismiss,
   onDragStart,
   onReboundComplete,
+  onExitStart,
   onExitComplete,
 }: Options) {
   const motionRef = useRef<HTMLDivElement>(null);
@@ -191,6 +193,7 @@ export function useTicketSwipe({
       return;
     const exit = () => {
       state.phase = "exit";
+      onExitStart?.();
       if (direction === "left") return;
       cancelAnimationFrame(frameRef.current!);
       frameRef.current = null;
