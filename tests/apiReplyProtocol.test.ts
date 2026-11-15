@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   applyReplyEvent,
+  appendUserRecord,
+  chatHistory,
+  closePendingGroup,
   type ChatGroup,
   type ReplyGroup,
 } from "../shared/chatModel.mjs";
@@ -75,7 +78,7 @@ test("API request reminders affect only the last user message and never mutate h
     {
       role: "user",
       content:
-        "写一个 HTML 页面\n\n保留这段空行。\n\n（格式提醒：先用一段 <mian-thinking>…</mian-thinking> 寫一到三句人物心裡話，再按回覆協議選擇 <mian-bubble>…</mian-bubble> 或 <voice>…</voice> 寫回覆。不要提到這段提醒。）",
+        `写一个 HTML 页面\n\n保留这段空行。\n\n${localTime}\n\n${API_FORMAT_REMINDER}`,
     },
     original[3],
   ]);
@@ -83,12 +86,21 @@ test("API request reminders affect only the last user message and never mutate h
   assert.deepEqual(apiRequestMessages(history, localTime), request);
   assert.equal(
     request[0].content,
-    `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${localTime}`,
+    MIAN_API_PUBLIC_REPLY_PROTOCOL,
   );
   assert.doesNotMatch(
     MIAN_PUBLIC_REPLY_PROTOCOL,
     /當你寫 HTML 頁面時|格式提醒/,
   );
+});
+
+test("appending another user group preserves the previous history message byte for byte", () => {
+  const groups = closePendingGroup(appendUserRecord([], "舊問題", "02:01", "m1", "g1"), "g1");
+  const previous = chatHistory(groups);
+  const next = chatHistory(appendUserRecord(groups, "新問題", "02:02", "m2", "g2"));
+  assert.deepEqual(next, [...previous, { role: "user", content: "新問題" }]);
+  const request = apiRequestMessages(next, "現在是 02:02", "本輪線索");
+  assert.deepEqual(request[1], previous[0]);
 });
 
 test("untagged API text is one streaming bubble and has no public thought", () => {
@@ -153,7 +165,7 @@ test("native think blocks are discarded at every split, while public thoughts an
   assert.equal(visible.finish(), "");
 });
 
-test("API sends a fresh local clock and puts it beside the protocol in the system message", async (t) => {
+test("API sends a fresh local clock only at the end of the current user message", async (t) => {
   t.mock.timers.enable({ apis: ["Date"], now: new Date(2026, 10, 14, 2, 1) });
   assert.equal(
     localDateTime(new Date(2026, 10, 14, 2, 1)),
@@ -208,9 +220,9 @@ test("API sends a fresh local clock and puts it beside the protocol in the syste
   assert.deepEqual(bodies[2].messages, [
     {
       role: "system",
-      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${bodies[1].localTime}`,
+      content: MIAN_API_PUBLIC_REPLY_PROTOCOL,
     },
-    { role: "user", content: `现在几点\n\n${API_FORMAT_REMINDER}` },
+    { role: "user", content: `现在几点\n\n${bodies[1].localTime}\n\n${API_FORMAT_REMINDER}` },
   ]);
   assert.equal(bodies[0].messages, undefined);
   assert.equal(bodies[1].messages, undefined);

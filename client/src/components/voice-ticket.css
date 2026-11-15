@@ -53,18 +53,15 @@
   background: var(--ink);
   box-shadow: 3.6px 0 0 var(--ink);
 }
-.voice-wave {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 20px;
-}
+.voice-wave,
 .voice-wave-slot {
   flex: 1;
   display: flex;
   align-items: center;
   height: 20px;
+}
+.voice-wave {
+  justify-content: space-between;
 }
 .voice-wave i {
   display: block;

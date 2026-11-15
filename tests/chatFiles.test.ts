@@ -246,7 +246,7 @@ test("API 附件保留完整历史：图片为 base64，文本附内容，其它
   );
   assert.deepEqual(reminder[1].content.at(-1), {
     type: "text",
-    text: `\n\n${API_FORMAT_REMINDER}`,
+    text: `\n\n現在是 2026-11-14 星期六 02:01\n\n${API_FORMAT_REMINDER}`,
   });
   assert.equal(history[0].content, "看这些");
   assert.equal((messages[0].content as unknown[]).length, 2);

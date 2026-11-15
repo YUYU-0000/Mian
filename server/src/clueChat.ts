@@ -4,6 +4,7 @@ import {
   clueDirectory,
   cluePrompt,
   getActiveScenes,
+  pinnedCluePrompt,
   selectCluePrompt,
   voiceCluePrompt,
 } from "./clueSelection.js";
@@ -26,7 +27,7 @@ export type ApiClues = {
   markToolsUnsupported: () => Promise<void>;
 };
 
-const READ_CLUE_TOOL: ChatTool = {
+const READ_CLUE_TOOLS: ChatTool[] = [{
   type: "function",
   function: {
     name: "read_clue",
@@ -38,7 +39,7 @@ const READ_CLUE_TOOL: ChatTool = {
       additionalProperties: false,
     },
   },
-};
+}];
 
 function readCards(cards: Clue[], call: ToolCall) {
   if (call.function.name !== "read_clue") return [];
@@ -62,12 +63,13 @@ export async function* completeClueChat(
 ): AsyncGenerator<CompletionEvent> {
   const cards = clues?.cards ?? [];
   const scenes = getActiveScenes();
-  const hasTriggers = cards.some((card) => card.mode === "trigger");
-  let useTools = hasTriggers && !clues?.toolsUnsupported;
+  const triggers = cards.filter((card) => card.mode === "trigger");
+  const pinned = pinnedCluePrompt(cards);
+  let useTools = clues !== undefined && !clues.toolsUnsupported;
   const select = () =>
     selectCluePrompt(
-      cards,
-      clues!.recentMessages,
+      triggers,
+      clues?.recentMessages ?? messages,
       async (system, history) => {
         const result = await providerJson(
           config,
@@ -85,29 +87,29 @@ export async function* completeClueChat(
       scenes,
     );
   const instructions = useTools
-    ? [cluePrompt(cards, [], scenes), clueDirectory(cards, true)]
+    ? [cluePrompt(triggers, [], scenes), clueDirectory(triggers, true)]
         .filter(Boolean)
         .join("\n\n")
-    : hasTriggers
-      ? await select()
-      : cluePrompt(cards, [], scenes);
+    : triggers.length ? await select() : "";
   const withVoice = (prompt: string) => [prompt, voiceCluePrompt(cards)].filter(Boolean).join("\n\n");
-  let history = apiRequestMessages(messages, localTime, withVoice(instructions), protocol);
+  let history = apiRequestMessages(messages, localTime, withVoice(instructions), protocol, pinned);
   let total: TokenUsage | undefined;
   let round = 0;
   while (true) {
     signal.throwIfAborted();
-    if (useTools && round === 3)
-      history[0].content += "\n\n本輪不再讀卡，請根據已有內容直接回覆使用者。";
-    const tools = useTools && round < 3 ? [READ_CLUE_TOOL] : undefined;
+    const finish = useTools && round === 3;
+    if (finish)
+      history.push({ role: "user", content: "本輪不再讀卡，請根據已有內容直接回覆使用者。" });
+    const tools = useTools ? READ_CLUE_TOOLS : undefined;
+    const reading = useTools && triggers.length > 0 && round < 3;
     const pending: Extract<CompletionEvent, { type: "text" }>[] = [];
     let calls: ToolCall[] = [];
     let usage: TokenUsage | undefined;
     try {
-      for await (const event of completeChat(config, history, signal, tools)) {
+      for await (const event of completeChat(config, history, signal, tools, tools && !reading ? "none" : undefined)) {
         if (event.type === "tool-calls") calls = event.calls;
         else if (event.type === "usage") usage = event.usage;
-        else if (tools) pending.push(event);
+        else if (reading) pending.push(event);
         else yield event;
       }
     } catch (error) {
@@ -115,7 +117,7 @@ export async function* completeClueChat(
         throw error;
       await clues!.markToolsUnsupported();
       useTools = false;
-      history = apiRequestMessages(messages, localTime, withVoice(await select()), protocol);
+      history = apiRequestMessages(messages, localTime, withVoice(await select()), protocol, pinned);
       continue;
     }
     if (usage) {

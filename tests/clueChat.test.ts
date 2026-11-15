@@ -73,6 +73,48 @@ function runtime() {
   return { chat, done, events, usage };
 }
 
+test("clocks and trigger cards change only the current message, keeping system, tools and older history stable", async (t) => {
+  const requests: any[] = [];
+  t.mock.method(globalThis, "fetch", async (_url, init) => {
+    requests.push(JSON.parse(init.body));
+    return Response.json({ choices: [{ message: { content: "回答" } }] });
+  });
+  const pinned = [card("pinned-b", "pinned"), card("pinned-a", "pinned")];
+  const history: ChatMessage[] = [
+    { role: "user", content: "舊問題\n\n原來的段落" },
+    { role: "assistant", content: "舊回答" },
+    ...messages,
+  ];
+  const original = structuredClone(history);
+  for (const [index, currentCards] of [
+    pinned,
+    [...pinned].reverse().map((clue, index) => ({ ...clue, order: 10 - index })).concat(card("trigger")),
+    [...pinned, { ...card("voice"), scenes: ["voice"] as Clue["scenes"] }],
+  ].entries()) {
+    const { chat, done } = runtime();
+    chat.startTurn("c1", config, history, `CLOCK_${index}`, {
+      cards: currentCards,
+      recentMessages: history,
+      markToolsUnsupported: async () => assert.fail("tools work"),
+    });
+    await done;
+  }
+  assert.equal(requests.length, 3);
+  const system = requests[0].messages[0];
+  assert.match(system.content, /CONTENT_pinned-a\n\n【TITLE_pinned-b】/);
+  assert.doesNotMatch(system.content, /CLOCK_|TITLE_trigger|TITLE_voice|線索目錄|格式提醒/);
+  for (const [index, request] of requests.entries()) {
+    assert.deepEqual(request.messages[0], system);
+    assert.deepEqual(request.tools, requests[0].tools);
+    assert.equal(request.tools[0].function.name, "read_clue");
+    assert.deepEqual(request.messages.slice(1, -1), original.slice(0, -1));
+    assert.match(request.messages.at(-1).content, new RegExp(`CLOCK_${index}`));
+  }
+  assert.match(requests[1].messages.at(-1).content, /TITLE_trigger/);
+  assert.match(requests[2].messages.at(-1).content, /生成語音條時的線索[\s\S]*CONTENT_voice/);
+  assert.deepEqual(history, original);
+});
+
 test("API reads batched and subsequent cards from streamed tool_calls without exposing the reading rounds", async (t) => {
   const requests: any[] = [];
   t.mock.method(globalThis, "fetch", async (_url, init) => {
@@ -137,7 +179,7 @@ test("API reads batched and subsequent cards from streamed tool_calls without ex
             },
           },
         ],
-        usage: { total_tokens: 6 },
+        usage: { total_tokens: 6, prompt_cache_hit_tokens: 3 },
       });
     return sse(
       { choices: [{ delta: { content: "<mian-bubble>最後" } }] },
@@ -167,9 +209,10 @@ test("API reads batched and subsequent cards from streamed tool_calls without ex
   });
   const system = requests[0].messages[0].content;
   assert.match(system, /【TITLE_pinned】\nCONTENT_pinned/);
-  assert.match(system, /可以一次讀幾張，也可以讀完再讀/);
+  const context = requests[0].messages.at(-1).content;
+  assert.match(context, /可以一次讀幾張，也可以讀完再讀/);
   assert.deepEqual(
-    JSON.parse(system.split("線索目錄\n\n")[1]),
+    JSON.parse(context.split("線索目錄\n\n")[1].split("\n\n")[0]),
     ["a", "b", "c"].map((id) => ({
       id,
       title: `TITLE_${id}`,
@@ -177,6 +220,11 @@ test("API reads batched and subsequent cards from streamed tool_calls without ex
     })),
   );
   assert.doesNotMatch(system, /CONTENT_[abc]/);
+  assert.doesNotMatch(system, /線索目錄|現在|格式提醒/);
+  for (const request of requests.slice(1)) {
+    assert.equal(request.messages[0].content, system);
+    assert.deepEqual(request.tools, requests[0].tools);
+  }
   const results = requests[1].messages.filter(
     (message: any) => message.role === "tool",
   );
@@ -208,11 +256,11 @@ test("API reads batched and subsequent cards from streamed tool_calls without ex
     /CONTENT_|WHEN_|TITLE_|read_clue|讀卡|再讀/,
   );
   assert.deepEqual(messages, original);
-  assert.deepEqual(usage, [{ totalTokens: 20, uncachedTotalTokens: 18 }]);
+  assert.deepEqual(usage, [{ totalTokens: 20, uncachedTotalTokens: 15 }]);
   assert.equal(events.at(-1).status, "completed");
 });
 
-test("non-streaming fallback reads at most three rounds and removes tools for the final answer", async (t) => {
+test("non-streaming fallback keeps tools and the prompt prefix fixed when stopping card reads", async (t) => {
   const requests: any[] = [];
   let jsonRound = 0;
   t.mock.method(globalThis, "fetch", async (_url, init) => {
@@ -254,8 +302,13 @@ test("non-streaming fallback reads at most three rounds and removes tools for th
       .every((request) => request.tools?.[0].function.name === "read_clue"),
     true,
   );
-  assert.equal(rounds[3].tools, undefined);
-  assert.match(rounds[3].messages[0].content, /本輪不再讀卡/);
+  assert.deepEqual(rounds[3].tools, rounds[0].tools);
+  assert.equal(rounds[3].tool_choice, "none");
+  assert.match(rounds[3].messages.at(-1).content, /本輪不再讀卡/);
+  for (let index = 1; index < rounds.length; index++) {
+    const previous = rounds[index - 1].messages;
+    assert.deepEqual(rounds[index].messages.slice(0, previous.length), previous);
+  }
   assert.equal(
     rounds[3].messages.filter((message: any) => message.role === "tool").length,
     3,
@@ -323,13 +376,15 @@ test("a later tools 400 persists rejection then restarts with twelve-message pre
     false,
   );
   assert.match(requests[3].messages[0].content, /CONTENT_pinned/);
-  assert.match(requests[3].messages[0].content, /CONTENT_b/);
+  assert.equal(requests[3].messages[0].content, requests[0].messages[0].content);
+  const context = requests[3].messages.at(-1).content;
+  assert.match(context, /CONTENT_b/);
   assert.doesNotMatch(
-    requests[3].messages[0].content,
+    context,
     /CONTENT_a|CONTENT_c|read_clue/,
   );
   assert.deepEqual(
-    JSON.parse(requests[3].messages[0].content.split("線索目錄\n\n")[1]),
+    JSON.parse(context.split("線索目錄\n\n")[1].split("\n\n")[0]),
     ["a", "b", "c"].map((id) => ({ title: `TITLE_${id}`, when: `WHEN_${id}` })),
   );
   assert.deepEqual(

@@ -100,7 +100,7 @@ test("API runtime records returned usage and emits provider errors as failed tur
         )
       : Response.json({
           choices: [{ message: { content: "answer" } }],
-          usage: { total_tokens: 20 },
+          usage: { total_tokens: 20, prompt_cache_hit_tokens: 7 },
         }),
   );
   const run = async () => {
@@ -112,7 +112,7 @@ test("API runtime records returned usage and emits provider errors as failed tur
   };
   await run();
   assert.deepEqual(usage, [
-    ["c1", { totalTokens: 20, uncachedTotalTokens: 20 }],
+    ["c1", { totalTokens: 20, uncachedTotalTokens: 13 }],
   ]);
   fail = true;
   await run();

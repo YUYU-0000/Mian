@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CodexClueSelection } from "../server/src/codexClueSelection.ts";
 import type { AppConfig } from "../server/src/types.ts";
+import { CLUE_SELECTION_INSTRUCTION } from "../server/src/clueSelection.ts";
+import { MIAN_TURN_CONTEXT_KEY } from "../server/src/publicReplyProtocol.ts";
 
 const config: AppConfig = {
   workingDirectory: "C:\\workspace",
@@ -51,7 +53,8 @@ test("Codex selection uses an ephemeral system prompt and consumes its own notif
   );
   assert.equal(requests[0].params.ephemeral, true);
   assert.equal(requests[0].params.model, config.model);
-  assert.equal(requests[0].params.baseInstructions, "只回 id");
+  assert.equal(requests[0].params.baseInstructions, CLUE_SELECTION_INSTRUCTION);
+  assert.equal(requests[1].params.additionalContext[MIAN_TURN_CONTEXT_KEY].value, "只回 id");
   assert.deepEqual(JSON.parse(requests[1].params.input[0].text), messages);
   assert.equal(requests.at(-1)?.method, "thread/unsubscribe");
 });

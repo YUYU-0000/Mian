@@ -12,6 +12,7 @@ import type { AppConfig, RpcMessage } from "../server/src/types.ts";
 import {
   MIAN_PUBLIC_REPLY_CONTEXT_KEY,
   MIAN_PUBLIC_REPLY_PROTOCOL,
+  MIAN_TURN_CONTEXT_KEY,
 } from "../server/src/publicReplyProtocol.ts";
 
 const baseConfig: AppConfig = {
@@ -354,7 +355,7 @@ test("turn/start keeps the reply protocol out of persisted user input", async ()
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
 
-  await bridge.startTurn("[USER_RECORDS]\n短消息\n[/USER_RECORDS]", "c1");
+  await bridge.startTurn("[USER_RECORDS]\n短消息\n[/USER_RECORDS]", "c1", "", MIAN_PUBLIC_REPLY_PROTOCOL, "02:01");
   const request = children[0].requests.find(
     (candidate) => candidate.method === "turn/start",
   );
@@ -368,24 +369,42 @@ test("turn/start keeps the reply protocol out of persisted user input", async ()
       value: MIAN_PUBLIC_REPLY_PROTOCOL,
       kind: "application",
     },
+    [MIAN_TURN_CONTEXT_KEY]: {
+      value: "02:01",
+      kind: "application",
+    },
   });
   bridge.close();
 });
 
-test("clues and proactive voice rules replace per-turn instructions without entering user input", async () => {
+test("clues, clocks and voice settings change per turn while the conversation keeps its thread", async () => {
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
   const clues = "【線索】\n僅本輪命中";
   const protocol = `${MIAN_PUBLIC_REPLY_PROTOCOL}\n本輪主動語音規則`;
-  const turn = await bridge.startTurn("第一條", "c1", clues, protocol);
+  const turn = await bridge.startTurn("第一條", "c1", clues, protocol, "02:01");
   children[0].stdout.write(`${JSON.stringify({ method: "turn/completed", params: { threadId: turn.threadId, turn: { id: turn.turnId, status: "completed" } } })}\n`);
-  await bridge.startTurn("第二條", "c1");
+  await bridge.connect({ ...baseConfig, proactive: { voice: false } });
+  const next = await bridge.startTurn("第二條", "c1", "", MIAN_PUBLIC_REPLY_PROTOCOL, "02:02");
   const requests = children[0].requests.filter((item) => item.method === "turn/start");
   const first = requests[0].params as any;
   const second = requests[1].params as any;
   assert.equal(first.input[0].text, "第一條");
-  assert.equal(first.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, `${protocol}\n\n${clues}`);
+  assert.equal(first.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, protocol);
+  assert.equal(first.additionalContext[MIAN_TURN_CONTEXT_KEY].value, `02:01\n\n${clues}`);
   assert.equal(second.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, MIAN_PUBLIC_REPLY_PROTOCOL);
+  assert.equal(second.additionalContext[MIAN_TURN_CONTEXT_KEY].value, "02:02");
+  assert.equal(next.threadId, turn.threadId);
+  assert.equal(children.length, 1);
+  const threads = children[0].requests.filter((item) => item.method === "thread/start");
+  assert.equal(threads.length, 1);
+  assert.equal((threads[0].params as any).baseInstructions, undefined);
+  children[0].stdout.write(`${JSON.stringify({ method: "turn/completed", params: { threadId: next.threadId, turn: { id: next.turnId, status: "completed" } } })}\n`);
+  await bridge.connect({ ...baseConfig, model: "replacement-model" });
+  const resumed = await bridge.startTurn("第三條", "c1", "新的線索", protocol, "02:03");
+  assert.equal(resumed.threadId, turn.threadId);
+  assert.equal(children[1].requests.some((item) => item.method === "thread/start"), false);
+  assert.equal((children[1].requests.find((item) => item.method === "thread/resume")!.params as any).threadId, turn.threadId);
   bridge.close();
 });
 

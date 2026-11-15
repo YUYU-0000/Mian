@@ -1,5 +1,7 @@
 import type { AppConfig } from "./types.js";
 import type { ChatMessage } from "./providers/openai.js";
+import { CLUE_SELECTION_INSTRUCTION } from "./clueSelection.js";
+import { MIAN_TURN_CONTEXT_KEY } from "./publicReplyProtocol.js";
 
 type Request = (method: string, params: unknown) => Promise<any>;
 type Selection = {
@@ -24,7 +26,7 @@ export class CodexClueSelection {
       ephemeral: true,
       approvalPolicy: "never",
       sandbox: "read-only",
-      baseInstructions: system,
+      baseInstructions: CLUE_SELECTION_INSTRUCTION,
     });
     let timer: NodeJS.Timeout;
     const completion = new Promise<string>((resolve, reject) => {
@@ -35,6 +37,9 @@ export class CodexClueSelection {
       const [, text] = await Promise.all([
         request("turn/start", {
           threadId: thread.id,
+          additionalContext: {
+            [MIAN_TURN_CONTEXT_KEY]: { value: system, kind: "application" },
+          },
           input: [
             { type: "text", text: JSON.stringify(messages), text_elements: [] },
           ],
