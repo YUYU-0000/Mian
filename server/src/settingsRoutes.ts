@@ -108,6 +108,7 @@ function parseBackup(value: Backup): Backup {
       endpoint: preset.endpoint,
       model: preset.model,
       format: preset.format,
+      toolsUnsupported: preset.toolsUnsupported,
     };
   });
   const channel = value.config.channel;
@@ -190,12 +191,13 @@ export function settingsRoutes(
       fonts,
       clues,
       // 金钥和提示前缀都不进入备份。
-      apiPresets: presets.map(({ id, note, endpoint, model, format }) => ({
+      apiPresets: presets.map(({ id, note, endpoint, model, format, toolsUnsupported }) => ({
         id,
         note,
         endpoint,
         model,
         format,
+        toolsUnsupported,
       })),
       conversations: conversations
         .list()

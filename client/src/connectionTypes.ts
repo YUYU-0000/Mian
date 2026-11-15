@@ -15,6 +15,7 @@ export type ApiPreset = {
   keyHint?: string;
   model: string;
   format: "openai";
+  toolsUnsupported?: boolean;
 };
 export type VoiceConfig = {
   apiKey: string;

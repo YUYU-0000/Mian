@@ -17,5 +17,5 @@ export function recentClueMessages(groups: ChatGroup[]): ChatMessage[] {
         },
       ];
     })
-    .slice(-6);
+    .slice(-12);
 }

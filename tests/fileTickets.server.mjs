@@ -13,7 +13,7 @@ export const imageBytes = Buffer.from(
 );
 
 // 真实本地后端配合假的服务商和 Codex，不发付费请求。
-export async function fileTicketServer({ selection = "", selectionFails = false } = {}) {
+export async function fileTicketServer({ selection = "", selectionFails = false, rejectTools = false } = {}) {
   const repository = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-file-tickets-"));
   const workspace = path.join(directory, "workspace");
@@ -26,6 +26,11 @@ export async function fileTicketServer({ selection = "", selectionFails = false 
     for await (const chunk of request) body += chunk;
     const input = JSON.parse(body);
     received.push(input);
+    if (rejectTools && input.tools) {
+      response.writeHead(400, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: { message: "Tools are not supported" } }));
+      return;
+    }
     if (input.max_tokens === 256) {
       response.writeHead(selectionFails ? 500 : 200, { "Content-Type": "application/json" });
       response.end(JSON.stringify(selectionFails ? { error: { message: "selection failed" } } : { choices: [{ message: { content: selection } }] }));

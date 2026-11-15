@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { apiRequestMessages } from "./apiPrompt.js";
+import { completeClueChat, type ApiClues } from "./clueChat.js";
 import {
-  completeChat,
   providerMessage,
   type ChatMessage,
   type ProviderConfig,
@@ -9,7 +8,6 @@ import {
 } from "./providers/openai.js";
 
 type ActiveTurn = { turnId: string; controller: AbortController };
-type ClueInstructions = string | ((signal: AbortSignal) => Promise<string>);
 type ApiChatEvent = {
   type: "turn-started" | "assistant-delta" | "turn-completed";
   conversationId: string;
@@ -48,7 +46,7 @@ export class ApiChat {
     config: ProviderConfig,
     messages: ChatMessage[],
     localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
-    clues: ClueInstructions = "",
+    clues?: ApiClues,
   ) {
     if (this.isBusy(conversationId))
       throw new Error("当前会话已有正在运行的 turn");
@@ -81,7 +79,7 @@ export class ApiChat {
     config: ProviderConfig,
     messages: ChatMessage[],
     localTime: string,
-    clues: ClueInstructions,
+    clues?: ApiClues,
   ) {
     const base = {
       conversationId,
@@ -92,18 +90,15 @@ export class ApiChat {
     let error: string | undefined;
     let usage: TokenUsage | undefined;
     try {
-      const instructions =
-        typeof clues === "function"
-          ? await clues(turn.controller.signal)
-          : clues;
-      turn.controller.signal.throwIfAborted();
-      for await (const event of completeChat(
+      for await (const event of completeClueChat(
         config,
-        apiRequestMessages(messages, localTime, instructions),
+        messages,
+        localTime,
         turn.controller.signal,
+        clues,
       )) {
         if (event.type === "usage") usage = event.usage;
-        else
+        else if (event.type === "text")
           this.emit({
             ...base,
             type: "assistant-delta",

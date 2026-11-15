@@ -34,7 +34,7 @@ const card = (patch: Partial<Clue> = {}): Clue => ({
   ...patch,
 });
 
-test("natural selection sends only metadata and six messages; scene matches bypass selection", async () => {
+test("natural selection sends only metadata and twelve messages; scene matches bypass selection", async () => {
   const clues = [
     card({ title: "常駐二", order: 2 }),
     card({
@@ -48,7 +48,7 @@ test("natural selection sends only metadata and six messages; scene matches bypa
     card({ id: "chosen", title: "挑中", mode: "trigger", when: "想念對方時" }),
     card({ id: "other", mode: "trigger", when: "準備出門時" }),
   ];
-  const history = Array.from({ length: 9 }, (_, index) => ({
+  const history = Array.from({ length: 15 }, (_, index) => ({
     role: index % 2 ? ("assistant" as const) : ("user" as const),
     content: `message ${index}`,
   }));
@@ -62,18 +62,24 @@ test("natural selection sends only metadata and six messages; scene matches bypa
         { id: "chosen", title: "挑中", when: "想念對方時" },
         { id: "other", title: "常駐", when: "準備出門時" },
       ]);
-      assert.deepEqual(recent, history.slice(-6));
+      assert.deepEqual(recent, history.slice(-12));
       assert.doesNotMatch(system, /卡片內容/);
       return "chosen,chosen,unknown";
     },
     ["voice"],
   );
   assert.equal(
-    prompt,
+    prompt.split("\n\n線索目錄\n\n")[0],
     ["常駐一", "常駐二", "語音", "挑中"]
       .map((title) => `【${title}】\n卡片內容`)
       .join("\n\n"),
   );
+  const directory = [
+    { title: "語音", when: "" },
+    { title: "挑中", when: "想念對方時" },
+    { title: "常駐", when: "準備出門時" },
+  ];
+  assert.deepEqual(JSON.parse(prompt.split("\n\n線索目錄\n\n")[1]), directory);
   const fail = async () => {
     throw new Error("failed");
   };
@@ -81,9 +87,14 @@ test("natural selection sends only metadata and six messages; scene matches bypa
     await selectCluePrompt(clues, history, fail, ["voice"]),
     ["常駐一", "常駐二", "語音"]
       .map((title) => `【${title}】\n卡片內容`)
-      .join("\n\n"),
+      .join("\n\n") +
+      "\n\n線索目錄\n\n" +
+      JSON.stringify(directory),
   );
-  assert.equal(await selectCluePrompt([clues[3]], history, async () => ""), "");
+  assert.equal(
+    await selectCluePrompt([clues[3]], history, async () => ""),
+    '線索目錄\n\n[{"title":"挑中","when":"想念對方時"}]',
+  );
   assert.equal(
     await selectCluePrompt([], history, async () => {
       assert.fail("no pre-request when no triggers");
@@ -100,7 +111,7 @@ test("natural selection sends only metadata and six messages; scene matches bypa
   );
 });
 
-test("six recent records travel separately from grouped chat history", async () => {
+test("twelve recent records travel separately from grouped chat history", async () => {
   let sent: unknown[] = [];
   const store = new ChatSessionStore({
     conversationId: "c1",
@@ -113,12 +124,12 @@ test("six recent records travel separately from grouped chat history", async () 
       stop: async () => {},
     },
   });
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 15; index++)
     store.saveUserRecord(`record ${index}`);
   await store.startPendingTurn();
   assert.deepEqual(
     sent[4],
-    Array.from({ length: 6 }, (_, index) => ({
+    Array.from({ length: 12 }, (_, index) => ({
       role: "user",
       content: `record ${index + 3}`,
     })),
@@ -188,16 +199,29 @@ test("wall migration, CRUD, pin removal, portrait geometry and archive round tri
       ),
       layout,
     );
+    const presetsPath = path.join(
+      server.directory,
+      "server/data/api-presets.json",
+    );
+    const presets = JSON.parse(await readFile(presetsPath, "utf8"));
+    presets.presets[0].toolsUnsupported = true;
+    await writeFile(presetsPath, JSON.stringify(presets));
     const backup = completeBackup(await (await request("/api/backup")).json(), {
       getItem: () => null,
     });
     assert.deepEqual(backup.clues, layout);
+    assert.equal(backup.apiPresets[0].toolsUnsupported, true);
     await request("/api/clues/new", "DELETE");
     assert.deepEqual((await get()).threads, [{ from: "p2", to: "p3" }]);
     assert.equal((await get()).pins.length, 2);
     assert.equal((await request("/api/backup", "POST", backup)).status, 200);
     assert.deepEqual(await get(), layout);
     assert.equal((await get()).cards.at(-1).createdAt, saved.createdAt);
+    assert.equal(
+      JSON.parse(await readFile(presetsPath, "utf8")).presets[0]
+        .toolsUnsupported,
+      true,
+    );
     const oldBackup = { ...backup, clues: [legacy] };
     assert.equal((await request("/api/backup", "POST", oldBackup)).status, 200);
     assert.equal((await get()).cards[0].when, "提到 晚安 時");
@@ -211,12 +235,13 @@ test("wall migration, CRUD, pin removal, portrait geometry and archive round tri
 
 for (const selectionFails of [false, true])
   test(
-    `both channels ${selectionFails ? "skip failed selection" : "select naturally"} before the formal turn`,
+    `Codex and tool-rejected APIs ${selectionFails ? "skip failed selection" : "select naturally"} before the formal turn`,
     { timeout: 20000 },
     async () => {
       const server = await fileTicketServer({
         selection: "chosen",
         selectionFails,
+        rejectTools: true,
       });
       const socket = new WebSocket(server.base.replace("http", "ws") + "/ws");
       await once(socket, "open");
@@ -264,14 +289,40 @@ for (const selectionFails of [false, true])
         ])
           assert.equal((await request("/api/clues", "POST", clue)).status, 201);
         await turn();
-        const pre = server.received[0];
+        assert.equal(server.received[0].tools[0].function.name, "read_clue");
+        const pre = server.received[1];
         assert.equal(pre.model, "file-model");
         assert.match(pre.messages[0].content, /下面是一些卡片/);
         assert.deepEqual(pre.messages.slice(1), recent);
-        const formal = server.received[1].messages[0];
+        const formal = server.received[2].messages[0];
         assert.equal(formal.role, "system");
         assert.match(formal.content, /【常駐】/);
         assert.equal(formal.content.includes("【回憶】"), !selectionFails);
+        assert.match(formal.content, /線索目錄/);
+        assert.doesNotMatch(formal.content, /調用 read_clue/);
+        const presetsPath = path.join(
+          server.directory,
+          "server/data/api-presets.json",
+        );
+        const preset = JSON.parse(await readFile(presetsPath, "utf8"))
+          .presets[0];
+        assert.equal(preset.toolsUnsupported, true);
+        delete preset.toolsUnsupported;
+        assert.equal(
+          (
+            await request("/api/api-presets", "POST", {
+              ...preset,
+              note: "改名",
+            })
+          ).status,
+          200,
+        );
+        await turn();
+        assert.equal(server.received.length, 5);
+        assert.equal(
+          server.received.slice(3).every((input: any) => !input.tools),
+          true,
+        );
         assert.equal(
           (await request("/api/subscriptions/codex/use", "POST", {})).status,
           200,
@@ -281,11 +332,12 @@ for (const selectionFails of [false, true])
         assert.equal(
           server.systemPrompts[0],
           "【常駐】\n卡片內容" +
-            (selectionFails ? "" : "\n\n【回憶】\n卡片內容"),
+            (selectionFails ? "" : "\n\n【回憶】\n卡片內容") +
+            '\n\n線索目錄\n\n[{"title":"回憶","when":"想念對方時"}]',
         );
         assert.equal(
           events.filter((event) => event?.type === "turn-started").length,
-          2,
+          3,
         );
       } finally {
         socket.close();

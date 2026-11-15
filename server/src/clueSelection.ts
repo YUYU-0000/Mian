@@ -4,6 +4,26 @@ import type { ChatMessage } from "./providers/openai.js";
 export const CLUE_SELECTION_INSTRUCTION =
   "下面是一些卡片的标题和使用时机，根据最近的对话，挑出现在应该参考的卡片，只回 id，用逗号隔开，一张都不需要就回空";
 
+export const CLUE_READING_INSTRUCTION =
+  "這些是你可以翻閱的卡片。覺得對話用得上時，調用 read_clue 讀取內容，可以一次讀幾張，也可以讀完再讀。讀卡的過程用戶看不到，不要在回覆裡提到你讀了卡。";
+
+export function clueDirectory(clues: Clue[], withTools = false) {
+  const cards = clues
+    .filter((clue) => clue.mode === "trigger")
+    .sort((a, b) => a.order - b.order)
+    .map(({ id, title, when }) =>
+      withTools ? { id, title, when } : { title, when },
+    );
+  if (!cards.length) return "";
+  return [
+    withTools ? CLUE_READING_INSTRUCTION : "",
+    "線索目錄",
+    JSON.stringify(cards),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export type ClueSelector = (
   system: string,
   messages: ChatMessage[],
@@ -52,7 +72,7 @@ export async function selectCluePrompt(
       .filter(
         (message) => message.role === "user" || message.role === "assistant",
       )
-      .slice(-6)
+      .slice(-12)
       .map(({ role, content }) => ({ role, content }));
     try {
       selected = (await select(system, recent))
@@ -62,5 +82,7 @@ export async function selectCluePrompt(
       // 挑选失败不阻断正式回复，场景命中仍然保留。
     }
   }
-  return cluePrompt(clues, selected, scenes);
+  return [cluePrompt(clues, selected, scenes), clueDirectory(clues)]
+    .filter(Boolean)
+    .join("\n\n");
 }

@@ -2,8 +2,7 @@ import { Router } from "express";
 import { readConfig } from "./config.js";
 import { readClues } from "./clues.js";
 import { selectCluePrompt } from "./clueSelection.js";
-import { providerJson } from "./providers/openai.js";
-import { requirePreset } from "./apiPresets.js";
+import { markToolsUnsupported, requirePreset } from "./apiPresets.js";
 import {
   prepareConversationWorkspace,
   WorkspaceFiles,
@@ -66,21 +65,12 @@ export function turnRoutes({
             preset,
             messages,
             request.body.localTime,
-            (signal) =>
-              selectCluePrompt(wall.cards, recent, async (system, history) => {
-                const result = await providerJson(
-                  preset,
-                  "chat/completions",
-                  {
-                    model: preset.model,
-                    messages: [{ role: "system", content: system }, ...history],
-                    stream: false,
-                    max_tokens: 256,
-                  },
-                  AbortSignal.any([signal, AbortSignal.timeout(12_000)]),
-                );
-                return result.choices[0].message.content;
-              }),
+            {
+              cards: wall.cards,
+              recentMessages: recent,
+              toolsUnsupported: preset.toolsUnsupported,
+              markToolsUnsupported: () => markToolsUnsupported(preset.id),
+            },
           ),
         );
         return;
