@@ -248,16 +248,22 @@ export function useWallGestures({
         }));
         save();
       } else if (selected && selected !== active.id) {
-        update((wall) => ({
-          ...wall,
-          threads: wall.threads.some(
+        update((wall) => {
+          const threads = wall.threads.filter(
             (thread) =>
-              (thread.from === selected && thread.to === active.id) ||
-              (thread.to === selected && thread.from === active.id),
-          )
-            ? wall.threads
-            : [...wall.threads, { from: selected, to: active.id }],
-        }));
+              !(
+                (thread.from === selected && thread.to === active.id) ||
+                (thread.to === selected && thread.from === active.id)
+              ),
+          );
+          return {
+            ...wall,
+            threads:
+              threads.length === wall.threads.length
+                ? [...threads, { from: selected, to: active.id }]
+                : threads,
+          };
+        });
         setSelected(null);
         save();
       } else setSelected(selected === active.id ? null : active.id);

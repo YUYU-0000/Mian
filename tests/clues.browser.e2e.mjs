@@ -267,7 +267,7 @@ try {
   await clearEdit();
   assert.equal(await evaluate("!!document.querySelector('.item.edit')"), false);
 
-  // 图钉在旋转卡片上存比例，连线跟着拖动，重复连接不新增。
+  // 图钉在旋转卡片上存比例，连线跟着拖动，点两颗钉子切换连接。
   const pinTarget = await point(first, 0.5, 0.18);
   await dropPin(pinTarget);
   await waitFor(async () => (await readWall()).pins.length === 1, "卡片图钉");
@@ -287,9 +287,41 @@ try {
     async () => (await readWall()).threads.length === 1,
     "连接图钉",
   );
+  assert.equal(await evaluate("!!document.querySelector('.pin.sel')"), false);
+
+  await dropPin({ x: 350, y: 570 });
+  await waitFor(async () => (await readWall()).pins.length === 3, "第三颗图钉");
+  const pc = `[data-pin="${(await readWall()).pins[2].id}"]`;
+  const originalThread = (await readWall()).threads;
+  await tap(pc);
+  assert.deepEqual((await readWall()).threads, originalThread);
+  await tap(pc);
+  assert.equal(await evaluate("!!document.querySelector('.pin.sel')"), false);
+  assert.deepEqual((await readWall()).threads, originalThread);
+  const cp = await point(pc);
+  await mouse("mousePressed", cp);
+  await sleep(1050);
+  await mouse("mouseReleased", cp);
+  await waitFor(async () => (await readWall()).pins.length === 2, "拔掉第三颗图钉");
+  assert.deepEqual((await readWall()).threads, originalThread);
+
+  await tap(pb);
+  await tap(pa);
+  await waitFor(
+    async () => (await readWall()).threads.length === 0,
+    "反向点选已有连接的两颗图钉删除连线",
+  );
+  assert.equal(await evaluate("!!document.querySelector('.pin.sel')"), false);
+  await tap(pa);
+  await tap(pa);
+  assert.equal(await evaluate("!!document.querySelector('.pin.sel')"), false);
+  assert.deepEqual((await readWall()).threads, []);
   await tap(pa);
   await tap(pb);
-  assert.equal((await readWall()).threads.length, 1);
+  await waitFor(
+    async () => (await readWall()).threads.length === 1,
+    "重新连接图钉",
+  );
   const oldPin = await point(pa),
     oldPath = await evaluate(
       "document.querySelector('.threads path').getAttribute('d')",
