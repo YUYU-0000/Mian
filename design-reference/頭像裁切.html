@@ -1,77 +1,71 @@
 <!DOCTYPE html>
 <!--
-  頭像裁切設計稿：換成連接中心那個吊牌小房子
-  - 從頂上垂下一根繩，吊著小房子，跟連接中心的吊牌同一套：米白外框、灰藍屋身、屋頂沿線一行小字。
-  - 屋身中間開一個圓窗，照片從圓窗裡露出來；圓窗外面的照片被灰藍屋身蓋住，只隱約透出一點（.86 不透明），方便看構圖。
-  - 手勢只在屋身範圍內生效：單指拖動、兩指縮放、滾輪縮放。
-  - 屋頂沿線文字：彼方肖像／此方肖像 + 英文 PORTRAIT。
-  - 外框是一整塊（屋頂到底部圓角一筆畫完），下半截米白牆不另外拼接，避免接縫。
-  - 下半截米白牆：一條細線滑塊縮放，右上角「換照片」，底下「確定」「取消」兩個下劃線文字。
-  - 遮罩、繩子、陰影、進出動畫都沿用 .hang-tag。整體寬 220px，不再用拍立得大相紙。
+  頭像裁切設計稿：圓形吊牌
+  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張圓形米白厚卡紙（直徑 250px）。
+  - 後面墊一張同樣大小的灰藍圓卡，往右下錯開、微轉，像兩張疊在一起的吊牌。
+  - 米白圓卡：內圈一道細線；沿著上緣一圈小字，左邊 PORTRAIT，右邊「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
+  - 中間是圓形照片窗，照片在窗裡拖動、兩指縮放、滾輪縮放；手勢只在圓窗內生效。
+  - 照片窗下面依次：「換照片」小字、一條細線滑塊、「確定」「取消」兩個下劃線文字。
+  - 遮罩、繩子顏色、陰影、進出動畫沿用連接中心 .hang-tag。整張是一整塊，不拼接。
 -->
 <html><head><meta charset="utf-8"><style>
 @import url("../client/public/fonts/lxgw/result.css");
 @font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/main.woff2") format("woff2");font-weight:400}
 @font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/medium.woff2") format("woff2");font-weight:500}
-:root{--ink:#3b4d5a;--muted:#72828e;--sheet:#f5f2ec}
+:root{--ink:#3b4d5a;--muted:#72828e;--sheet:#f5f2ec;
+--grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
 html,body{margin:0}
 body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
 .phone{width:390px;height:844px;background:#f1efe9;position:relative;overflow:hidden;border-radius:4px}
-.page{padding:60px 22px;color:var(--ink);font-size:13px;letter-spacing:1px;opacity:.9}
+.page{padding:60px 22px;color:var(--ink);opacity:.9}
+.page .k{font-family:ZSFT-br;font-size:7px;letter-spacing:2.6px;color:var(--muted)}
 .page h1{font-size:28px;letter-spacing:5px;margin:4px 0 30px}
 .page .row{height:120px;border:1px solid rgba(59,77,90,.15);margin-bottom:14px;background:#f8f6f1}
 .overlay{position:absolute;inset:0;background:rgba(40,55,66,.32)}
-.tag{position:absolute;left:50%;top:0;width:220px;margin-left:-110px;
-  filter:drop-shadow(0 22px 22px rgba(20,30,40,.38)) drop-shadow(0 4px 6px rgba(20,30,40,.22))}
-.string{width:1.5px;height:17svh;margin:0 auto -16px;background:#d6d0c3;position:relative;z-index:3}
-.house{position:relative;width:220px;height:322px}
-.house svg{position:absolute;inset:0;width:100%;height:100%}
-.photo{position:absolute;inset:0;clip-path:path("M 110 44 L 192 96 L 186 100 L 186 230 L 34 230 L 34 100 L 28 96 Z")}
-.photo div{position:absolute;left:-20px;top:30px;width:270px;height:230px;
-  background:radial-gradient(circle at 52% 52%,#e9d8c8 0 18%,transparent 19%),radial-gradient(ellipse at 52% 80%,#4f6475 0 30%,transparent 31%),linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3)}
-.walls{position:absolute;left:14px;right:14px;top:236px;box-sizing:border-box;padding:9px 16px 0}
-.walls-off:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:multiply;
-  background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
-.top{display:flex;justify-content:space-between;align-items:baseline}
-.kick{font-family:ZSFT-br;font-weight:500;font-size:7.5px;letter-spacing:1.5px;color:var(--muted)}
-.swap{font-size:10px;letter-spacing:1.5px;color:var(--muted)}
-.slider{position:relative;height:1px;background:rgba(59,77,90,.4);margin:14px 0 4px}
+
+.tag{position:absolute;left:50%;top:0;width:250px;margin-left:-125px;
+  filter:drop-shadow(0 22px 22px rgba(20,30,40,.34)) drop-shadow(0 4px 6px rgba(20,30,40,.2))}
+.string{width:1.5px;height:calc(17svh + 20px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
+.disc{position:relative;width:250px;height:250px;margin-top:-18px}
+.back,.front{position:absolute;inset:0;border-radius:50%}
+.back{background:#7590a3;background-image:var(--grain);transform:translate(14px,10px) rotate(8deg)}
+.front{background:var(--sheet);background-image:var(--grain);transform:rotate(-2deg)}
+.front svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.win{position:absolute;left:50%;top:52px;width:124px;height:124px;margin-left:-62px;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 52% 44%,#e9d8c8 0 22%,transparent 23%),radial-gradient(ellipse at 52% 92%,#4f6475 0 38%,transparent 39%),linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3);
+  box-shadow:inset 0 0 0 1px rgba(59,77,90,.18)}
+.ctl{position:absolute;left:0;right:0;top:184px;display:flex;flex-direction:column;align-items:center}
+.swap{font-size:9.5px;letter-spacing:2px;color:var(--muted)}
+.slider{position:relative;width:104px;height:1px;background:rgba(59,77,90,.4);margin:9px 0 10px}
 .slider i{position:absolute;left:38%;top:-4px;width:9px;height:9px;border-radius:50%;background:#7590a3}
-.scale{display:flex;justify-content:space-between;font-family:ZSFT-br;font-size:6.5px;letter-spacing:1px;color:var(--muted)}
-.act{display:flex;justify-content:center;gap:30px;margin-top:11px;font-size:12px;letter-spacing:2px;color:var(--ink)}
+.act{display:flex;gap:26px;font-size:12px;letter-spacing:2px;color:var(--ink)}
 .act span{border-bottom:1px solid currentColor;padding-bottom:1px}
 .act span+span{color:var(--muted)}
 </style></head><body>
 <div class="phone">
-  <div class="page"><div class="kick">ARCHIVE</div><h1>檔案館</h1><div class="row"></div><div class="row"></div><div class="row"></div></div>
+  <div class="page"><div class="k">ARCHIVE</div><h1>檔案館</h1><div class="row"></div><div class="row"></div><div class="row"></div></div>
   <div class="overlay"></div>
   <div class="tag">
     <div class="string"></div>
-    <div class="house">
-      <div class="photo"><div></div></div>
-      <svg viewBox="0 0 220 322">
-        <defs>
-          <path id="roofLine" d="M 38 104 L 100 64 Q 110 58 120 64 L 182 104"/>
-          <mask id="win"><rect width="220" height="322" fill="#fff"/><circle cx="110" cy="158" r="56" fill="#000"/></mask>
-        </defs>
-        <!-- 米白外框：屋頂 + 牆頂，下緣接米白牆 -->
-        <g fill="#f5f2ec" stroke="#f5f2ec" stroke-width="8" stroke-linejoin="round" mask="url(#win)">
-          <circle cx="110" cy="15" r="5" stroke-width="5"/>
-          <path d="M 110 22 L 216 90 L 207 96 L 207 308 Q 207 314 201 314 L 19 314 Q 13 314 13 308 L 13 96 L 4 90 Z"/>
-        </g>
-        <circle cx="110" cy="15" r="2" fill="#5d6b75"/>
-        <!-- 灰藍屋身，圓窗挖空，窗外照片隱約透出 -->
-        <path d="M 110 44 L 192 96 L 186 100 L 186 230 L 34 230 L 34 100 L 28 96 Z" fill="#7590a3" fill-opacity=".86"  mask="url(#win)"/>
-        <circle cx="110" cy="158" r="56" fill="none" stroke="rgba(245,242,236,.85)" stroke-width="1.2"/>
-        <text font-family="ZSFT-br" font-size="6.4" letter-spacing="1.4" fill="rgba(241,239,233,.6)" style="white-space:pre">
-          <textPath href="#roofLine" startOffset="50%" text-anchor="middle">PORTRAIT   彼方肖像</textPath>
-        </text>
-      </svg>
-    <div class="walls">
-      <div class="top"><span class="kick">DRAG  PINCH  ZOOM</span><span class="swap">換照片</span></div>
-      <div class="slider"><i></i></div>
-            <div class="act"><span>確定</span><span>取消</span></div>
-    </div>
+    <div class="disc">
+      <div class="back"></div>
+      <div class="front">
+        <svg viewBox="0 0 250 250">
+          <defs><path id="rim" d="M 28 125 A 97 97 0 0 1 222 125"/></defs>
+          <circle cx="125" cy="18" r="6.5" fill="none" stroke="rgba(59,77,90,.25)" stroke-width="1.2"/>
+          <circle cx="125" cy="18" r="4.5" fill="#5d6b75"/>
+          <circle cx="125" cy="125" r="114" fill="none" stroke="rgba(59,77,90,.28)" stroke-width=".8"/>
+          <text font-family="ZSFT-br" font-weight="500" font-size="7" letter-spacing="2.2" fill="#72828e" style="white-space:pre">
+            <textPath href="#rim" startOffset="50%" text-anchor="middle">PORTRAIT                                   彼方肖像</textPath>
+          </text>
+        </svg>
+        <div class="win"></div>
+        <div class="ctl">
+          <span class="swap">換照片</span>
+          <div class="slider"><i></i></div>
+          <div class="act"><span>確定</span><span>取消</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
