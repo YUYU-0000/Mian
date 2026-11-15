@@ -148,6 +148,8 @@
   grid-row: 4;
 }
 .home-photo {
+  position: relative;
+  overflow: hidden;
   background: #87949e;
   border-radius: 8px;
   display: flex;
@@ -157,6 +159,31 @@
   font-size: 0.75rem;
   text-align: center;
   line-height: 1.3;
+}
+.home-photo .upload-icon,
+.home-photo .loading-text {
+  position: absolute;
+  visibility: hidden;
+}
+.home-photo:has(.uploaded-media) .home-photo-placeholder {
+  visibility: hidden;
+}
+.home-photo .file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+.home-photo .video-play-btn {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+  cursor: pointer;
 }
 .home-photo.widget {
   grid-column: 3/5;

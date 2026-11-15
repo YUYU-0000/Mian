@@ -18,6 +18,7 @@ export type Backup = ServerBackup & {
   exportedAt: string;
   chats: Record<string, ChatGroup[]>;
   preferences: Record<string, string | null>;
+  homePhotos?: Record<string, string>;
 };
 const preferenceKeys = ["launcher_settings", "mian.active-conversation.v1"];
 const chatKey = (id: string) => `mian.conversation.${id}.${CHAT_STORAGE_KEY}`;

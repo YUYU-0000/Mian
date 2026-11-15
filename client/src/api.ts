@@ -1,6 +1,7 @@
 import { subscribe } from "./realtime";
 import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
+import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
 import {
   backupFilename,
   completeBackup,
@@ -192,17 +193,20 @@ export const api = {
   // 待接后端：语音试听保留设计稿的预留实现。
   testVoice: (_cfg: VoiceConfig) => new Promise<void>(() => {}),
   importData: async (backup: Backup) => {
+    const { homePhotos, ...data } = backup;
     await request("/api/backup", {
       method: "POST",
-      body: JSON.stringify(backup),
+      body: JSON.stringify(data),
     });
     restoreBrowserBackup(backup, localStorage);
+    await restoreHomePhotos(homePhotos);
   },
   exportData: async () => {
     const content = completeBackup(
       await request<ServerBackup>("/api/backup"),
       localStorage,
     );
+    content.homePhotos = await exportHomePhotos();
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(content, null, 2)], {
         type: "application/json",

@@ -1,8 +1,41 @@
-import { ChatGlyph, ClueGlyph, House, DockHouse, DockSliders } from "../components/HomeIcons";
+import {
+  ChatGlyph,
+  ClueGlyph,
+  House,
+  DockHouse,
+  DockBook,
+} from "../components/HomeIcons";
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import type { ConnectionStatus } from "../types";
 import ScrollText from "../components/ScrollText";
+import Media from "../components/Media";
+import { homePhotoKeys } from "../homePhotos";
+
+function HomePhoto({
+  className,
+  photo,
+  active,
+}: {
+  className: string;
+  photo: keyof typeof homePhotoKeys;
+  active: boolean;
+}) {
+  return (
+    <div
+      className={`home-photo ${className}`}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <span className="home-photo-placeholder">
+        TAP TO
+        <br />
+        UPLOAD
+      </span>
+      <Media storageKey={homePhotoKeys[photo]} active={active} />
+    </div>
+  );
+}
+
 const Icon = ({
   className = "",
   onClick,
@@ -64,7 +97,8 @@ export default function Home({
         }}
         onPointerMove={(e) => {
           if (drag.current) {
-            e.currentTarget.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+            e.currentTarget.scrollLeft =
+              drag.current.left - (e.clientX - drag.current.x);
           }
         }}
         onPointerUp={() => {
@@ -94,41 +128,25 @@ export default function Home({
               <ChatGlyph />
             </button>
             <div className="home-label lbl-1">CHAT</div>
-            <button className="home-app-icon icon-2 bg-2" aria-label="線索" onClick={onClues}>
-              <ClueGlyph />
-            </button>
-            <div className="home-label lbl-2">線索</div>
+            <Icon className="icon-2 bg-2" />
+            <div className="home-label lbl-2">APP</div>
             <Icon className="icon-3 bg-3" />
             <div className="home-label lbl-3">APP</div>
             <Icon className="icon-4 bg-4" />
             <div className="home-label lbl-4">APP</div>
-            <div className="home-photo widget">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto className="widget" photo="widget" active={page === 0} />
             <div className="home-label widget-label">PHOTO</div>
           </div>
         </section>
         <section className="home-page">
           <div className="home-grid-2">
-            <div className="home-photo wide">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto className="wide" photo="wide" active={page === 1} />
             <div className="home-label wide-label">PHOTO</div>
-            <div className="home-photo square-left">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto
+              className="square-left"
+              photo="left"
+              active={page === 1}
+            />
             <div className="home-label square-left-label">PHOTO</div>
             {[1, 2, 3, 4].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
@@ -138,22 +156,24 @@ export default function Home({
             ))}
             {[5, 6, 7, 8].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
-                <Icon className={n === 5 ? "bg-3" : n === 8 ? "bg-2" : "bg-1"} />
+                <Icon
+                  className={n === 5 ? "bg-3" : n === 8 ? "bg-2" : "bg-1"}
+                />
                 <div className="home-label">APP</div>
               </div>
             ))}
-            <div className="home-photo square-right">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto
+              className="square-right"
+              photo="right"
+              active={page === 1}
+            />
             <div className="home-label square-right-label">PHOTO</div>
           </div>
         </section>
       </div>
-      <div className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}>
+      <div
+        className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}
+      >
         <div className={`home-code-status status-content ${connectionClass}`}>
           <House />
           <ScrollText className="capsule-text">{channelName}</ScrollText>
@@ -172,10 +192,20 @@ export default function Home({
         >
           <DockHouse />
         </button>
-        <button className="home-app-icon dock-2" aria-label="设置" onClick={onSettings}>
-          <DockSliders />
+        <button
+          className="home-app-icon dock-2"
+          aria-label="设置"
+          onClick={onSettings}
+        >
+          <DockBook />
         </button>
-        <Icon className="dock-3" />
+        <button
+          className="home-app-icon dock-3"
+          aria-label="線索"
+          onClick={onClues}
+        >
+          <ClueGlyph />
+        </button>
         <Icon className="dock-4" />
       </footer>
     </main>
