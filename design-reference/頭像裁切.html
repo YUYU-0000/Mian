@@ -5,7 +5,7 @@
   - 圓卡外圈是一道 26px 寬的米白邊，裡面整塊都是照片窗（直徑 208px），照片在窗裡拖動、兩指縮放、滾輪縮放，手勢只在照片窗內生效。
   - 米白邊上兩道細線夾住，沿著邊繞一圈小字，像吊牌上的環形字：
       上半圈：左 PORTRAIT，頂部打孔，右「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
-      下半圈：左「確定」（墨色），中間「換照片」（淺色小字），右「取消」（淺色）；三個都可以點，字是正著讀的。
+      下半圈：左「確定」（墨色），中間「換照片」，右「取消」（後兩個淺色），三個字號一樣 10.5px；三個都可以點，字是正著讀的。
       字和字之間用一小段橫線隔開，不用間隔點。
   - 不放滑塊，縮放靠手勢和滾輪。
   - 遮罩、繩子顏色、陰影、進出動畫沿用連接中心 .hang-tag。
@@ -29,7 +29,7 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
   filter:drop-shadow(0 22px 22px rgba(20,30,40,.34)) drop-shadow(0 4px 6px rgba(20,30,40,.2))}
 .string{width:1.5px;height:calc(17svh + 13px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
 .disc{position:relative;width:260px;height:260px;margin-top:-13px}
-.back,.front{position:absolute;inset:0;border-radius:50%}
+.front{position:absolute;inset:0;border-radius:50%}
 .back{background-image:var(--grain);transform-origin:130px 13px}
 .back.a{background-color:#5f7789;transform:rotate(11deg)}
 .back.b{background-color:#93a7b5;transform:rotate(-7deg)}
@@ -62,11 +62,11 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
             <text><textPath href="#top" startOffset="73%" text-anchor="middle">彼方肖像</textPath></text>
           </g>
           <g font-family="LXGW Heart Serif" letter-spacing="3">
-            <text font-size="11.5" fill="#3b4d5a" font-weight="600"><textPath href="#bot" startOffset="32%" text-anchor="middle">確定</textPath></text>
+            <text font-size="10.5" fill="#3b4d5a" font-weight="600"><textPath href="#bot" startOffset="31%" text-anchor="middle">確定</textPath></text>
             <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="41%" text-anchor="middle">—</textPath></text>
-            <text font-size="9" fill="#72828e"><textPath href="#bot" startOffset="50%" text-anchor="middle">換照片</textPath></text>
+            <text font-size="10.5" fill="#72828e"><textPath href="#bot" startOffset="50%" text-anchor="middle">換照片</textPath></text>
             <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="59%" text-anchor="middle">—</textPath></text>
-            <text font-size="11.5" fill="#72828e"><textPath href="#bot" startOffset="68%" text-anchor="middle">取消</textPath></text>
+            <text font-size="10.5" fill="#72828e"><textPath href="#bot" startOffset="69%" text-anchor="middle">取消</textPath></text>
           </g>
         </svg>
       </div>
