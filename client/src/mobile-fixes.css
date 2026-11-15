@@ -215,12 +215,6 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-@property --attachment-space {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
 .archive-stream {
   overflow-anchor: none;
   -webkit-mask-image: linear-gradient(
@@ -422,8 +416,9 @@
 }
 .ft.archive-pop-in,
 .voice-reply.archive-pop-in {
+  animation-name: ticketPop;
   animation-fill-mode: both;
-  transform-origin: left bottom;
+  will-change: auto;
 }
 .archive-msg[data-role="user"] .archive-msg-head,
 .archive-msg[data-role="user"] .archive-bubble {
@@ -442,6 +437,16 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+@keyframes ticketPop {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 .cursor-blink {
