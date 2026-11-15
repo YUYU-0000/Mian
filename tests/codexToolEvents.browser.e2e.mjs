@@ -12,6 +12,7 @@ const profile = await mkdtemp(path.join(tmpdir(), "mian-codex-tools-"));
 const bundle = await build({
   entryPoints: ["tests/codexToolEvents.fixture.tsx"], bundle: true, write: false,
   outdir: profile, format: "iife", platform: "browser", jsx: "automatic",
+  external: ["/grain.png"],
   define: { "process.env.NODE_ENV": '"production"' },
 });
 const page = await readFile("client/dist/index.html", "utf8");

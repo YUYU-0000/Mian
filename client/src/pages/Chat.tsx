@@ -107,6 +107,7 @@ export default function Chat({
     }));
   const [ticketDrawerOpen, setTicketDrawerOpen] = useState(false);
   const stream = useRef<HTMLDivElement>(null);
+  const streamContent = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const inputArea = useRef<HTMLFormElement>(null);
   const outgoingStream = useRef<HTMLDivElement>(null);
@@ -179,14 +180,20 @@ export default function Chat({
   );
   useLayoutEffect(() => {
     const streamElement = stream.current,
+      contentElement = streamContent.current,
       inputElement = inputArea.current;
-    if (!streamElement || !inputElement) return;
+    if (!streamElement || !contentElement || !inputElement) return;
     let frame = 0;
     let forcedFrames = 0;
     let stableFrames = 0;
     let lastGeometry = "";
     let attachmentSpace: number | undefined;
     let attachmentAnimation: Animation | null = null;
+    const clearAttachmentAnimation = () => {
+      attachmentAnimation?.cancel();
+      attachmentAnimation = null;
+      contentElement.style.removeProperty("will-change");
+    };
     const updateNow = (forceBottom = false, animateAttachments = true) => {
       const streamRect = streamElement.getBoundingClientRect();
       const inputRect = inputElement.getBoundingClientRect();
@@ -194,15 +201,14 @@ export default function Chat({
       const nextSpace = drafts?.querySelector(".file-draft:not([data-exiting])")
         ? inputRect.top - drafts.getBoundingClientRect().top
         : 0;
-      if (attachmentSpace !== nextSpace) {
-        const from = getComputedStyle(streamElement).getPropertyValue("--attachment-space");
-        attachmentAnimation?.cancel();
+      const spaceChanged = attachmentSpace !== nextSpace;
+      const previousTop = spaceChanged && animateAttachments
+        ? contentElement.getBoundingClientRect().top
+        : null;
+      if (spaceChanged) {
+        clearAttachmentAnimation();
         attachmentSpace = nextSpace;
         streamElement.style.setProperty("--attachment-space", `${nextSpace}px`);
-        attachmentAnimation = animateAttachments ? streamElement.animate([
-          { "--attachment-space": from },
-          { "--attachment-space": `${nextSpace}px` },
-        ], { duration: 260, easing: "ease-out" }) : null;
       }
       streamElement.style.setProperty("--input-top-y",
         `clamp(53px, calc(${inputRect.top - streamRect.top}px - var(--attachment-space)), ${streamElement.clientHeight}px)`);
@@ -210,8 +216,21 @@ export default function Chat({
         "--input-area-height",
         `calc(${inputRect.height + 30}px + var(--attachment-space))`,
       );
-      if (forceBottom || shouldFollowBottom.current)
-        streamElement.scrollTop = streamElement.scrollHeight;
+      if (forceBottom || shouldFollowBottom.current) {
+        const bottom = streamElement.scrollHeight - streamElement.clientHeight;
+        if (streamElement.scrollTop !== bottom) streamElement.scrollTop = bottom;
+      }
+      if (previousTop !== null) {
+        const offset = previousTop - contentElement.getBoundingClientRect().top;
+        if (offset) {
+          contentElement.style.willChange = "transform";
+          attachmentAnimation = contentElement.animate([
+            { transform: `translateY(${offset}px)` },
+            { transform: "translateY(0)" },
+          ], { duration: 260, easing: "ease-out" });
+          attachmentAnimation.onfinish = clearAttachmentAnimation;
+        }
+      }
       const viewport = window.visualViewport;
       return [
         viewport?.height ?? window.innerHeight,
@@ -226,9 +245,8 @@ export default function Chat({
       if (forcedFrames > 0) forcedFrames -= 1;
       stableFrames = geometry === lastGeometry ? stableFrames + 1 : 0;
       lastGeometry = geometry;
-      if (attachmentAnimation?.playState === "finished") attachmentAnimation = null;
       if (stableFrames >= 2) forcedFrames = 0;
-      if (attachmentAnimation || forcedFrames > 0) {
+      if (forcedFrames > 0) {
         frame = requestAnimationFrame(settleLayout);
       }
     };
@@ -245,16 +263,7 @@ export default function Chat({
     const observer = new ResizeObserver(() => scheduleUpdate());
     observer.observe(streamElement);
     observer.observe(inputElement);
-    const observeMessages = () => {
-      for (const message of streamElement.querySelectorAll(".archive-msg"))
-        observer.observe(message);
-    };
-    observeMessages();
-    const mutationObserver = new MutationObserver(() => {
-      observeMessages();
-      scheduleUpdate();
-    });
-    mutationObserver.observe(streamElement, { childList: true });
+    observer.observe(contentElement);
     const onWindowLayout = () => scheduleUpdate();
     let viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     let viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
@@ -275,9 +284,8 @@ export default function Chat({
     updateNow(false, false);
     return () => {
       cancelAnimationFrame(frame);
-      attachmentAnimation?.cancel();
+      clearAttachmentAnimation();
       observer.disconnect();
-      mutationObserver.disconnect();
       requestViewportSync.current = () => {};
       window.removeEventListener("resize", onWindowLayout);
       window.removeEventListener("orientationchange", onWindowLayout);
@@ -437,24 +445,26 @@ export default function Chat({
             });
           }}
         >
-          {messages.map((message) => (
-            <ChatMessage
-              key={
-                message.role === "user" ? message.groupId : message.replyGroupId
-              }
-              message={message}
-              visual={
-                message.role === "assistant"
-                  ? (visualReplies[message.replyGroupId] ?? emptyVisualReply())
-                  : null
-              }
-              activeTurnId={activeTurnId}
-              historicalAnimationIds={historicalAnimationIds}
-              expandedTools={expandedTools}
-              onToggleTool={toggleToolExpansion}
-              session={session}
-            />
-          ))}
+          <div ref={streamContent} className="archive-stream-content">
+            {messages.map((message) => (
+              <ChatMessage
+                key={
+                  message.role === "user" ? message.groupId : message.replyGroupId
+                }
+                message={message}
+                visual={
+                  message.role === "assistant"
+                    ? (visualReplies[message.replyGroupId] ?? emptyVisualReply())
+                    : null
+                }
+                activeTurnId={activeTurnId}
+                historicalAnimationIds={historicalAnimationIds}
+                expandedTools={expandedTools}
+                onToggleTool={toggleToolExpansion}
+                session={session}
+              />
+            ))}
+          </div>
         </div>
       </div>
       <form

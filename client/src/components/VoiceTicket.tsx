@@ -58,7 +58,11 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
     onClick={event => { event.stopPropagation(); toggle(); }} />;
   return (
     <>
-      <AnimatedSwap value={fallback ? "text" : "ticket"} className={`voice-reply${animate ? " archive-pop-in" : ""}`}>
+      <AnimatedSwap value={fallback ? "text" : "ticket"} className={`voice-reply${animate ? " archive-pop-in" : ""}`}
+        style={animate ? { willChange: "transform, opacity" } : undefined}
+        onAnimationEnd={event => {
+          if (event.target === event.currentTarget) event.currentTarget.style.removeProperty("will-change");
+        }}>
         {displayed => displayed === "text"
           ? <div className={`archive-bubble${fallback === "stopped" ? " stopped" : ""}`}><AnimatedText text={transcript} /></div>
           : <div className="voice-ticket"><div className="ft" onClick={() => setViewing(true)}>
@@ -67,7 +71,7 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
           <div className="ft-kicker">VOICE  語音</div>
           <div className="voice-row">
             {playButton}
-            <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot">
+            <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot" blur={false}>
               {content => content === "wave" ? <button className="voice-wave" type="button" disabled={duration === null}
               aria-label="跳轉語音播放位置"
               onClick={event => {

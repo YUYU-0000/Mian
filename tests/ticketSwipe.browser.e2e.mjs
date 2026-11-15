@@ -12,6 +12,7 @@ const profile = await mkdtemp(path.join(tmpdir(), "mian-ticket-swipe-"));
 const bundle = await build({
   entryPoints: ["tests/ticketSwipe.fixture.tsx"], bundle: true, write: false,
   outdir: profile, format: "iife", platform: "browser", jsx: "automatic",
+  external: ["/grain.png"],
   define: { "process.env.NODE_ENV": '"production"' },
 });
 const page = await readFile("client/dist/index.html", "utf8");

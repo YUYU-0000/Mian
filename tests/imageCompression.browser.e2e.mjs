@@ -12,11 +12,13 @@ const directory = await mkdtemp(path.join(tmpdir(), "mian-image-compression-"));
 const bundle = await build({
   entryPoints: ["tests/imageCompression.fixture.tsx"], bundle: true, write: false,
   outdir: directory, format: "iife", platform: "browser", jsx: "automatic",
+  external: ["/grain.png"],
   define: { "process.env.NODE_ENV": '"production"' },
 });
 let records = [], patches = 0;
 const app = express();
 app.use(express.json({ limit: "50mb" }));
+app.use(express.static("client/public"));
 app.get("/fixture.js", (_req, res) => res.type("js").send(bundle.outputFiles.find((file) => file.path.endsWith(".js")).text));
 app.get("/fixture.css", (_req, res) => res.type("css").send(bundle.outputFiles.find((file) => file.path.endsWith(".css")).text));
 app.get("/", (_req, res) => res.send('<!doctype html><link rel="stylesheet" href="/fixture.css"><div id="root"></div><script src="/fixture.js"></script>'));

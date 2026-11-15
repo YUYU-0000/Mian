@@ -106,8 +106,11 @@ export default memo(function FileTicket({
         style={
           entryDelayMs === undefined
             ? undefined
-            : { animationDelay: `${entryDelayMs}ms` }
+            : { animationDelay: `${entryDelayMs}ms`, willChange: "transform, opacity" }
         }
+        onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.style.removeProperty("will-change");
+        }}
         role={pending && !image ? undefined : "button"}
         tabIndex={pending && !image ? undefined : 0}
         aria-label={`${kind ? "查看" : "下載"} ${file.name}`}

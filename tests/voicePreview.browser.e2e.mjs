@@ -17,6 +17,7 @@ const bundle = await build({
   outdir: profile,
   format: "iife",
   platform: "browser",
+  external: ["/grain.png"],
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"' },
 });
@@ -151,7 +152,7 @@ try {
   // 记录真实执行的动画，文本与条码都先淡出，换内容后再淡入。
   await evaluate(`window.voiceAnimations=[];const animate=Element.prototype.animate;Element.prototype.animate=function(frames,options){
     if(this.matches('.voice-wave-slot,.ft-meta b span,.pv-name .scroll-text-content > span,.pv-voice-text code > span'))
-      voiceAnimations.push({target:this.className || this.parentElement.className || this.parentElement.tagName,duration:options.duration});
+      voiceAnimations.push({target:this.className || this.parentElement.className || this.parentElement.tagName,duration:options.duration,frames});
     return animate.call(this,frames,options);
   }`);
   await show(clip);
@@ -159,6 +160,7 @@ try {
   await waitFor(() => evaluate("voiceAnimations.some(a => a.target === 'voice-wave-slot' && a.duration === 180)"), 'barcode fade in');
   const animations = await evaluate('voiceAnimations');
   assert.deepEqual(animations.filter(a => a.target === 'voice-wave-slot').map(a => a.duration), [140,180]);
+  assert.ok(animations.filter(a => a.target === 'voice-wave-slot').every(a => a.frames.every(frame => !('filter' in frame))));
   assert.ok(animations.some(a => a.target === 'B' && a.duration === 140));
   assert.ok(animations.some(a => a.target === 'scroll-text-content' && a.duration === 180));
   assert.equal(await evaluate("document.querySelector('.ft-meta').textContent"), '00:07台詞');
@@ -209,6 +211,16 @@ try {
   assert.equal(await evaluate("document.querySelector('.pv-foot .voice-play').disabled"), true);
   assert.equal(await evaluate("document.querySelector('.pv-file-content').textContent"), '陪你。');
   await closePreview();
+  await evaluate(`showVoice(${JSON.stringify(clip)},null,'entry',true)`);
+  await waitFor(() => evaluate("!!document.querySelector('.voice-reply.archive-pop-in')"), 'new voice ticket entry');
+  const entry = await evaluate(`(() => {
+    const ticket=document.querySelector('.voice-reply'), animation=ticket.getAnimations().find(a=>a.animationName==='ticketPop');
+    return {willChange:getComputedStyle(ticket).willChange, frames:animation.effect.getKeyframes(), duration:animation.effect.getTiming().duration};
+  })()`);
+  assert.equal(entry.willChange, 'transform, opacity');
+  assert.equal(entry.duration, 400);
+  assert.ok(entry.frames.every(frame => !frame.transform.includes('scale')));
+  await waitFor(() => evaluate("getComputedStyle(document.querySelector('.voice-reply')).willChange==='auto'"), 'entry releases compositor hint');
   assert.deepEqual(errors, []);
   console.log('PASS voice transcript preview date and signature, ticket duration, transitions, scrolling, synchronized playback, seek, drag/mask close and failure fallback.');
 } finally {

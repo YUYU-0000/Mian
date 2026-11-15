@@ -7,9 +7,9 @@ import type { VoiceClip } from "../shared/voice.mjs";
 const root = createRoot(document.getElementById("root")!);
 const fixture = window as any;
 fixture.voicePlayer = voicePlayer;
-fixture.showVoice = (clip: VoiceClip, fallback?: "failed" | "stopped", id = "voice") => root.render(<>
+fixture.showVoice = (clip: VoiceClip, fallback?: "failed" | "stopped", id = "voice", animate = false) => root.render(<>
   <div className="archive-msg-content" style={{ padding: 24 }}>
-    <VoiceTicket key={id} clip={clip} fallback={fallback} />
+    <VoiceTicket key={id} clip={clip} fallback={fallback} animate={animate} />
   </div>
   <Notify page="/chat" />
 </>);

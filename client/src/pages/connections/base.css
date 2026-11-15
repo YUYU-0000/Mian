@@ -11,8 +11,8 @@
   --env2: #93a7b5;
   --sheet: #f5f2ec;
   --muted: #72828e;
-  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.09"/></svg>');
-  --paper-grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.05"/></svg>');
+  --grain: url("/grain.png");
+  --paper-grain: url("/grain.png");
   background-color: #e8e6df;
   margin: 0;
   padding: 0 2vw 0 0;

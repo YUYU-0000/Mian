@@ -17,6 +17,7 @@ const bundle = await build({
   format: "esm",
   splitting: true,
   platform: "browser",
+  external: ["/grain.png"],
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"' },
 });

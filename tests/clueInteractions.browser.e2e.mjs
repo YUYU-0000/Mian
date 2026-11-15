@@ -14,7 +14,7 @@ const bundle = await build({
   entryPoints: ["tests/clueInteractions.fixture.tsx"],
   bundle: true, write: false, outdir: directory, format: "iife",
   platform: "browser", jsx: "automatic",
-  external: ["/fonts/*"],
+  external: ["/fonts/*", "/grain.png"],
   define: { "process.env.NODE_ENV": '"production"' },
 });
 const app = express();
