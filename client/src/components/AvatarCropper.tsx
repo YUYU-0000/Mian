@@ -287,15 +287,9 @@ export default function AvatarCropper({
                   className={`avatar-crop-${action.name}`}
                   role="button"
                   aria-disabled={saving || !size}
-                  tabIndex={saving || !size ? -1 : 0}
-                  onClick={() => {
-                    if (!saving && size) void action.run();
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      if (!saving && size) void action.run();
-                    }
+                  onClick={async () => {
+                    if (!saving && size) await action.run();
+                    (document.activeElement as HTMLElement | null)?.blur();
                   }}
                 >
                   <textPath

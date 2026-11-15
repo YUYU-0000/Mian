@@ -79,6 +79,9 @@
 .avatar-crop-actions,
 .avatar-crop-actions * {
   outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
 .avatar-crop-actions [role="button"] {
