@@ -5,7 +5,7 @@
     背面是經典信封樣式：上封口是尖 V，尖角稍圓；下封口從兩個下角斜上來，在中間收成一個尖。所有封口邊緣描一道燕麥金細線（#c9b08a）。
     不加火漆。信封下半居中兩行米白小字：NEW CARD／新增卡片。
   - 點信封：背後蓋一層淡遮罩，信封移到底部正中、擺正，上封口往上翻開。
-    一疊橫放的空白紙片（236 寬，露出部分約 150 高）插在信封裡，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
+    一疊空白紙片橫躺著插在信封裡：每張是豎版海報轉 90 度躺下（236×176），內容跟著一起轉，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
     上滑：前面這張插回去，下一張抽出來；下滑：換回上一張。到頭了就輕輕回彈。
     信封上方顯示目前的版式名（英文 + 頁碼 03 / 05 + 中文）和「上下滑換一張」。紙片露出信封底邊的部分裁掉。
     點抽出來的那張：整張抽出，打開卡片頁，頂上選常駐或觸發，寫完收起後貼到牆上。
@@ -37,14 +37,14 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 .open{left:60px;top:660px}
 
 .stack{position:absolute;inset:0;z-index:2;clip-path:inset(-400px -60px 2px -60px)}
-.card{position:absolute;left:17px;width:236px;height:200px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
-.card .in{position:absolute;left:0;top:0;width:236px;height:150px}
-.card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:9px;letter-spacing:2px}
+.card{position:absolute;left:17px;width:236px;height:264px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
+.card .in{position:absolute;left:0;top:0;width:100px;height:134px;transform-origin:0 0;transform:translate(0,176px) rotate(-90deg) scale(1.76)}
+.card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:6px;letter-spacing:1.6px}
 .card .t{position:absolute;font-weight:700;letter-spacing:2px;line-height:1.02}
-.card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.4px;color:var(--muted)}
+.card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:5px;letter-spacing:1.6px;color:var(--muted)}
 .card .ln{position:absolute;height:1px;background:rgba(59,77,90,.14)}
 
-.pick{position:absolute;left:0;right:0;top:420px;text-align:center;color:#f5f2ec}
+.pick{position:absolute;left:0;right:0;top:296px;text-align:center;color:#f5f2ec}
 .pick i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.8px;padding-left:2.8px;opacity:.8}
 .pick b{display:block;margin-top:4px;font-weight:400;font-size:15px;letter-spacing:5px;padding-left:5px}
 .pick em{display:block;margin-top:8px;font-style:normal;font-size:10px;letter-spacing:3px;padding-left:3px;opacity:.75}
@@ -95,20 +95,21 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 
 <script>
 const L={
- full:`<div class="n" style="left:14px;top:12px">01</div><div class="s" style="left:14px;top:26px">TITLE</div>
-   <div class="t" style="left:12px;top:42px;font-size:44px;letter-spacing:6px">標題</div>
-   <div style="position:absolute;right:-30px;top:-20px;width:120px;height:120px;border-radius:50%;background:var(--blue3)"></div>`,
- vertical:`<div class="s" style="left:12px;top:14px;writing-mode:vertical-rl">TITLE</div>
-   <div style="position:absolute;left:32px;top:14px;width:1px;height:96px;background:var(--blue)"></div>
-   <div class="t" style="right:18px;top:16px;font-size:34px;writing-mode:vertical-rl;letter-spacing:8px">標題</div>
-   <div class="n" style="left:42px;top:14px">02</div>`,
- oblique:`<div style="position:absolute;left:-30px;top:58px;width:320px;height:44px;background:var(--blue3);transform:rotate(-12deg)"></div>
-   <div class="t" style="left:40px;top:58px;font-size:34px;transform:rotate(-12deg);letter-spacing:10px">標題</div>
-   <div class="n" style="right:14px;top:12px">03</div><div class="s" style="left:14px;top:14px">TITLE</div>`,
+ full:`<div class="n" style="left:8px;top:8px">01</div><div class="s" style="left:8px;top:17px">TITLE</div>
+   <div class="t" style="left:7px;top:28px;font-size:24px;width:30px">標題</div>
+   <div style="position:absolute;right:-22px;bottom:4px;width:70px;height:70px;border-radius:50%;background:var(--blue3)"></div>`,
+ vertical:`<div class="s" style="left:6px;top:10px;writing-mode:vertical-rl">TITLE</div>
+   <div style="position:absolute;left:19px;top:10px;width:1px;height:58px;background:var(--blue)"></div>
+   <div class="t" style="right:10px;top:12px;font-size:19px;writing-mode:vertical-rl;letter-spacing:4px">標題</div>
+   <div class="n" style="left:24px;top:10px">02</div>`,
+ oblique:`<div style="position:absolute;left:-20px;top:42px;width:150px;height:30px;background:var(--blue3);transform:rotate(-22deg)"></div>
+   <div class="t" style="left:16px;top:44px;font-size:19px;transform:rotate(-22deg);letter-spacing:5px">標題</div>
+   <div class="n" style="right:8px;top:8px">03</div><div class="s" style="left:8px;top:9px">TITLE</div>
+   <div class="ln" style="left:8px;width:46px;top:96px"></div><div class="ln" style="left:8px;width:34px;top:101px"></div>`,
 };
 document.getElementById('stack').innerHTML=
-  `<div class="card" style="top:-84px;transform:translateX(10px) rotate(3.5deg)"><div class="in">${L.full}</div></div>`+
-  `<div class="card" style="top:-98px;transform:translateX(-9px) rotate(-3deg)"><div class="in">${L.vertical}</div></div>`+
-  `<div class="card" style="top:-118px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
+  `<div class="card" style="top:-110px;transform:translateX(10px) rotate(3.5deg)"><div class="in">${L.full}</div></div>`+
+  `<div class="card" style="top:-126px;transform:translateX(-9px) rotate(-3deg)"><div class="in">${L.vertical}</div></div>`+
+  `<div class="card" style="top:-168px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
 </script>
 </body></html>
