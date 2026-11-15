@@ -25,6 +25,18 @@ const style = builtPage.match(
   /<link rel="stylesheet"[^>]*href="([^"]+\.css)"/,
 )[1];
 const app = express();
+const imageRequests = [];
+app.get(
+  ["/fixture-image.svg", "/api/conversations/image-test/files/upload-id"],
+  (req, res) => {
+    imageRequests.push({ path: req.path, referer: req.get("referer") });
+    res
+      .type("svg")
+      .send(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#9fb2bf"/></svg>',
+      );
+  },
+);
 const bundleRequests = [];
 let releaseMarkdown;
 const markdownDownload = new Promise((resolve) => {
@@ -563,8 +575,13 @@ try {
   }
   // 先收起复制提示，避免纸条遮住顶部票根的触摸区域。
   await evaluate("document.querySelector('.mail').click()");
-  await waitFor(() => evaluate("!document.querySelector('.mail.is-in')"), "Copy notice did not close");
-  await evaluate("Promise.all(document.querySelector('.mail').getAnimations().map(animation => animation.finished))");
+  await waitFor(
+    () => evaluate("!document.querySelector('.mail.is-in')"),
+    "Copy notice did not close",
+  );
+  await evaluate(
+    "Promise.all(document.querySelector('.mail').getAnimations().map(animation => animation.finished))",
+  );
   const longTitle = "完整的對話名稱".repeat(12);
   await evaluate(`renderTitleFixture(${JSON.stringify(longTitle)})`);
   await waitFor(
@@ -661,6 +678,126 @@ try {
         "document.querySelector('.archive-tool-output').textContent.split('\\n').length === 6",
       ),
     "Tool output did not collapse again",
+  );
+  // 回复图片独立于文字气泡，本地上传路径映射到现有文件接口。
+  const imageSource =
+    "C:/Users/ASUS/MianWorkspace/.mian-uploads/original-chat/upload-id/photo.jpg";
+  const networkImage = `http://127.0.0.1:${server.address().port}/fixture-image.svg`;
+  const dataImage =
+    "data:image/svg+xml;base64," +
+    Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"><rect width="10" height="20" fill="blue"/></svg>',
+    ).toString("base64");
+  const renderImages = (text, typing = false) =>
+    evaluate(`renderImageFixture(${JSON.stringify(text)}, ${typing})`);
+  await renderImages(
+    `前段文字 ![原圖](${imageSource})\n\n後段文字 ![網絡圖](${networkImage}) ![內嵌圖](${dataImage})`,
+  );
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelectorAll('.ft img').length === 3 && [...document.querySelectorAll('.ft img')].every(img => img.naturalWidth > 0)",
+      ),
+    "Reply images did not load",
+  );
+  assert.deepEqual(
+    await evaluate(
+      "[...document.querySelector('.archive-msg-content').children].map(el => el.classList.contains('archive-bubble') ? 'text' : 'image')",
+    ),
+    ["text", "image", "text", "image", "image"],
+  );
+  assert.equal(
+    await evaluate("document.querySelectorAll('.archive-bubble img').length"),
+    0,
+  );
+  assert.equal(
+    await evaluate("document.querySelector('.ft img').getAttribute('src')"),
+    "/api/conversations/image-test/files/upload-id?inline=1",
+  );
+  assert.equal(
+    imageRequests.every((request) => request.referer === undefined),
+    true,
+  );
+  await evaluate("document.querySelector('.ft').click()");
+  await waitFor(
+    () => evaluate("!!document.querySelector('.pv.is-image.is-ready')"),
+    "Reply image did not open in the polaroid viewer",
+  );
+  const photo = await evaluate(
+    "(() => { const r = document.querySelector('.pv-photo').getBoundingClientRect(); return { x:r.left+r.width/2, y:r.top+r.height/2 }; })()",
+  );
+  await evaluate(
+    "window.imageSaves = 0; document.querySelector('.pv-download').addEventListener('click', event => { event.preventDefault(); window.imageSaves++; });",
+  );
+  await call("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [photo],
+  });
+  await sleep(1100);
+  await call("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  assert.equal(await evaluate("window.imageSaves"), 1);
+  await evaluate("document.querySelector('.pv-mask').click()");
+  await waitFor(
+    () => evaluate("!document.querySelector('.pv-viewer')"),
+    "Polaroid did not close",
+  );
+
+  await renderImages(
+    "保留正文 ![還沒寫完](https://example.invalid/image",
+    true,
+  );
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelector('.archive-bubble')?.textContent.trim() === '保留正文'",
+      ),
+    "Incomplete image Markdown leaked into the bubble",
+  );
+  assert.equal(
+    await evaluate(
+      "document.querySelectorAll('.ft,.reply-image-failure').length",
+    ),
+    0,
+  );
+  await renderImages(`保留正文 ![完整圖片](${dataImage})`, true);
+  await waitFor(
+    () => evaluate("document.querySelector('.ft img')?.naturalWidth === 10"),
+    "Completed streaming image did not appear",
+  );
+  await renderImages(
+    `程式範例 \`![範例](image.png)\`\n\n![說明文字](/missing-one.png)\n\n![](/missing-two.png)`,
+  );
+  await waitFor(
+    () =>
+      evaluate(
+        "document.querySelectorAll('.reply-image-failure').length === 2",
+      ),
+    "Failed images did not become notes",
+  );
+  assert.deepEqual(
+    await evaluate(
+      "[...document.querySelectorAll('.reply-image-failure')].map(el => ({ text:el.textContent, href:el.getAttribute('href'), target:el.target }))",
+    ),
+    [
+      {
+        text: "圖片載入失敗說明文字",
+        href: "/missing-one.png",
+        target: "_blank",
+      },
+      { text: "圖片載入失敗", href: "/missing-two.png", target: "_blank" },
+    ],
+  );
+  assert.equal(
+    await evaluate(
+      "document.querySelectorAll('.reply-image-failure img').length",
+    ),
+    0,
+  );
+  assert.equal(
+    await evaluate(
+      "document.querySelector('.archive-bubble code').textContent",
+    ),
+    "![範例](image.png)",
   );
   assert.deepEqual(errors, []);
   console.log(

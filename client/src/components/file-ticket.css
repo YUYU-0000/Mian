@@ -154,7 +154,26 @@
   flex-shrink: 0;
   border-radius: 2px;
   background: #a4b8c6 center/cover;
+  object-fit: cover;
   box-shadow: 0 0 0 1px var(--t-line);
+}
+.reply-image-failure {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: min(228px, 100%);
+  min-height: 70px;
+  padding: 12px;
+  border-radius: 3px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 6px rgba(59, 77, 90, 0.12);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.reply-image-failure small {
+  font-size: 11px;
+  color: var(--muted);
 }
 .ft-col {
   min-width: 0;

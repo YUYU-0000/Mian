@@ -81,7 +81,13 @@ purifier.addHook("uponSanitizeAttribute", (node, attribute) => {
 });
 
 // 每个气泡独立解析，尚未闭合的围栏只作用于当前气泡。
-export function replyMarkup(text: string) {
+export function replyMarkup(
+  text: string,
+  options: {
+    typing?: boolean;
+    imageSource?: (src: string) => string;
+  } = {},
+) {
   const codes: ReplyCode[] = [];
   const parser = new Marked({
     gfm: true,
@@ -97,7 +103,33 @@ export function replyMarkup(text: string) {
       },
     },
   });
-  const fragment = purifier.sanitize(parser.parse(text, { async: false }), {
+  const tokens = parser.lexer(text);
+  if (options.typing) {
+    parser.walkTokens(tokens, (token) => {
+      if (!("tokens" in token) || !token.tokens) return;
+      const index = token.tokens.findIndex(
+        (part) => part.type === "text" && part.text.includes("!["),
+      );
+      if (index < 0) return;
+      const pending = token.tokens[index];
+      if (pending.type === "text")
+        pending.text = pending.text.slice(0, pending.text.indexOf("!["));
+      token.tokens.splice(index + 1);
+    });
+  }
+  const html = parser.parser(tokens);
+  let source: string | DocumentFragment = html;
+  if (options.imageSource) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    for (const image of template.content.querySelectorAll("img"))
+      image.setAttribute(
+        "src",
+        options.imageSource(image.getAttribute("src") ?? ""),
+      );
+    source = template.content;
+  }
+  const fragment = purifier.sanitize(source, {
     ALLOWED_TAGS: tags,
     ALLOWED_ATTR: attributes,
     ALLOW_DATA_ATTR: false,
