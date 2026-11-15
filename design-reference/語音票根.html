@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>語音票根</title>
+<style>
+@import url("/fonts/lxgw/result.css");
+@font-face{font-family:ZSFT-br;src:url("/fonts/zsft/main.woff2") format("woff2");font-weight:400}
+@font-face{font-family:ZSFT-br;src:url("/fonts/zsft/medium.woff2") format("woff2");font-weight:500}
+body{margin:0;background:#f1efe9;font-family:"LXGW Heart Serif",serif;color:#3b4d5a}
+.wrap{padding:26px 20px;display:flex;flex-direction:column;gap:22px;width:340px}
+.cap{font:500 8px/1 ZSFT-br,serif;letter-spacing:2.4px;color:#72828e;margin-bottom:8px}
+.vt{--ink:#3b4d5a;--muted:#72828e;--env1:#6b8396;--paper:#f5f2ec;--line:rgba(59,77,90,.18);
+ --grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.06"/></svg>');
+ width:228px;position:relative}
+.ft{position:relative;width:228px;height:70px;display:flex;font-family:ZSFT-br,"LXGW Heart Serif",serif;
+ filter:drop-shadow(0 3px 6px rgba(59,77,90,.12)) drop-shadow(0 0 1px rgba(59,77,90,.18));cursor:pointer;z-index:2}
+.ft-body{position:absolute;inset:0;background:var(--paper);background-image:var(--grain);--cut:50px;
+ -webkit-mask:radial-gradient(circle 5px at calc(100% - var(--cut)) 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 5px at calc(100% - var(--cut)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
+ mask:radial-gradient(circle 5px at calc(100% - var(--cut)) 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 5px at calc(100% - var(--cut)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat;border-radius:3px}
+.ft-main{position:relative;flex:1;min-width:0;padding:9px 11px 6px 13px;display:flex;flex-direction:column}
+.ft-kicker{white-space:pre;font-weight:500;font-size:6.5px;letter-spacing:2.2px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.ft-kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+.row{display:flex;align-items:center;gap:8px;margin-top:6px;height:20px}
+.play{width:14px;height:14px;flex:none;box-shadow:inset 0 0 0 1px var(--ink);position:relative;border-radius:1px}
+.play::before{content:"";position:absolute;left:5px;top:4px;border-left:5px solid var(--ink);border-top:3px solid #0000;border-bottom:3px solid #0000}
+.vt.on .play::before{left:4.5px;top:4px;width:1.4px;height:6px;border:0;background:var(--ink);box-shadow:3.6px 0 0 var(--ink)}
+.wave{flex:1;display:flex;align-items:center;justify-content:space-between;height:20px}
+.wave i{display:block;width:1.3px;background:rgba(59,77,90,.26);transition:background .25s}
+.wave i.done{background:var(--ink)}
+.ft-meta{margin-top:auto;display:flex;gap:10px;align-items:baseline;font-size:8.5px;letter-spacing:1.2px;color:var(--muted)}
+.ft-meta b{font-weight:400}
+.ft-act{margin-left:auto;font-family:"LXGW Heart Serif",serif;font-size:8.5px;letter-spacing:1.5px;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:1px}
+.ft-perf{position:relative;width:0;margin:8px 0;border-left:1px dashed var(--line)}
+.ft-stub{position:relative;width:50px;flex:none;display:flex;align-items:center;justify-content:center}
+.ft-stub::before{content:"";position:absolute;top:0;left:13px;width:20px;height:2px;background:var(--env1)}
+.ft-ext{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12.5px;letter-spacing:2.5px;color:var(--ink)}
+/* 台詞：從票根下沿翻出來的一截紙 */
+.tr{position:relative;margin:-3px 6px 0 6px;overflow:hidden;max-height:0;opacity:0;transition:max-height .32s ease-out,opacity .24s ease-out;z-index:1}
+.vt.open .tr{max-height:160px;opacity:1}
+.tr-in{background:var(--paper);background-image:var(--grain);padding:12px 13px 11px;box-shadow:0 3px 6px rgba(59,77,90,.1);border-radius:0 0 3px 3px;
+ transform:translateY(-14px);transition:transform .32s ease-out}
+.vt.open .tr-in{transform:none}
+.tr-in::before{content:"";position:absolute;left:8px;right:8px;top:4px;border-top:1px dashed var(--line)}
+.tr-k{font:500 6.5px ZSFT-br,serif;letter-spacing:2.2px;color:var(--muted);margin-bottom:6px}
+.tr-t{font-size:13px;line-height:1.6;letter-spacing:.4px;color:var(--ink)}
+</style></head><body>
+<div class="wrap">
+ <div><div class="cap">IDLE  未播放</div><div class="vt" data-dur="7"></div></div>
+ <div><div class="cap">PLAYING  播放中</div><div class="vt on" data-dur="7" data-p="0.46"></div></div>
+ <div><div class="cap">OPEN  展開台詞</div><div class="vt open" data-dur="4" data-seed="9" data-text="哪裡可愛了。看夠了就去畫畫。"></div></div>
+</div>
+<script>
+function rnd(s){return()=>{s=(s*16807)%2147483647;return s/2147483647}}
+function bars(n,seed){const r=rnd(seed);const out=[];let env=.4;for(let i=0;i<n;i++){env+= (r()-.5)*.35;env=Math.max(.18,Math.min(1,env));const gap=r()<.08?.12:1;out.push(Math.max(.14,env*gap*(.55+r()*.45)))}return out}
+document.querySelectorAll('.vt').forEach(el=>{
+ const dur=+el.dataset.dur,seed=+(el.dataset.seed||3),text=el.dataset.text||"[softly, close] 鱼鱼，過來。今天就到這兒。";
+ const h=bars(38,seed);
+ el.innerHTML=`<div class="ft"><div class="ft-body"></div><div class="ft-main"><div class="ft-kicker">VOICE  語音</div>
+ <div class="row"><span class="play"></span><div class="wave">${h.map(v=>`<i style="height:${(v*20).toFixed(1)}px"></i>`).join('')}</div></div>
+ <div class="ft-meta"><span><b>00:0${dur}</b></span><span>02:19</span><span class="ft-act">台詞</span></div></div>
+ <div class="ft-perf"></div><div class="ft-stub"><div class="ft-ext">VOICE</div></div></div>
+ <div class="tr"><div class="tr-in"><div class="tr-k">TRANSCRIPT  台詞</div><div class="tr-t">${text.replace(/\[[^\]]*\]\s*/g,'')}</div></div></div>`;
+ const is=[...el.querySelectorAll('.wave i')];
+ const paint=p=>is.forEach((b,i)=>b.classList.toggle('done',i/is.length<p));
+ if(el.dataset.p)paint(+el.dataset.p);
+ let t=null,start=0,p0=0;
+ el.querySelector('.play').onclick=e=>{e.stopPropagation();
+  if(t){cancelAnimationFrame(t);t=null;el.classList.remove('on');return}
+  el.classList.add('on');start=performance.now();p0=0;paint(0);
+  const step=now=>{const p=p0+(now-start)/(dur*1000);paint(p);if(p>=1){el.classList.remove('on');setTimeout(()=>paint(0),500);t=null;return}t=requestAnimationFrame(step)};t=requestAnimationFrame(step)};
+ el.querySelector('.ft').onclick=()=>el.classList.toggle('open');
+});
+</script></body></html>
