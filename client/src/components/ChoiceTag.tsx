@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import WorkspaceEditor from "../pages/WorkspaceEditor";
+import AnimatedText from "./AnimatedText";
 import ScrollText from "./ScrollText";
 import "./hang-tag.css";
 import "./choice-tag.css";
@@ -10,6 +11,7 @@ export type TagConfig = {
   title: string;
   titleY?: number;
   titleAction?: () => void;
+  titleConfirm?: string;
   items: {
     label: string;
     value?: string;
@@ -27,6 +29,11 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
   anchor: () => HTMLElement;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const [titleArmed, setTitleArmed] = useState(false);
+  const close = () => {
+    setTitleArmed(false);
+    onTagClose();
+  };
   const updateFade = () => {
     const list = root.current!.querySelector<HTMLElement>("#tagList")!;
     list.classList.toggle("is-overflow", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
@@ -51,6 +58,7 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
     };
   }, []);
   useLayoutEffect(() => {
+    setTitleArmed(false);
     if (!tag || !tagVisible) return;
     fitRoof();
     root.current!.querySelector("#tagList")!.scrollTop = 0;
@@ -64,7 +72,7 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
   return <div className="choice-tag" ref={root}>
       <div
         className={`tag-overlay${tagVisible ? " is-visible" : ""}`}
-        onClick={onTagClose}
+        onClick={close}
         id="tagOverlay"
       ></div>
       <div
@@ -133,8 +141,11 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
               className={tag?.titleAction ? "is-action" : ""}
               onClick={() => {
                 if (tag?.titleAction) {
-                  onTagClose();
-                  tag.titleAction();
+                  if (tag.titleConfirm && !titleArmed) setTitleArmed(true);
+                  else {
+                    close();
+                    tag.titleAction();
+                  }
                 }
               }}
               x="94"
@@ -144,7 +155,9 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
               letterSpacing="2"
               fill="rgba(241,239,233,.72)"
             >
-              {tag?.title || "模型"}
+              {tag?.titleConfirm
+                ? <AnimatedText as="tspan" text={titleArmed ? tag.titleConfirm : tag.title} />
+                : tag?.title || "模型"}
             </text>
           </svg>
           <div className="tag-walls">
@@ -162,7 +175,7 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
                   className={`tag-option${item.selected ? " is-selected" : ""}${item.static ? " is-static" : ""}`}
                   onClick={() => {
                     if (!item.static) {
-                      onTagClose();
+                      close();
                       tag.onPick!(item.value!);
                     }
                   }}
