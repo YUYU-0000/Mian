@@ -6,12 +6,26 @@ import path from "node:path";
 import { mp3 } from "./voiceFixtures.mjs";
 import { synthesizeVoice } from "../server/src/elevenLabs.ts";
 import { VoiceGeneration } from "../server/src/voiceGeneration.ts";
+import { voicePeaks } from "../server/src/voiceWaveform.ts";
 import { ChatFiles } from "../server/src/chatFiles.ts";
 import { estimatedVoiceDuration, splitVoiceText, stripVoiceTags } from "../shared/voice.mjs";
 import { parseReply } from "../shared/replyProtocol.mjs";
 
 const preset = { id: "preset", note: "", key: "secret", voice_id: "voice", model: "", words: "" };
 const audioResponse = (seconds = 1) => new Response(mp3(seconds), { headers: { "content-type": "audio/mpeg" } });
+
+test("waveform measures all channels and lays unequal audio parts onto 38 time bins", () => {
+  const second = new Float32Array(114).fill(-0.75);
+  second[113] = 1.2;
+  const peaks = voicePeaks([
+    { duration: 1, channelData: [new Float32Array(38).fill(0.25), new Float32Array(38).fill(-0.5)] },
+    { duration: 3, channelData: [second] },
+  ]);
+  assert.equal(peaks.length, 38);
+  assert.deepEqual(peaks.slice(0, 9), Array(9).fill(0.5));
+  assert.deepEqual(peaks.slice(9, 37), Array(28).fill(0.75));
+  assert.equal(peaks[37], 1);
+});
 
 test("duration counts only Chinese, ellipses and tags; spoken tags stay intact while display removes them", () => {
   assert.equal(estimatedVoiceDuration("[breath warm, unsteady]你好嗎…… abc [sharp inhale, long trembling exhale]"), 5.9);
@@ -76,6 +90,7 @@ test("message/content cache shares concurrent generation and survives reload; fa
   assert.equal(calls, 2);
   assert.equal(first.parts!.length, 2);
   assert.equal(first.text, stripVoiceTags(text));
+  assert.deepEqual(first.peaks, Array(38).fill(0));
   assert.equal((await files.export(["c1"])).length, 2);
   assert.deepEqual(await new VoiceGeneration(files, root).chat("c1", "message", text, preset, signal), first);
   assert.equal(calls, 2);
