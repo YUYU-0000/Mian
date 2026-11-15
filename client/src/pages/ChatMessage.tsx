@@ -245,8 +245,10 @@ export function collectHistoricalAnimationIds(
   const ids = new Set<string>();
   for (const group of groups) {
     if (group.role === "user") {
-      for (const record of group.records)
+      for (const record of group.records) {
         ids.add(userAnimationId(record.messageId));
+        for (const file of record.files ?? []) ids.add(fileAnimationId(file.id));
+      }
       continue;
     }
     ids.add(replyHeaderAnimationId(group.replyGroupId));
@@ -321,12 +323,17 @@ export default memo(function ChatMessage({
           <div className="archive-msg-content">
             {message.records.map((record) => (
               <Fragment key={record.messageId}>
-                {record.files?.map((file) => (
+                {record.files?.map((file, index) => (
                   <FileTicket
                     key={file.id}
                     file={file}
                     conversationId={session.conversationId}
                     mine
+                    entryDelayMs={
+                      historicalAnimationIds.has(fileAnimationId(file.id))
+                        ? undefined
+                        : index * 80
+                    }
                   />
                 ))}
                 {record.text && (
@@ -378,6 +385,7 @@ export default memo(function ChatMessage({
                 const id = message.preToolBubbleIds[index];
                 const clip = message.voices?.[id] ?? (message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
                 return clip ? <VoiceTicket key={id} clip={clip}
+                  animate={!historicalAnimationIds.has(preToolAnimationId(id))}
                   fallback={message.status && !clip.url ? message.status === "interrupted" ? "stopped" : "failed" : undefined} /> : <ReplyMarkdown
                   key={message.preToolBubbleIds[index]}
                   bubble={{
@@ -434,6 +442,7 @@ export default memo(function ChatMessage({
                 const id = message.bubbleIds[index];
                 const clip = message.voices?.[id] ?? (message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
                 return clip ? <VoiceTicket key={id} clip={clip}
+                  animate={!historicalAnimationIds.has(bubbleAnimationId(id))}
                   fallback={message.status && !clip.url ? message.status === "interrupted" ? "stopped" : "failed" : undefined} /> : <ReplyMarkdown
                   key={message.bubbleIds[index]}
                   bubble={{

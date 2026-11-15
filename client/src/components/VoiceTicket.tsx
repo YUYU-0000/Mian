@@ -16,7 +16,7 @@ function durationLabel(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-export default function VoiceTicket({ clip, fallback }: { clip: VoiceClip; fallback?: "failed" | "stopped" }) {
+export default function VoiceTicket({ clip, fallback, animate = false }: { clip: VoiceClip; fallback?: "failed" | "stopped"; animate?: boolean }) {
   const player = useSyncExternalStore(voicePlayer.subscribe, voicePlayer.getSnapshot);
   const active = player.id === clip.url;
   const playing = active && player.playing;
@@ -48,7 +48,7 @@ export default function VoiceTicket({ clip, fallback }: { clip: VoiceClip; fallb
     onClick={event => { event.stopPropagation(); toggle(); }} />;
   return (
     <>
-      <AnimatedSwap value={fallback ? "text" : "ticket"} className="voice-reply">
+      <AnimatedSwap value={fallback ? "text" : "ticket"} className={`voice-reply${animate ? " archive-pop-in" : ""}`}>
         {displayed => displayed === "text"
           ? <div className={`archive-bubble${fallback === "stopped" ? " stopped" : ""}`}><AnimatedText text={transcript} /></div>
           : <div className="voice-ticket"><div className="ft" onClick={() => setViewing(true)}>

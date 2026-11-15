@@ -414,7 +414,8 @@
 .archive-tool-step.archive-pop-in {
   animation-duration: 0.3s;
 }
-.ft.archive-pop-in {
+.ft.archive-pop-in,
+.voice-reply.archive-pop-in {
   animation-fill-mode: both;
   transform-origin: left bottom;
 }
