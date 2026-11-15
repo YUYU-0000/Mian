@@ -1,13 +1,12 @@
 import { lazy, Suspense } from "react";
 import { stripProtocolMarkers } from "../../../shared/replyProtocol.mjs";
+import { cacheLazyImport } from "../lazyImport";
 import type { ReplyMarkdownProps } from "./ReplyMarkdown";
 
-let markdownModule: Promise<typeof import("./ReplyMarkdown")> | null = null;
-
 // 空闲预载、入口点击和实际渲染共用一次下载。
-export function preloadReplyMarkdown() {
-  return (markdownModule ??= import("./ReplyMarkdown"));
-}
+export const preloadReplyMarkdown = cacheLazyImport("reply-markdown", () =>
+  import("./ReplyMarkdown"),
+);
 
 const MarkdownContent = lazy(preloadReplyMarkdown);
 

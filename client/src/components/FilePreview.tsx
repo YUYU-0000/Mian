@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { api } from "../api";
 import { pad2 } from "../format";
 import { fileLanguage, fitPhoto, type PreviewKind } from "../filePreview";
+import { cacheLazyImport } from "../lazyImport";
 import type { ChatFile } from "../types";
 import { HTML_PREVIEW_SANDBOX } from "./HtmlPreview";
 import ReplyMarkdown from "./DeferredReplyMarkdown";
@@ -106,11 +107,13 @@ export default function FilePreview({
   }, [loaded, viewport.width, viewport.height]);
   const CodeHighlight = useMemo(
     () =>
-      lazy(async () => {
-        const module = await import("./CodeHighlight");
-        await module.loadFileLanguage(fileLanguage(file.name));
-        return module;
-      }),
+      lazy(
+        cacheLazyImport(`file-language:${fileLanguage(file.name)}`, async () => {
+          const module = await import("./CodeHighlight");
+          await module.loadFileLanguage(fileLanguage(file.name));
+          return module;
+        }),
+      ),
     [file.name],
   );
 

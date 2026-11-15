@@ -29,15 +29,20 @@ try {
   }, "browser startup");
   cdp = new WebSocket(targets.find((target) => target.type === "page").webSocketDebuggerUrl);
   await once(cdp, "open");
-  let id = 0;
-  const pending = new Map(), paused = new Map(), requested = [], errors = [];
+  let id = 0, navigations = 0;
+  const pending = new Map(), paused = new Map(), requested = [], errors = [], missingChunks = new Set();
   cdp.on("message", (raw) => {
     const message = JSON.parse(String(raw));
+    if (message.method === "Page.frameNavigated" && !message.params.frame.parentId) {
+      navigations++;
+      missingChunks.clear();
+    }
     if (message.method === "Runtime.exceptionThrown") errors.push(message.params.exceptionDetails.exception?.description);
     if (message.method === "Fetch.requestPaused") {
       const page = /\/(Chat|Clues|Connections|Settings)-[^/]+\.js$/.exec(message.params.request.url)[1];
       requested.push(page);
-      paused.set(page, message.params.requestId);
+      if (missingChunks.has(page)) void rejectChunkRequest(message.params.requestId);
+      else paused.set(page, message.params.requestId);
     }
     const task = pending.get(message.id);
     if (!task) return;
@@ -49,6 +54,12 @@ try {
     const next = ++id;
     pending.set(next, { resolve, reject });
     cdp.send(JSON.stringify({ id: next, method, params }));
+  });
+  const rejectChunkRequest = (requestId) => call("Fetch.fulfillRequest", {
+    requestId,
+    responseCode: 404,
+    responseHeaders: [{ name: "Content-Type", value: "text/plain" }],
+    body: Buffer.from("Old build chunk removed").toString("base64"),
   });
   const evaluate = async (expression) => {
     const result = await call("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
@@ -130,7 +141,57 @@ try {
     await release(page);
   }
   assert.deepEqual(errors, []);
-  console.log("PASS pointerdown preloads, delayed imports keep the current page visible, reduced motion, unchanged transition animations, and sequential idle preloading of all pages.");
+
+  const reloadMarker = () => evaluate("sessionStorage.getItem('mian.lazy-import-reload.v1')");
+  const preloadEntry = (selector) => evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerType:'touch',pointerId:1}))`);
+  const failChunk = async (page) => {
+    const requestId = paused.get(page);
+    paused.delete(page);
+    missingChunks.add(page);
+    await rejectChunkRequest(requestId);
+  };
+
+  await call("Page.navigate", { url: `${backend.base}/?missing-chunk` });
+  await waitFor(homeReady, "home before an old chunk fails");
+  const beforeFailure = navigations;
+  await preloadEntry(".dock-3");
+  await waitFor(() => paused.has("Clues"), "old clues chunk request");
+  await failChunk("Clues");
+  await waitFor(() => navigations === beforeFailure + 1, "first failed import reloads the page");
+  await waitFor(homeReady, "home after automatic reload");
+  assert.equal(await reloadMarker(), "clues", "Vite event and import catch share one reload");
+
+  await evaluate("runIdle()");
+  await waitFor(() => paused.has("Chat"), "unrelated chat preload after reload");
+  await release("Chat");
+  await waitFor(() => paused.has("Clues"), "retry the failed clues preload");
+  assert.equal(await reloadMarker(), "clues", "other modules cannot clear the failed module's marker");
+  await failChunk("Clues");
+  await sleep(500);
+  assert.equal(navigations, beforeFailure + 1, "repeated chunk failure does not reload again");
+  assert.equal(await reloadMarker(), "clues");
+
+  await call("Page.reload");
+  await waitFor(() => navigations === beforeFailure + 2, "manual reload after restoring the chunk");
+  await waitFor(homeReady, "home with available chunks");
+  await preloadEntry(".dock-3");
+  await waitFor(() => paused.has("Clues"), "restored clues chunk");
+  await release("Clues");
+  await waitFor(async () => await reloadMarker() === null, "successful import clears the marker");
+
+  await evaluate("window.dispatchEvent(new Event('vite:preloadError'))");
+  await waitFor(() => navigations === beforeFailure + 3, "standalone Vite preload error reloads once");
+  await waitFor(homeReady, "home after Vite recovery");
+  assert.equal(await reloadMarker(), "vite:preloadError");
+  await evaluate("window.dispatchEvent(new Event('vite:preloadError'))");
+  await sleep(300);
+  assert.equal(navigations, beforeFailure + 3);
+  await preloadEntry(".dock-2");
+  await waitFor(() => paused.has("Settings"), "successful preload after Vite recovery");
+  await release("Settings");
+  await waitFor(async () => await reloadMarker() === null, "successful import clears the Vite marker");
+
+  console.log("PASS pointerdown and idle preloads, delayed navigation without blanks, unchanged animations, missing chunks reload once, repeated failures stop, success clears the marker, and vite:preloadError recovery.");
 } finally {
   const exited = once(browser, "exit");
   if (call) await call("Browser.close");

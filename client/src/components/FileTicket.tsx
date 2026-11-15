@@ -1,10 +1,13 @@
 import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { previewKind } from "../filePreview";
+import { cacheLazyImport } from "../lazyImport";
 import type { ChatFile } from "../types";
 import ScrollText from "./ScrollText";
 
-const FilePreview = lazy(() => import("./FilePreview"));
+const FilePreview = lazy(
+  cacheLazyImport("file-preview", () => import("./FilePreview")),
+);
 
 function fileSize(size: number) {
   if (size < 1024) return { value: String(size), unit: "B" };
