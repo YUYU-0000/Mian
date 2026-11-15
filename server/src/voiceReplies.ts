@@ -1,7 +1,6 @@
 import { parseReply } from "../../shared/replyProtocol.mjs";
 import type { ChatEvent, ReplyFormat } from "../../shared/types.mjs";
-import { ChatFiles } from "./chatFiles.js";
-import { synthesizeVoice } from "./elevenLabs.js";
+import { VoiceGeneration } from "./voiceGeneration.js";
 import { activeVoicePreset } from "./voicePresets.js";
 
 type VoiceTurn = {
@@ -16,7 +15,7 @@ type VoiceTurn = {
 // 两条通道都在完成事件前生成语音，消息只带文件地址与台词。
 export class VoiceReplies {
   private turns = new Map<string, VoiceTurn>();
-  constructor(private files: ChatFiles, private publish: (event: ChatEvent) => void) {}
+  constructor(private generation: VoiceGeneration, private publish: (event: ChatEvent) => void) {}
 
   getActiveTurns() {
     return Object.fromEntries([...this.turns.values()].map(turn => [turn.conversationId, turn.turnId]));
@@ -39,6 +38,7 @@ export class VoiceReplies {
       return;
     }
     if (event.type === "turn-started") {
+      if (this.turns.has(event.turnId)) return;
       this.turns.set(event.turnId, {
         conversationId: event.conversationId!, turnId: event.turnId,
         raw: "", format: event.format, controller: new AbortController(),
@@ -50,6 +50,7 @@ export class VoiceReplies {
       turn.format = event.format ?? turn.format;
     }
     if (event.type === "turn-completed" && turn) {
+      if (turn.finishing) return;
       const voices = parseReply(turn.raw, turn.format, true).voices?.filter(voice => voice.complete) ?? [];
       if (voices.length && ["completed", "success"].includes(event.status)) {
         turn.finishing = (async () => {
@@ -57,14 +58,12 @@ export class VoiceReplies {
           for (const voice of voices) {
             if (turn.controller.signal.aborted) break;
             try {
-              const audio = await synthesizeVoice(preset, voice.text, turn.controller.signal);
-              turn.controller.signal.throwIfAborted();
-              const file = await this.files.save(turn.conversationId, "voice.mp3", audio, "audio/mpeg", turn.turnId);
+              const bubbleId = `${turn.turnId}:${voice.section}:${voice.index}`;
+              const clip = await this.generation.chat(turn.conversationId, turn.turnId, voice.text, preset, turn.controller.signal);
               turn.controller.signal.throwIfAborted();
               this.publish({
                 type: "voice", conversationId: turn.conversationId, turnId: turn.turnId,
-                bubbleId: `${turn.turnId}:${voice.section}:${voice.index}`,
-                clip: { url: `/api/conversations/${turn.conversationId}/files/${file.id}?inline=1`, text: voice.text },
+                bubbleId, clip,
               });
             } catch {
               // 没有音频事件的台词在完成后直接作为普通气泡显示。

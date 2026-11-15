@@ -242,8 +242,8 @@ export function settingsRoutes(
         const existingVoices = await readVoicePresets();
         await writeVoicePresets({
           activeId: backup.voices.activeId,
-          presets: backup.voices.presets.map(({ id, note, voice_id, model, words }) => ({
-            id, note, voice_id, model, words,
+          presets: backup.voices.presets.map(({ id, note, voice_id, voice_name, model, words }) => ({
+            id, note, voice_id, voice_name, model, words,
             key: existingVoices.presets.find(saved => saved.id === id)?.key ?? "",
           })),
         });

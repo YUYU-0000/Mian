@@ -2,9 +2,10 @@ import { Router } from "express";
 import {
   publicVoicePresets, readVoicePresets, resolveVoicePreset, writeVoicePresets,
 } from "./voicePresets.js";
-import { synthesizeVoice } from "./elevenLabs.js";
+import { voiceList, voiceModels } from "./elevenLabs.js";
+import type { VoiceGeneration } from "./voiceGeneration.js";
 
-export function voiceRoutes() {
+export function voiceRoutes(generation: VoiceGeneration) {
   const router = Router();
   router.get("/voice-presets", async (_request, response) => {
     response.json(publicVoicePresets(await readVoicePresets()));
@@ -40,8 +41,17 @@ export function voiceRoutes() {
     const controller = new AbortController();
     response.on("close", () => controller.abort());
     const preset = await resolveVoicePreset(request.body);
-    const audio = await synthesizeVoice(preset, preset.words.trim() || "陪你等天亮。", controller.signal);
-    response.type("audio/mpeg").send(audio);
+    const clip = await generation.preview(request.body.requestId ?? preset.id, preset, preset.words.trim() || "陪你等天亮。", controller.signal);
+    response.json(clip);
+  });
+  router.get("/voice-audio/:name", (request, response) => {
+    response.type("audio/mpeg").sendFile(generation.previewPath(request.params.name), { dotfiles: "allow" });
+  });
+  router.post("/voice-models", async (request, response) => {
+    response.json(await voiceModels((await resolveVoicePreset(request.body)).key));
+  });
+  router.post("/voice-list", async (request, response) => {
+    response.json(await voiceList((await resolveVoicePreset(request.body)).key));
   });
   router.use((error: Error, _request: import("express").Request, response: import("express").Response, _next: import("express").NextFunction) => {
     response.status(400).json({ error: error.message });

@@ -12,7 +12,7 @@ import type { Draft } from "../apiDrafts";
 import AnimatedText from "../components/AnimatedText";
 import ScrollText, { ScrollInput } from "../components/ScrollText";
 import { notify } from "../components/Notify";
-import type { TagConfig } from "./ConnectionLayout";
+import type { TagConfig } from "../components/ChoiceTag";
 
 function apiAccent(i: number, count: number) {
   const t = count === 1 ? 0 : i / (count - 1);

@@ -1,25 +1,29 @@
-import { useRef, useState } from "react";
-import type { VoiceClip } from "../../../shared/voice.mjs";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { stripVoiceTags, type VoiceClip } from "../../../shared/voice.mjs";
+import { voicePlayer } from "../voicePlayer";
 import { notify } from "./Notify";
 import "./voice-ticket.css";
 
 export default function VoiceTicket({ clip }: { clip: VoiceClip }) {
-  const audio = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [duration, setDuration] = useState<number | null>(null);
+  const player = useSyncExternalStore(voicePlayer.subscribe, voicePlayer.getSnapshot);
+  const playing = player.id === clip.url && player.playing;
+  const [knownDuration, setKnownDuration] = useState<number | null>(null);
+  const duration = clip.duration ?? knownDuration;
+  useEffect(() => {
+    if (player.id === clip.url && player.duration !== null) setKnownDuration(player.duration);
+  }, [player, clip.url]);
+  useEffect(() => () => voicePlayer.stop(clip.url), [clip.url]);
   const toggle = async () => {
-    if (!audio.current!.paused) {
-      audio.current!.pause();
+    if (player.id === clip.url) {
+      if (playing) voicePlayer.pause();
+      else voicePlayer.resume();
       return;
     }
-    try { await audio.current!.play(); }
-    catch (error) { notify.fail("播放失敗", error); }
+    try { await voicePlayer.play(clip.url, async () => clip); }
+    catch (error) { if ((error as Error).name !== "AbortError") notify.fail("播放失敗", error); }
   };
   return (
     <div className="voice-ticket">
-      <audio ref={audio} src={clip.url || undefined} preload="metadata"
-        onLoadedMetadata={event => setDuration(event.currentTarget.duration)}
-        onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
       <div className="ft">
         <div className="ft-body" />
         <div className="ft-main">
@@ -35,7 +39,7 @@ export default function VoiceTicket({ clip }: { clip: VoiceClip }) {
       </div>
       <details>
         <summary>台詞</summary>
-        <div className="archive-bubble">{clip.text}</div>
+        <div className="archive-bubble">{stripVoiceTags(clip.text)}</div>
       </details>
     </div>
   );

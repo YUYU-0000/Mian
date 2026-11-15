@@ -6,6 +6,7 @@ import { useSettingsPaperStack } from "../components/useSettingsPaperStack";
 import SettingsLayout from "./SettingsLayout";
 import FontPage from "./SettingsFont";
 import VoicePage from "./SettingsVoice";
+import ChoiceTag, { type TagConfig } from "../components/ChoiceTag";
 import SettingsAvatar from "./SettingsAvatar";
 import { createId } from "../id";
 import { applyBubbleFont, parseFontFace } from "../bubbleFont";
@@ -29,6 +30,8 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   const fontWrites = useRef<Promise<unknown>>(Promise.resolve());
   const voiceWrites = useRef<Promise<unknown>>(Promise.resolve());
   const voiceSelection = useRef("");
+  const [tag, setTag] = useState<TagConfig | null>(null);
+  const [tagVisible, setTagVisible] = useState(false);
   const font = useSettingsPaperStack(fontPages.length, active === 1);
   const voice = useSettingsPaperStack(Math.max(1, voicePages.length), active === 3);
   const avatars = useSettingsPaperStack(2, active === 2);
@@ -62,6 +65,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     return saved.presets.find((item) => item.id === preset.id)!;
   };
   const close = () => {
+    setTagVisible(false);
     storage.current!.classList.remove("lit");
     setActive(null);
     setPendingImport(null);
@@ -76,7 +80,11 @@ export default function Settings({ onBack }: { onBack: () => void }) {
       voiceSelection.current = saved.activeId;
       voice.show(saved.presets.findIndex(preset => preset.id === saved.activeId));
       setVoices(saved);
-    }).catch(error => notify.fail("語音讀取失敗", error));
+    }).catch(error => {
+      voiceSelection.current = defaultVoicePreset.id;
+      setVoices({ presets: [{ ...defaultVoicePreset }], activeId: defaultVoicePreset.id });
+      notify.fail("語音讀取失敗", error);
+    });
     const saved = JSON.parse(
       localStorage.getItem("launcher_settings") || "null",
     );
@@ -144,6 +152,8 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   };
   return (
     <SettingsLayout
+      overlay={<ChoiceTag tag={tag} tagVisible={tagVisible} onTagClose={() => setTagVisible(false)}
+        anchor={() => voice.track.current!.querySelector<HTMLElement>(".vc-page.current")!} />}
       rootRef={root}
       active={active}
       onBack={onBack}
@@ -233,6 +243,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
               <VoicePage
                 key={preset.id}
                 preset={preset}
+                onTag={value => { setTag(value); setTagVisible(true); }}
                 index={index}
                 total={voicePages.length}
                 current={active === 3 && index === voice.index}

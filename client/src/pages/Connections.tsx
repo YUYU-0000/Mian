@@ -8,7 +8,8 @@ import type { Provider } from "../connectionTypes";
 import type { Channel } from "../types";
 import { notify } from "../components/Notify";
 import { makeStack, type PaperStack } from "../components/paperStack";
-import ConnectionLayout, { type TagConfig } from "./ConnectionLayout";
+import ConnectionLayout from "./ConnectionLayout";
+import type { TagConfig } from "../components/ChoiceTag";
 import ConnectionSheet from "./ConnectionSheet";
 import {
   blankDraft,
@@ -68,8 +69,9 @@ export default function Connections({
   }, [channel]);
   const [focus, setFocus] = useState(0);
   const [revision, setRevision] = useState(0);
-  const [tag, setTag] = useState<TagConfig | null>(null);
+  const [tag, updateTag] = useState<TagConfig | null>(null);
   const [tagVisible, setTagVisible] = useState(false);
+  const setTag = (value: TagConfig) => { updateTag(value); setTagVisible(true); };
   const currentOpen = useRef(open);
   currentOpen.current = open;
   const patchSub = (id: Provider, patch: Partial<SubscriptionState>) =>
@@ -178,55 +180,6 @@ export default function Connections({
     setOpen(null);
     root.current!.style.removeProperty("--scale");
   }
-  const updateFade = () => {
-    const list = root.current!.querySelector<HTMLElement>("#tagList")!;
-    list.classList.toggle(
-      "is-overflow",
-      list.scrollTop + list.clientHeight < list.scrollHeight - 1,
-    );
-  };
-  const fitRoof = () => {
-    const line = root.current!.querySelector<SVGTextElement>("#tagRoofLine")!;
-    const room =
-      root
-        .current!.querySelector<SVGPathElement>("#roofLine")!
-        .getTotalLength() - 14;
-    let size = 6.2;
-    line.setAttribute("font-size", String(size));
-    while (line.getComputedTextLength() > room && size > 4) {
-      size -= 0.2;
-      line.setAttribute("font-size", size.toFixed(1));
-    }
-  };
-  useEffect(() => {
-    let mounted = true;
-    void document.fonts.ready.then(() => {
-      if (mounted) fitRoof();
-    });
-    document.fonts.addEventListener("loadingdone", fitRoof);
-    return () => {
-      mounted = false;
-      document.fonts.removeEventListener("loadingdone", fitRoof);
-    };
-  }, []);
-  useLayoutEffect(() => {
-    if (!tag) return;
-    fitRoof();
-    root.current!.querySelector("#tagList")!.scrollTop = 0;
-    updateFade();
-    const rect = (open === "sub" ? subStack.current! : apiStack.current!)
-      .current()
-      .getBoundingClientRect();
-    const cardH =
-      root.current!.querySelector<HTMLElement>(".tag-card")!.offsetHeight;
-    root
-      .current!.querySelector<HTMLElement>("#hangTag")!
-      .style.setProperty(
-        "--tag-string",
-        Math.max(20, rect.top + rect.height / 2 - cardH / 2 + 16) + "px",
-      );
-    setTagVisible(true);
-  }, [tag]);
   const account = async (id: Provider) => {
     const state = subscriptions[id];
     if (!state.loggedIn) {
@@ -340,7 +293,7 @@ export default function Connections({
       tag={tag}
       tagVisible={tagVisible}
       onTagClose={() => setTagVisible(false)}
-      onTagScroll={updateFade}
+      tagAnchor={() => (open === "sub" ? subStack.current! : apiStack.current!).current()}
       subPages={providers.map((provider, index) => (
         <SubscriptionSheet
           key={provider.id}

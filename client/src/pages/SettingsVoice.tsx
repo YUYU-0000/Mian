@@ -4,6 +4,7 @@ import { api } from "../api";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
 import type { VoicePreset } from "../../../shared/voice.mjs";
+import type { TagConfig } from "../components/ChoiceTag";
 
 export default function VoicePage({
   preset,
@@ -13,6 +14,7 @@ export default function VoicePage({
   onAdd,
   onDelete,
   onSave,
+  onTag,
 }: {
   preset: VoicePreset;
   index: number;
@@ -21,6 +23,7 @@ export default function VoicePage({
   onAdd: () => void;
   onDelete: () => void;
   onSave: (preset: VoicePreset) => Promise<VoicePreset>;
+  onTag: (tag: TagConfig) => void;
 }) {
   const ringId = useId();
   const [draft, setDraft] = useState(preset);
@@ -28,13 +31,44 @@ export default function VoicePage({
   const [auditioning, setAuditioning] = useState(false);
   const [playing, setPlaying] = useState(false);
   const playback = useRef<AbortController | null>(null);
-  const save = () => {
-    const sent = draft;
+  const [manual, setManual] = useState({ voice_id: false, model: false });
+  const [loading, setLoading] = useState<"voice_id" | "model" | null>(null);
+  const persist = (sent: VoicePreset) => {
     void onSave(sent).then(saved => setDraft(value => ({
       ...value,
       hasKey: saved.hasKey,
       key: value.key === sent.key ? "" : value.key,
     }))).catch(error => notify.fail("保存失敗", error));
+  };
+  const save = () => persist(draft);
+  const choose = async (field: "voice_id" | "model") => {
+    if (!draft.key?.trim() && !draft.hasKey) {
+      notify.note("先把鑰匙給我");
+      return;
+    }
+    setLoading(field);
+    try {
+      const options = field === "model" ? await api.voiceModels(draft) : await api.voiceList(draft);
+      if (!options.length) {
+        setManual(value => ({ ...value, [field]: true }));
+        return;
+      }
+      onTag({
+        giant: field === "model" ? "MODEL" : "VOICE", kicker: "SELECT",
+        title: field === "model" ? "模型" : "聲音",
+        items: options.map(option => ({ label: field === "model" ? option.id : option.name, value: option.id,
+          selected: option.id === (draft[field] || (field === "model" ? "eleven_v4" : "")) })),
+        onPick: value => {
+          const next = { ...draft, [field]: value,
+            ...(field === "voice_id" ? { voice_name: options.find(option => option.id === value)!.name } : {}) };
+          setDraft(next);
+          persist(next);
+        },
+      });
+    } catch (error) {
+      setManual(value => ({ ...value, [field]: true }));
+      notify.fail(field === "model" ? "模型讀取失敗" : "聲音讀取失敗", error);
+    } finally { setLoading(null); }
   };
   const stop = () => {
     playback.current?.abort();
@@ -63,7 +97,7 @@ export default function VoicePage({
     try {
       await api.testVoice(draft, controller.signal, () => setPlaying(true));
     } catch (error) {
-      if (!controller.signal.aborted) notify.fail("試聽失敗", error);
+      if (!controller.signal.aborted && (error as Error).name !== "AbortError") notify.fail("試聽失敗", error);
     } finally {
       if (playback.current === controller) stop();
     }
@@ -124,7 +158,7 @@ export default function VoicePage({
             </defs>
             <text>
               <textPath href={`#${ringId}`} className="vc-ring-id">
-                聲線 = {draft.voice_id.trim() || "9vQe2LkTm4RzWp8NcYdA"}
+                聲線 = {draft.voice_name || draft.voice_id.trim() || "9vQe2LkTm4RzWp8NcYdA"}
               </textPath>
             </text>
           </svg>
@@ -185,7 +219,7 @@ export default function VoicePage({
             <ScrollInput
               type="password"
               className="api-field-input vc-key"
-              placeholder={draft.hasKey ? "••••••••••••" : "sk_4f2a9c71e8b05d3a6f91c8"}
+              placeholder={draft.hasKey ? "••••••••••••" : "sk_"}
               autoComplete="off"
               spellCheck={false}
               value={draft.key ?? ""}
@@ -198,11 +232,13 @@ export default function VoicePage({
             <ScrollInput
               type="text"
               className="api-field-input vc-id"
-              placeholder="9vQe2LkTm4RzWp8NcYdA"
+              placeholder={manual.voice_id ? "那你寫給我" : "選一個給我"}
+              readOnly={!manual.voice_id}
+              onClick={() => { if (!manual.voice_id && !loading) void choose("voice_id"); }}
               spellCheck={false}
-              value={draft.voice_id}
+              value={loading === "voice_id" ? "等我一下" : manual.voice_id ? draft.voice_id : draft.voice_name || draft.voice_id}
               onBlur={save}
-              onChange={(e) => setDraft({ ...draft, voice_id: e.target.value })}
+              onChange={(e) => setDraft({ ...draft, voice_id: e.target.value, voice_name: "" })}
             />
           </div>
           <div className="api-field-row">
@@ -210,9 +246,11 @@ export default function VoicePage({
             <ScrollInput
               type="text"
               className="api-field-input vc-model"
-              placeholder="eleven_v4"
+              placeholder={manual.model ? "那你寫給我" : "選一個給我"}
+              readOnly={!manual.model}
+              onClick={() => { if (!manual.model && !loading) void choose("model"); }}
               spellCheck={false}
-              value={draft.model}
+              value={loading === "model" ? "等我一下" : draft.model}
               onBlur={save}
               onChange={(e) => setDraft({ ...draft, model: e.target.value })}
             />
