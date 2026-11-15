@@ -201,7 +201,7 @@ try {
   await evaluate("document.activeElement.blur(); document.querySelector('.api-sheet .js-model').click()");
   await waitFor(() => evaluate("document.querySelector('.tag-option .scroll-text')?.classList.contains('is-overflowing')"), "Long tag option did not become scrollable");
   await swipeText(".tag-option .scroll-text");
-  assert.equal(await evaluate("document.querySelector('#hangTag').classList.contains('is-visible')"), true);
+  assert.equal(await evaluate("document.querySelector('.choice-tag .hang-tag').classList.contains('is-visible')"), true);
   await evaluate("document.querySelector('.tag-option').click()");
   modelsAvailable = false;
   await evaluate("document.querySelector('.api-sheet .js-model').click()");
@@ -233,7 +233,10 @@ try {
   assert.equal(JSON.parse(cached).length, 2);
   assert.doesNotMatch(cached, /key-only-in-memory|"key"/);
   await call("Page.reload");
-  await waitFor(() => evaluate(`document.querySelector('#apiStack')?.classList.contains('is-visible') && document.querySelector('${currentPaper} .js-note')?.value === '未保存的新纸'`), "Reload did not reopen the original draft paper");
+  await waitFor(() => evaluate("!!document.querySelector('#apiTie')"), "Connections did not reload");
+  assert.equal(await evaluate("!!document.querySelector('.stack.is-visible')"), false);
+  await evaluate("document.querySelector('#apiTie').click()");
+  await waitFor(() => evaluate(`document.querySelector('${currentPaper} .js-note')?.value === '未保存的新纸'`), "Opening API did not restore the draft paper");
   assert.equal(await evaluate(`document.querySelector('${currentPaper}').dataset.i`), "1");
   assert.equal(await evaluate(`document.querySelector('${currentPaper} .js-endpoint').value`), "https://draft.test/relay");
   assert.equal(await evaluate(`document.querySelector('${currentPaper} .js-key').value`), "");

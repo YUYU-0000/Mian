@@ -13,7 +13,6 @@ import type { TagConfig } from "../components/ChoiceTag";
 import ConnectionSheet from "./ConnectionSheet";
 import {
   blankDraft,
-  readApiDrafts,
   rememberApiPaper,
   removeApiDraft,
   restoreApiDrafts,
@@ -71,7 +70,15 @@ export default function Connections({
   const [revision, setRevision] = useState(0);
   const [tag, updateTag] = useState<TagConfig | null>(null);
   const [tagVisible, setTagVisible] = useState(false);
-  const setTag = (value: TagConfig) => { updateTag(value); setTagVisible(true); };
+  const tagSession = useRef(0);
+  const modelRequest = useRef(0);
+  const modelSave = useRef(Promise.resolve());
+  const modelSelection = useRef(0);
+  const setTag = (value: TagConfig, session = tagSession.current) => {
+    if (session !== tagSession.current || !currentOpen.current) return;
+    updateTag(value);
+    setTagVisible(true);
+  };
   const currentOpen = useRef(open);
   currentOpen.current = open;
   const patchSub = (id: Provider, patch: Partial<SubscriptionState>) =>
@@ -93,17 +100,22 @@ export default function Connections({
     if (open !== "sub") return;
     const id = providers[subIndex].id;
     if (id !== "codex" && subscriptions[id].loaded) return;
-    patchSub(id, { loaded: true });
-    void api
-      .subStatus(id)
+    let active = true;
+    const selection = modelSelection.current;
+    void modelSave.current
+      .then(() => api.subStatus(id))
       .then((status) => {
-        patchSub(id, status);
+        if (!active) return;
+        const { model, ...account } = status;
+        patchSub(id, { ...account, loaded: true, ...(selection === modelSelection.current ? { model } : {}) });
         if (status.loggedIn) void loadQuota(id);
       })
       .catch((error) => {
+        if (!active) return;
         patchSub(id, { loaded: false });
         notify.fail("狀態讀取失敗", error);
       });
+    return () => { active = false; };
   }, [open, subIndex]);
   useLayoutEffect(() => {
     subStack.current = makeStack(subTrack.current!, setSubIndex);
@@ -125,12 +137,6 @@ export default function Connections({
     if (open === "sub") subStack.current!.update();
   }, [open]);
   useEffect(() => {
-    if (readApiDrafts(sessionStorage).length) {
-      setSelected("api");
-      openStack("api");
-    }
-  }, []);
-  useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (
         !currentOpen.current ||
@@ -150,6 +156,7 @@ export default function Connections({
     };
   }, []);
   const openStack = (which: "sub" | "api") => {
+    tagSession.current++;
     root.current!.style.setProperty(
       "--scale",
       getComputedStyle(root.current!).getPropertyValue("--scale").trim(),
@@ -174,6 +181,7 @@ export default function Connections({
         .catch((error) => notify.fail("預設讀取失敗", error));
   };
   function closeAll() {
+    tagSession.current++;
     setTagVisible(false);
     (document.activeElement as HTMLElement)?.blur();
     document.body.style.overflow = "";
@@ -216,8 +224,11 @@ export default function Connections({
     });
   };
   const subModels = async (id: Provider) => {
+    const session = tagSession.current;
+    const request = ++modelRequest.current;
     try {
       const list = await api.subModels(id);
+      if (request !== modelRequest.current || providers[subStack.current!.index].id !== id) return;
       setTag({
         giant: "MODEL",
         kicker: "SELECT",
@@ -228,15 +239,16 @@ export default function Connections({
           selected: m === subscriptions[id].model,
         })),
         onPick: (model) => {
-          void api
-            .saveSubConfig(id, { model })
+          modelSelection.current++;
+          modelSave.current = modelSave.current
+            .then(() => api.saveSubConfig(id, { model }))
             .then(() => {
               patchSub(id, { model });
               notify.ok("已保存");
             })
-            .catch((error) => notify.fail("保存失敗", error));
+            .catch((error) => { notify.fail("保存失敗", error); });
         },
-      });
+      }, session);
     } catch (error) {
       notify.fail("模型讀取失敗", error);
     }
@@ -251,6 +263,7 @@ export default function Connections({
       .catch((error) => notify.fail("切換失敗", error));
   };
   const editWorkspace = async () => {
+    const session = tagSession.current;
     try {
       const config = await api.getConfig();
       setTag({
@@ -270,7 +283,7 @@ export default function Connections({
             }
           },
         },
-      });
+      }, session);
     } catch (error) {
       notify.fail("目錄讀取失敗", error);
     }
@@ -315,7 +328,10 @@ export default function Connections({
           index={index}
           total={presets.length + 1}
           activeId={activeId}
-          onTag={setTag}
+          getTagSession={() => tagSession.current}
+          onTag={(value, session) => {
+            if (apiStack.current!.current()?.dataset.i === String(index)) setTag(value, session);
+          }}
           onChange={(patch) => {
             saveApiDraft(sessionStorage, { ...draft, ...patch });
             if (draft.plus) setPlus((current) => ({ ...current, ...patch }));

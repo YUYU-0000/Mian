@@ -30,6 +30,7 @@ export default function ConnectionSheet({
   onDeleteStart,
   onDelete,
   onTag,
+  getTagSession,
 }: {
   draft: Draft;
   index: number;
@@ -41,7 +42,8 @@ export default function ConnectionSheet({
   onUse: () => void;
   onDeleteStart: () => void;
   onDelete: () => void;
-  onTag: (tag: TagConfig) => void;
+  onTag: (tag: TagConfig, session: number) => void;
+  getTagSession: () => number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [showKey, setShowKey] = useState(false);
@@ -50,6 +52,7 @@ export default function ConnectionSheet({
   const [loadingModels, setLoadingModels] = useState(false);
   const [manualModel, setManualModel] = useState(false);
   const timer = useRef(0);
+  const modelRequest = useRef(0);
   const wasPlus = useRef(draft.plus);
   useEffect(() => () => window.clearTimeout(timer.current), []);
   useLayoutEffect(() => {
@@ -80,6 +83,8 @@ export default function ConnectionSheet({
         ? "IN USE"
         : "STANDBY";
   const model = async () => {
+    const session = getTagSession();
+    const request = ++modelRequest.current;
     const cfg = form();
     if (!cfg.endpoint || (!cfg.key && !draft.hasKey)) {
       notify.note("先填網址金鑰");
@@ -88,6 +93,7 @@ export default function ConnectionSheet({
     setLoadingModels(true);
     try {
       const list = await api.apiModels(cfg);
+      if (request !== modelRequest.current || session !== getTagSession()) return;
       if (!list.length) {
         setManualModel(true);
         return;
@@ -102,12 +108,13 @@ export default function ConnectionSheet({
           selected: m === cfg.model,
         })),
         onPick: (value) => onChange({ model: value }),
-      });
+      }, session);
     } catch (error) {
+      if (request !== modelRequest.current || session !== getTagSession()) return;
       setManualModel(true);
       notify.fail("模型讀取失敗", error);
     } finally {
-      setLoadingModels(false);
+      if (request === modelRequest.current) setLoadingModels(false);
     }
   };
   const save = async () => {

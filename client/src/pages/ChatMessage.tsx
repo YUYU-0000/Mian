@@ -383,6 +383,10 @@ export default memo(function ChatMessage({
               .slice(0, visual?.visiblePreToolBubbleCount ?? 0)
               .map((bubble, index) => {
                 const id = message.preToolBubbleIds[index];
+                const file = message.files?.find(file => file.replyBubbleId === id);
+                if (file) return <FileTicket key={id} file={file} conversationId={session.conversationId}
+                  entryDelayMs={historicalAnimationIds.has(preToolAnimationId(id)) ? undefined : 0} />;
+                if (message.fileBubbleIds?.includes(id)) return null;
                 const clip = message.voices?.[id] ?? (message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
                 return clip ? <VoiceTicket key={id} clip={clip}
                   animate={!historicalAnimationIds.has(preToolAnimationId(id))}
@@ -440,6 +444,10 @@ export default memo(function ChatMessage({
               .slice(0, visual?.visibleBubbleCount ?? 0)
               .map((bubble, index) => {
                 const id = message.bubbleIds[index];
+                const file = message.files?.find(file => file.replyBubbleId === id);
+                if (file) return <FileTicket key={id} file={file} conversationId={session.conversationId}
+                  entryDelayMs={historicalAnimationIds.has(bubbleAnimationId(id)) ? undefined : 0} />;
+                if (message.fileBubbleIds?.includes(id)) return null;
                 const clip = message.voices?.[id] ?? (message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
                 return clip ? <VoiceTicket key={id} clip={clip}
                   animate={!historicalAnimationIds.has(bubbleAnimationId(id))}
@@ -459,7 +467,7 @@ export default memo(function ChatMessage({
               })}
             {message.status &&
               activeTurnId !== message.replyGroupId &&
-              message.files?.map((file, index) => (
+              message.files?.filter(file => !file.replyBubbleId).map((file, index) => (
                 <FileTicket
                   key={file.id}
                   file={file}

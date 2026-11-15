@@ -9,7 +9,7 @@ export function chatHistory(groups) {
             continue;
         const content = group.role === "user"
             ? group.records.map((record) => record.text).join("\n\n")
-            : [...group.preToolBubbles, ...group.bubbles].join("\n\n");
+            : replyHistoryContent(group);
         const files = group.role === "user"
             ? group.records.flatMap((record) => record.files ?? [])
             : [];
@@ -22,6 +22,16 @@ export function chatHistory(groups) {
         });
     }
     return messages;
+}
+function replyHistoryContent(group) {
+    const files = group.fileBubbleIds?.length ? parseReply(group.raw, group.format, true).files ?? [] : [];
+    return [
+        ...group.preToolBubbles.map((text, index) => ({ text, section: "pre-tool", index })),
+        ...group.bubbles.map((text, index) => ({ text, section: "bubble", index })),
+    ].map(({ text, section, index }) => {
+        const file = files.find(file => file.section === section && file.index === index && file.complete);
+        return file ? `文件：${file.name}\n${file.content}` : text;
+    }).join("\n\n");
 }
 export function isThinkingRunning(reply) {
     return (Array.isArray(reply.activeReasoningItemIds) &&
@@ -153,6 +163,7 @@ export function applyReplyEvent(groups, event, time) {
             bubbleIds: alignIds(group.bubbleIds, parsed.bubbles.length, `${event.turnId}:bubble`),
             bubbleComplete: parsed.bubbleComplete,
             ...(parsed.voices ? { voiceBubbleIds: parsed.voices.map(voice => `${event.turnId}:${voice.section}:${voice.index}`) } : {}),
+            ...(parsed.files ? { fileBubbleIds: parsed.files.map(file => `${event.turnId}:${file.section}:${file.index}`) } : {}),
             tools: group.tools.map((tool, toolIndex) => ({
                 ...tool,
                 summary: parsed.toolSummaries[toolIndex] || tool.summary,
@@ -216,6 +227,7 @@ export function applyReplyEvent(groups, event, time) {
                 summary: parsed.toolSummaries[toolIndex] || tool.summary,
             })),
             status: event.status,
+            ...(parsed.files ? { fileBubbleIds: parsed.files.map(file => `${event.turnId}:${file.section}:${file.index}`) } : {}),
             ...(needsCompatibilityBridge
                 ? {
                     preToolBubbles: ["我先确认一下。"],
