@@ -314,6 +314,11 @@ export const api = {
     if (!response.ok) await readResponse(response);
     return response.text();
   },
+  fileCreatedAt: async (url: string, signal: AbortSignal) => {
+    const response = await fetch(url, { method: "HEAD", signal });
+    if (!response.ok) await readResponse(response);
+    return response.headers.get("X-File-Created-At")!;
+  },
   uploadFile: (
     conversationId: string,
     file: File,

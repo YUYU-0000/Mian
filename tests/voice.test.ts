@@ -122,6 +122,7 @@ for (const channel of ["api", "codex"])
       assert.equal(JSON.stringify(exported).includes(preset.key), false);
       assert.equal(exported.voices!.activeId, preset.id);
       const audioFile = exported.files!.find(item => item.file.mimeType === "audio/mpeg")!;
+      assert.equal((await request(clip.url, "HEAD")).headers.get("X-File-Created-At"), audioFile.file.createdAt);
       assert.deepEqual(Buffer.from(audioFile.content, "base64"), mp3());
       await writeFile(path.join(server.directory, "server/data/files/c1", audioFile.file.id, "content"), "replace-me");
       assert.equal((await request("/api/backup", "POST", exported)).status, 200);
