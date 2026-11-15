@@ -13,18 +13,24 @@ export const imageBytes = Buffer.from(
 );
 
 // 真实本地后端配合假的服务商和 Codex，不发付费请求。
-export async function fileTicketServer() {
+export async function fileTicketServer({ selection = "", selectionFails = false } = {}) {
   const repository = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-file-tickets-"));
   const workspace = path.join(directory, "workspace");
   const received = [];
   const prompts = [];
   const systemPrompts = [];
+  const selections = [];
   const provider = createServer(async (request, response) => {
     let body = "";
     for await (const chunk of request) body += chunk;
     const input = JSON.parse(body);
     received.push(input);
+    if (input.max_tokens === 256) {
+      response.writeHead(selectionFails ? 500 : 200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(selectionFails ? { error: { message: "selection failed" } } : { choices: [{ message: { content: selection } }] }));
+      return;
+    }
     if (input.model === "no-image") {
       response.writeHead(400, { "Content-Type": "application/json" });
       response.end(
@@ -78,7 +84,13 @@ export async function fileTicketServer() {
     let turn = 0;
     CodexBridge.prototype.connect = async function(config) { this.config = config; return { state:'ready', message:'fake Codex' }; };
     CodexBridge.prototype.forkConversationThread = async function(id) { return { threadId:'fork-'+id+'-'+turn, metadata:{} }; };
+    CodexBridge.prototype.selectClues = async function(system, messages) {
+      process.send({ selection: { system, messages } });
+      if (${JSON.stringify(selectionFails)}) throw new Error('selection failed');
+      return ${JSON.stringify(selection)};
+    };
     CodexBridge.prototype.startTurn = async function(text, conversationId, clues) {
+      if (typeof clues === 'function') clues = await clues();
       const turnId = 'files-'+(++turn), threadId = 'thread-'+conversationId;
       this.registerConversationThread(conversationId, threadId, true);
       process.send({ prompt:text, clues });
@@ -121,6 +133,7 @@ export async function fileTicketServer() {
   backend.on("message", (message) => {
     if (message.prompt) prompts.push(message.prompt);
     if (message.clues !== undefined) systemPrompts.push(message.clues);
+    if (message.selection) selections.push(message.selection);
   });
   const [{ port }] = await Promise.race([
     once(backend, "message"),
@@ -134,6 +147,7 @@ export async function fileTicketServer() {
     received,
     prompts,
     systemPrompts,
+    selections,
     base: `http://127.0.0.1:${port}`,
     async close() {
       const exited = once(backend, "exit");

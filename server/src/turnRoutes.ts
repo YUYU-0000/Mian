@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { readConfig } from "./config.js";
-import { cluePrompt, readClues } from "./clues.js";
+import { readClues } from "./clues.js";
+import { selectCluePrompt } from "./clueSelection.js";
+import { providerJson } from "./providers/openai.js";
 import { requirePreset } from "./apiPresets.js";
 import {
   prepareConversationWorkspace,
@@ -37,10 +39,9 @@ export function turnRoutes({
         apiChat.isBusy(conversationId)
       )
         throw new Error("当前会话已有正在运行的 turn");
-      const clues = cluePrompt(
-        await readClues(),
-        request.body.latestUserMessage ?? request.body.text,
-      );
+      const wall = await readClues();
+      const recent = request.body.recentMessages ??
+        request.body.messages ?? [{ role: "user", content: request.body.text }];
       if (config.channel.kind === "api") {
         const preset = await requirePreset(config.channel.presetId);
         const conversation = await conversations.updateRuntime(conversationId, {
@@ -65,7 +66,21 @@ export function turnRoutes({
             preset,
             messages,
             request.body.localTime,
-            clues,
+            (signal) =>
+              selectCluePrompt(wall.cards, recent, async (system, history) => {
+                const result = await providerJson(
+                  preset,
+                  "chat/completions",
+                  {
+                    model: preset.model,
+                    messages: [{ role: "system", content: system }, ...history],
+                    stream: false,
+                    max_tokens: 256,
+                  },
+                  AbortSignal.any([signal, AbortSignal.timeout(12_000)]),
+                );
+                return result.choices[0].message.content;
+              }),
           ),
         );
         return;
@@ -85,7 +100,9 @@ export function turnRoutes({
       workspaceFiles.set(conversationId, capture);
       let result;
       try {
-        result = await bridge.startTurn(prompt, conversationId, clues);
+        result = await bridge.startTurn(prompt, conversationId, () =>
+          selectCluePrompt(wall.cards, recent, bridge.selectClues.bind(bridge)),
+        );
       } catch (error) {
         workspaceFiles.delete(conversationId);
         throw error;

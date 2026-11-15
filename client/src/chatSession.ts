@@ -1,4 +1,5 @@
 import { pad2 } from "./format";
+import { recentClueMessages } from "./clueMessages";
 import { visualTarget } from "./replyTimeline";
 import { api } from "./api";
 import { FileDrafts } from "./fileDrafts";
@@ -41,7 +42,7 @@ type SessionApi = {
     conversationId: string,
     messages?: ChatMessage[],
     files?: ChatFile[],
-    latestUserMessage?: string,
+    recentMessages?: ChatMessage[],
   ) => Promise<{ turnId: string }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
@@ -330,7 +331,9 @@ export class ChatSessionStore {
         this.conversationId,
         chatHistory(this.messages.slice(0, this.messages.indexOf(group) + 1)),
         group.records.flatMap((record) => record.files ?? []),
-        group.records.at(-1)!.text,
+        recentClueMessages(
+          this.messages.slice(0, this.messages.indexOf(group) + 1),
+        ),
       );
       const reply = this.messages.find(
         (message) =>

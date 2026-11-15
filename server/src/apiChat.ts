@@ -9,6 +9,7 @@ import {
 } from "./providers/openai.js";
 
 type ActiveTurn = { turnId: string; controller: AbortController };
+type ClueInstructions = string | ((signal: AbortSignal) => Promise<string>);
 type ApiChatEvent = {
   type: "turn-started" | "assistant-delta" | "turn-completed";
   conversationId: string;
@@ -47,7 +48,7 @@ export class ApiChat {
     config: ProviderConfig,
     messages: ChatMessage[],
     localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
-    clues = "",
+    clues: ClueInstructions = "",
   ) {
     if (this.isBusy(conversationId))
       throw new Error("当前会话已有正在运行的 turn");
@@ -59,12 +60,7 @@ export class ApiChat {
       turnId: turn.turnId,
       format: "api",
     });
-    void this.run(
-      conversationId,
-      turn,
-      config,
-      apiRequestMessages(messages, localTime, clues),
-    );
+    void this.run(conversationId, turn, config, messages, localTime, clues);
     return { conversationId, turnId: turn.turnId };
   }
 
@@ -84,6 +80,8 @@ export class ApiChat {
     turn: ActiveTurn,
     config: ProviderConfig,
     messages: ChatMessage[],
+    localTime: string,
+    clues: ClueInstructions,
   ) {
     const base = {
       conversationId,
@@ -94,9 +92,14 @@ export class ApiChat {
     let error: string | undefined;
     let usage: TokenUsage | undefined;
     try {
+      const instructions =
+        typeof clues === "function"
+          ? await clues(turn.controller.signal)
+          : clues;
+      turn.controller.signal.throwIfAborted();
       for await (const event of completeChat(
         config,
-        messages,
+        apiRequestMessages(messages, localTime, instructions),
         turn.controller.signal,
       )) {
         if (event.type === "usage") usage = event.usage;

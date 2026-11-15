@@ -10,6 +10,8 @@ import type {
   RpcMessage,
 } from "./types.js";
 import { ConversationRuntimeRegistry } from "./conversationRuntime.js";
+import { CodexClueSelection } from "./codexClueSelection.js";
+import type { ChatMessage } from "./providers/openai.js";
 import {
   handleCodexNotification,
   resolveConversationId,
@@ -75,6 +77,7 @@ export class CodexBridge extends EventEmitter {
   private waiters = new Map<number | string, Waiter>();
   private approvals = new Map<string, PendingApproval>();
   private readonly conversations = new ConversationRuntimeRegistry();
+  private readonly clueSelection = new CodexClueSelection();
   version = "";
   config?: AppConfig;
 
@@ -463,6 +466,7 @@ export class CodexBridge extends EventEmitter {
   }
 
   private handleNotification(method: string, params: any) {
+    if (this.clueSelection.receive(method, params)) return;
     handleCodexNotification(
       this.conversations,
       this.emit.bind(this),
@@ -608,7 +612,20 @@ export class CodexBridge extends EventEmitter {
     this.conversations.remove(conversationId);
   }
 
-  async startTurn(text: string, conversationId: string, clues = "") {
+  selectClues(system: string, messages: ChatMessage[]) {
+    return this.clueSelection.select(
+      this.request.bind(this),
+      this.config!,
+      system,
+      messages,
+    );
+  }
+
+  async startTurn(
+    text: string,
+    conversationId: string,
+    clues: string | (() => Promise<string>) = "",
+  ) {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
     const runtime = this.conversations.require(conversationId);
@@ -616,6 +633,7 @@ export class CodexBridge extends EventEmitter {
       throw new Error("当前会话已有正在运行的 turn");
     runtime.startingTurn = true;
     try {
+      const instructions = typeof clues === "function" ? await clues() : clues;
       const threadId = await this.ensureConversationThread(conversationId);
       const result = (await this.request("turn/start", {
         threadId,
@@ -623,7 +641,7 @@ export class CodexBridge extends EventEmitter {
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {
-            value: [MIAN_PUBLIC_REPLY_PROTOCOL, clues]
+            value: [MIAN_PUBLIC_REPLY_PROTOCOL, instructions]
               .filter(Boolean)
               .join("\n\n"),
             kind: "application",
@@ -728,6 +746,7 @@ export class CodexBridge extends EventEmitter {
   }
 
   private rejectWaitersFor(instanceId: number, error: Error) {
+    this.clueSelection.close(error);
     for (const [id, waiter] of this.waiters) {
       if (waiter.instanceId !== instanceId) continue;
       clearTimeout(waiter.timer);

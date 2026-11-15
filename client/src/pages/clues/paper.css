@@ -1,0 +1,137 @@
+/* 紙片：寬 160 設計單位，高隨比例 */
+.clues-page .paper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 160px;
+  transform-origin: 0 0;
+  background: var(--paper);
+  background-image: var(--grain);
+  overflow: hidden;
+  --a: var(--blue3);
+  --a2: var(--blue2);
+  --a3: var(--blue);
+}
+.clues-page .paper > * {
+  position: absolute;
+}
+.clues-page .paper .n {
+  font-family: var(--en);
+  font-weight: 500;
+  font-size: 8px;
+  letter-spacing: 1.6px;
+}
+.clues-page .paper .en {
+  font-family: var(--en);
+  font-weight: 500;
+  font-size: 6px;
+  letter-spacing: 2.2px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.clues-page .paper .tt {
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.clues-page .paper .tx {
+  font-size: 6.5px;
+  line-height: 1.6;
+  color: #6d7a84;
+  letter-spacing: 0.3px;
+  bottom: 13px;
+  max-height: 21px;
+  overflow: hidden;
+}
+.clues-page .paper.tr .tx,
+.clues-page .paper.tr .bt {
+  display: none;
+}
+.clues-page .paper .ln {
+  height: 1px;
+  background: rgba(59, 77, 90, 0.16);
+}
+.clues-page .paper .ar {
+  font-family: var(--en);
+  font-size: 7px;
+  letter-spacing: 1.6px;
+}
+.clues-page .paper .sc {
+  font-family: "ZSFT-l", cursive;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.clues-page .paper .it {
+  font-style: italic;
+  font-size: 6.5px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.clues-page .paper .dm {
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+.clues-page .paper .orn {
+  left: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.clues-page .paper .orn:before,
+.clues-page .paper .orn:after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(59, 77, 90, 0.4);
+}
+.clues-page .paper .orn b {
+  width: 4px;
+  height: 4px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+.clues-page .dt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.clues-page .dt s {
+  text-decoration: none;
+  font-family: var(--en);
+  font-size: 5px;
+  line-height: 1;
+  font-weight: 500;
+}
+.clues-page .dt b {
+  font-family: var(--en);
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+}
+.clues-page .tape {
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  font-style: italic;
+  font-size: 6.8px;
+  letter-spacing: 0.6px;
+  color: var(--ink);
+}
+.clues-page .tape svg {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  overflow: visible;
+}
+

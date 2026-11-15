@@ -80,8 +80,9 @@ export async function providerJson(
   config: ProviderConfig,
   resource: string,
   body?: object,
+  signal?: AbortSignal,
 ) {
-  const response = await providerResponse(config, resource, body);
+  const response = await providerResponse(config, resource, body, signal);
   const result = await response.json();
   if (result.error) throw responseError(result, response.status);
   return result;

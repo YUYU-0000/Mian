@@ -1,0 +1,367 @@
+/* 原稿：design-reference/線索牆.html；所有规则限定在线索页。 */
+.clues-page {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  --wall: #f1efe9;
+  --paper: #fbfaf6;
+  --warm: #f4eee3;
+  --blue: #6b8396;
+  --blue2: #8fa6b5;
+  --blue3: #c9d5dd;
+  --oat: #c7ae8c;
+  --oat2: #e4d6bf;
+  --thread: #a7745a;
+  --env: #4f6475;
+  --flap: #566d7f;
+  --low: #5a7183;
+  --inside: #3f5261;
+  --gold: #c9b08a;
+  --serif: "LXGW Heart Serif", "Noto Serif CJK TC", serif;
+  --en: "ZSFT-br", "Noto Serif CJK TC", serif;
+  --sb: env(safe-area-inset-bottom, 0px);
+  --st: env(safe-area-inset-top, 0px);
+  --kc: 0.8;
+  --k: 1;
+  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
+}
+.clues-page {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  background: var(--wall);
+  background-image: var(--grain);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 頂部 */
+.clues-page .head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: calc(var(--st) + 24px) 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 6;
+  pointer-events: none;
+  --icon-bg-4: #5a7082;
+  --icon-bg-4-rgb: 90, 112, 130;
+}
+/* 返回鍵和右側標題沿用檔案館（SettingsLayout 的 .back-btn / .right-decor） */
+.clues-page .head .back-btn {
+  display: inline-flex;
+  align-items: flex-start;
+  cursor: pointer;
+  position: relative;
+  pointer-events: auto;
+  margin-top: -2px;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+.clues-page .head .back-btn::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  right: -15px;
+  bottom: -10px;
+  left: -15px;
+}
+.clues-page .head .back-btn:active {
+  opacity: 0.6;
+  transform: translateX(-4px);
+}
+.clues-page .head .right-decor {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+.clues-page .head .archive-en {
+  writing-mode: vertical-rl;
+  font-size: 8px;
+  letter-spacing: 2.5px;
+  color: var(--muted);
+  font-weight: 500;
+  opacity: 0.75;
+  text-transform: uppercase;
+  line-height: 1;
+  padding-top: 1px;
+  font-family: var(--en);
+}
+.clues-page .head .decor-line {
+  width: 1px;
+  height: 65px;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--icon-bg-4-rgb), 0.6) 0%,
+    rgba(var(--icon-bg-4-rgb), 0) 100%
+  );
+}
+.clues-page .head .archive-cn {
+  writing-mode: vertical-rl;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 12px;
+  line-height: 1;
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    var(--icon-bg-4) 0%,
+    rgba(var(--icon-bg-4-rgb), 0.15) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 牆 */
+.clues-page .wall {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.clues-page .wall::-webkit-scrollbar {
+  display: none;
+}
+.clues-page .board {
+  position: relative;
+  width: 100%;
+}
+.clues-page .item {
+  position: absolute;
+  touch-action: none;
+  cursor: grab;
+}
+.clues-page .item.land {
+  animation: clue-land 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+@keyframes clue-land {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) rotate(var(--r)) scale(1.1);
+  }
+}
+.clues-page .card {
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.05),
+    0 5px 12px rgba(30, 40, 50, 0.13);
+}
+.clues-page .item.edit {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 8px 18px rgba(30, 40, 50, 0.24) !important;
+}
+.clues-page .handle {
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  width: 24px;
+  height: 24px;
+  display: none;
+  touch-action: none;
+  cursor: nwse-resize;
+  z-index: 2;
+}
+.clues-page .handle:before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+}
+.clues-page .item.edit .handle {
+  display: block;
+}
+.clues-page .portrait {
+  background: var(--paper);
+  background-image: var(--grain);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 7px 16px rgba(30, 40, 50, 0.17);
+}
+.clues-page .portrait .ph {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 7px;
+  bottom: 26px;
+  background: linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396);
+}
+.clues-page .portrait .ft {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.clues-page .portrait .ft span:first-child {
+  font-family: var(--en);
+  font-weight: 500;
+  font-size: 5.5px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.clues-page .portrait .ft span:last-child {
+  font-family: "ZSFT-l", cursive;
+  font-size: 16px;
+  line-height: 0.8;
+  transform: rotate(-6deg);
+}
+.clues-page svg.threads {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  filter: drop-shadow(0 1px 0.6px rgba(0, 0, 0, 0.2));
+}
+.clues-page .pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.clues-page .pin {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  pointer-events: auto;
+  touch-action: none;
+}
+.clues-page .pin:before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 9.2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  filter: blur(0.5px);
+}
+.clues-page .pin:after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 35% 32%,
+      rgba(255, 255, 255, 0.55) 0 1px,
+      transparent 1.5px
+    ),
+    var(--ink);
+}
+.clues-page .pin svg {
+  position: absolute;
+  inset: 0;
+  width: 24px;
+  height: 24px;
+  overflow: visible;
+}
+.clues-page .pin .ring {
+  fill: none;
+  stroke: var(--thread);
+  stroke-width: 1.1;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.clues-page .pin.sel .ring {
+  opacity: 1;
+  animation: clue-breathe 1.6s ease-in-clue-out infinite;
+}
+@keyframes clue-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+.clues-page .pin .prog {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  transform: rotate(-90deg);
+  transform-origin: 12px 12px;
+}
+.clues-page .pin.press .prog {
+  animation: clue-prog 1s linear forwards;
+}
+@keyframes clue-prog {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.clues-page .pin.out {
+  animation: clue-out 0.2s ease-in forwards;
+}
+@keyframes clue-out {
+  to {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* 只在信封、郵票、返回鍵和標題附近有一圈柔化，其他地方的卡片照常清楚 */
+.clues-page .halo {
+  position: absolute;
+  pointer-events: none;
+}
+/* 右下：照信封和郵票的外形鋪一塊牆色，再整塊模糊，四邊的霧一樣濃、一樣往外淡 */
+.clues-page .h-env {
+  right: -14px;
+  bottom: calc(var(--sb) - 30px);
+  width: calc(270px * var(--kc) + 80px);
+  height: calc(140px * var(--kc) + 94px);
+  background: var(--wall);
+  opacity: 0.96;
+  border-radius: 24px;
+  filter: blur(20px);
+}
+/* 左上：只貼著小魚，一小團 */
+.clues-page .h-back {
+  left: 0;
+  top: calc(var(--st) + 8px);
+  width: 58px;
+  height: 52px;
+  z-index: 5;
+  background: radial-gradient(
+    closest-side,
+    var(--wall) 45%,
+    rgba(241, 239, 233, 0.75) 70%,
+    rgba(241, 239, 233, 0)
+  );
+}
+/* 右上：豎排標題那一條，從上往下漸變 */
+.clues-page .h-title {
+  right: 0;
+  top: 0;
+  width: 110px;
+  height: calc(var(--st) + 140px);
+  z-index: 5;
+  background: linear-gradient(
+    var(--wall) 55%,
+    rgba(241, 239, 233, 0.75) 76%,
+    rgba(241, 239, 233, 0)
+  );
+  -webkit-mask: linear-gradient(90deg, transparent, #000 32%);
+  mask: linear-gradient(90deg, transparent, #000 32%);
+}
+

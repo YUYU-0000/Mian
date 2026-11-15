@@ -84,7 +84,86 @@ try {
       () => evaluate(`!!document.querySelector(${JSON.stringify(selector)})`),
       selector,
     );
-  const cards = async () => (await fetch(backend.base + "/api/clues")).json();
+  const readWall = async () =>
+    await (await fetch(backend.base + "/api/clues")).json();
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const point = async (selector, fx = 0.5, fy = 0.5) =>
+    evaluate(
+      `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return {x:r.left+r.width*${fx},y:r.top+r.height*${fy}}; })()`,
+    );
+  const mouse = (type, p) =>
+    call("Input.dispatchMouseEvent", {
+      type,
+      x: p.x,
+      y: p.y,
+      button: "left",
+      buttons: type === "mouseReleased" ? 0 : 1,
+      clickCount: type === "mouseMoved" ? 0 : 1,
+    });
+  const tap = async (selector) => {
+    const p = await point(selector);
+    await mouse("mousePressed", p);
+    await mouse("mouseReleased", p);
+  };
+  const drag = async (selector, dx, dy, hold = 0) => {
+    const p = await point(selector);
+    await mouse("mousePressed", p);
+    if (hold) await sleep(hold);
+    for (let i = 1; i <= 5; i++)
+      await mouse("mouseMoved", {
+        x: p.x + (dx * i) / 5,
+        y: p.y + (dy * i) / 5,
+      });
+    await mouse("mouseReleased", { x: p.x + dx, y: p.y + dy });
+  };
+  const dropPin = async (p) => {
+    const start = await point(".tp");
+    await mouse("mousePressed", start);
+    await mouse("mouseMoved", p);
+    await mouse("mouseReleased", p);
+  };
+  const clearEdit = async () => {
+    await mouse("mousePressed", { x: 365, y: 600 });
+    await mouse("mouseReleased", { x: 365, y: 600 });
+  };
+  const dismissNotice = async () =>
+    evaluate("document.querySelector('.mail.is-in')?.click()");
+  const now = new Date().toISOString();
+  const seed = await readWall();
+  const coords = [
+    [20, 126, -4],
+    [150, 120, 2],
+    [262, 134, 5],
+    [24, 268, 3],
+    [282, 262, -3],
+    [70, 410, -2],
+    [232, 414, 4],
+    [150, 540, 0],
+  ];
+  seed.cards = coords.map(([x, y, r], layout) => ({
+    id: "card-" + layout,
+    title: ["人設", "紀念日", "關於你", "關係", "語音", "規矩", "睡前", "便箋"][
+      layout
+    ],
+    content: "這是卡片正文。",
+    mode: layout === 1 ? "trigger" : "pinned",
+    when: layout === 1 ? "聊到紀念日的時候" : "",
+    scenes: [],
+    layout,
+    x,
+    y,
+    w: 84,
+    h: 88,
+    r,
+    order: layout,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await fetch(backend.base + "/api/clues", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(seed),
+  });
   await call("Runtime.enable");
   await call("Page.enable");
   await call("Emulation.setDeviceMetricsOverride", {
@@ -99,88 +178,253 @@ try {
   await waitFor(
     () =>
       evaluate(
-        `location.pathname === '/clues' && !document.querySelector('[data-transition-active=true]') && !!document.querySelector('.clues-header button:not(:disabled):last-child')`,
+        "location.pathname==='/clues' && !document.querySelector('[data-transition-active=true]') && document.querySelectorAll('.item.card').length===8",
       ),
-    "線索入口和切页",
+    "線索墙入口",
   );
-  await click(".clues-header button:last-child");
-  const title = "這是一張可以左右滑動完整讀取的線索卡片標題".repeat(3);
-  await fill("title", title);
-  await fill("content", "第一行\n第二行");
-  await fill("mode", "trigger");
-  await fill("keywords", "Hello, 世界 語音，test");
-  await click('[name="voice"]');
-  await click('.clues-actions [type="submit"]');
-  await visible(".clues-list .clues-card");
-  await waitFor(
-    () =>
-      evaluate(
-        `document.querySelector('.mail.is-in.is-ok')?.textContent.includes('線索已保存')`,
-      ),
-    "保存纸条",
-  );
-  const [saved] = await cards();
-  assert.deepEqual(saved.keywords, ["Hello", "世界", "語音", "test"]);
-  assert.deepEqual(saved.scenes, ["voice"]);
-  assert.equal(saved.content, "第一行\n第二行");
-  assert.equal(saved.title, title);
-  assert.ok(saved.id);
-  assert.deepEqual(
-    await evaluate(`(() => {
-    const text = document.querySelector('.clues-card .scroll-text');
-    text.scrollLeft = 70;
-    return [text.scrollLeft > 0, getComputedStyle(text).textOverflow];
-  })()`),
-    [true, "clip"],
-  );
-  await call("Page.reload");
-  await visible(".clues-card");
-  await click(".clues-card");
   assert.equal(
-    await evaluate(`document.querySelector('[name=voice]').checked`),
-    true,
+    await evaluate("document.querySelector('.right-decor').textContent"),
+    "CLUE WALL線索",
   );
-  await fill("title", "更新標題");
+  assert.equal(
+    await evaluate("document.querySelectorAll('.clues-page .halo').length"),
+    3,
+  );
+  assert.equal(
+    await evaluate("document.querySelectorAll('.threads path').length"),
+    0,
+  );
   await evaluate(
-    `window.originalFetch = window.fetch; window.fetch = (url, init) => String(url).startsWith('/api/clues/') && init?.method === 'PUT' ? Promise.resolve(new Response(JSON.stringify({error:'測試保存失敗'}), {status:500,headers:{'Content-Type':'application/json'}})) : window.originalFetch(url, init)`,
+    `document.documentElement.style.setProperty('--avatar-assistant','url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%237590a3%22/%3E%3C/svg%3E")')`,
   );
-  await click('.clues-actions [type="submit"]');
+  assert.match(
+    await evaluate(
+      "getComputedStyle(document.querySelector('.portrait .ph')).backgroundImage",
+    ),
+    /data:image\/svg/,
+  );
+  await evaluate("document.fonts.ready");
+  const screenshot = await call("Page.captureScreenshot", { format: "png" });
+  await import("node:fs/promises").then(({ writeFile }) =>
+    writeFile(".tmp-clues-wall.png", Buffer.from(screenshot.data, "base64")),
+  );
+
+  await evaluate("window.originalRandom = Math.random; Math.random = () => .9");
+  await click(".envc");
+  await visible(".ov.show");
+  await sleep(320);
+  assert.equal(await evaluate("document.querySelectorAll('.pp').length"), 8);
+  await drag('.pp[data-layout="0"]', -90, 0);
+  await waitFor(
+    () => evaluate("document.querySelector('.pick b').textContent==='票根'"),
+    "向左换纸",
+  );
+  await sleep(220);
+  await drag('.pp[data-layout="1"]', 90, 0);
+  await waitFor(
+    () => evaluate("document.querySelector('.pick b').textContent==='索引卡'"),
+    "向右换纸",
+  );
+  await sleep(320);
+  await tap('.pp[data-layout="0"]');
+  await visible(".sw.show");
+  const longTitle = "這是一張能左右滑動閱讀完整標題的線索卡片";
+  await fill("title", longTitle);
+  await fill("content", "第一行\n第二行 <b>原樣保存</b>");
+  await click('.mode [data-mode="trigger"]');
+  await fill("when", "想念對方的時候");
+  await click('[data-scene="voice"]');
+  await click(".done");
+  await waitFor(() => evaluate("!document.querySelector('.sw')"), "收起保存");
+  await waitFor(async () => (await readWall()).cards.length === 9, "新增落盘");
+  const added = (await readWall()).cards.at(-1);
+  await evaluate("Math.random = window.originalRandom");
+  assert.equal(added.title, longTitle);
+  assert.equal(added.layout, 0);
+  assert.equal(added.when, "想念對方的時候");
+  assert.deepEqual(added.scenes, ["voice"]);
+  assert.equal(added.content, "第一行\n第二行 <b>原樣保存</b>");
+  assert.equal(added.w, 84);
+  assert.equal(added.h, 88);
+  await dismissNotice();
+
+  // 移动卡片、长按和自由缩放。
+  const first = '.item[data-id="card-0"]';
+  const before = (await readWall()).cards[0];
+  await drag(first, 22, 28);
+  await waitFor(
+    async () => (await readWall()).cards[0].x > before.x + 20,
+    "位置保存",
+  );
+  assert.equal(await evaluate("!!document.querySelector('.sw')"), false);
+  const press = await point(first);
+  await mouse("mousePressed", press);
+  await sleep(550);
+  await mouse("mouseReleased", press);
+  await visible(first + ".edit .handle");
+  await drag(first + " .handle", 36, 24);
+  await waitFor(async () => (await readWall()).cards[0].w > 100, "大小保存");
+  await clearEdit();
+  assert.equal(await evaluate("!!document.querySelector('.item.edit')"), false);
+
+  // 图钉在旋转卡片上存比例，连线跟着拖动，重复连接不新增。
+  const pinTarget = await point(first, 0.5, 0.18);
+  await dropPin(pinTarget);
+  await waitFor(async () => (await readWall()).pins.length === 1, "卡片图钉");
+  let data = await readWall();
+  const pinA = data.pins[0];
+  assert.equal(pinA.cardId, "card-0");
+  assert.ok(pinA.x >= 0 && pinA.x <= 1 && pinA.y >= 0 && pinA.y <= 1);
+  await dropPin({ x: 26, y: 570 });
+  await waitFor(async () => (await readWall()).pins.length === 2, "墙面图钉");
+  const pinB = (await readWall()).pins[1];
+  assert.equal(pinB.cardId, null);
+  const pa = `[data-pin="${pinA.id}"]`,
+    pb = `[data-pin="${pinB.id}"]`;
+  await tap(pa);
+  await tap(pb);
+  await waitFor(
+    async () => (await readWall()).threads.length === 1,
+    "连接图钉",
+  );
+  await tap(pa);
+  await tap(pb);
+  assert.equal((await readWall()).threads.length, 1);
+  const oldPin = await point(pa),
+    oldPath = await evaluate(
+      "document.querySelector('.threads path').getAttribute('d')",
+    );
+  await drag(first, 25, 12);
+  const newPin = await point(pa);
+  assert.ok(Math.abs(newPin.x - oldPin.x - 25) < 1);
+  assert.ok(Math.abs(newPin.y - oldPin.y - 12) < 1);
+  assert.notEqual(
+    await evaluate("document.querySelector('.threads path').getAttribute('d')"),
+    oldPath,
+  );
+  const pBeforeResize = await point(pa);
+  const p = await point(first, 0.7, 0.6);
+  await mouse("mousePressed", p);
+  await sleep(550);
+  await mouse("mouseReleased", p);
+  await drag(first + " .handle", 25, 20);
+  const pAfterResize = await point(pa);
+  assert.ok(
+    Math.hypot(
+      pAfterResize.x - pBeforeResize.x,
+      pAfterResize.y - pBeforeResize.y,
+    ) > 1,
+  );
+  await waitFor(
+    async () => (await readWall()).cards[0].w > 130,
+    "缩放连带图钉保存",
+  );
+  assert.deepEqual((await readWall()).pins[0], pinA);
+  await clearEdit();
+  const bp = await point(pb);
+  await mouse("mousePressed", bp);
+  await sleep(1050);
+  await mouse("mouseReleased", bp);
+  await waitFor(async () => (await readWall()).pins.length === 1, "长按拔掉");
+  assert.deepEqual((await readWall()).threads, []);
+
+  // 肖像使用同一套拖动和缩放。
+  await drag(".portrait", 16, 12);
+  const portraitPoint = await point(".portrait");
+  await mouse("mousePressed", portraitPoint);
+  await sleep(550);
+  await mouse("mouseReleased", portraitPoint);
+  await drag(".portrait .handle", 20, 14);
+  await waitFor(
+    async () => (await readWall()).portrait.w > 115,
+    "肖像位置和大小保存",
+  );
+  await clearEdit();
+
+  // 失败保留草稿；撕掉必须确认两次并删除所属图钉。
+  await tap(first);
+  await visible(".sw.show");
+  await fill("title", "保存失敗的草稿");
+  await evaluate(
+    `window.originalFetch=window.fetch;window.fetch=(url,init)=>url==='/api/clues' && init?.method==='PUT'?Promise.resolve(new Response(JSON.stringify({error:'測試失敗'}),{status:500,headers:{'Content-Type':'application/json'}})):window.originalFetch(url,init)`,
+  );
+  await click(".done");
   await waitFor(
     () =>
       evaluate(
-        `document.querySelector('.mail.is-in.is-fail')?.textContent.includes('線索保存失敗')`,
+        "document.querySelector('.mail.is-in.is-fail')?.textContent.includes('線索保存失敗')",
       ),
     "失败纸条",
   );
   assert.equal(
-    await evaluate(`document.querySelector('[name=title]').value`),
-    "更新標題",
+    await evaluate("document.querySelector('[name=title]').value"),
+    "保存失敗的草稿",
   );
-  await evaluate("window.fetch = window.originalFetch");
-  await fill("mode", "pinned");
+  await evaluate("window.fetch=window.originalFetch");
+  await click(".tear");
   assert.equal(
-    await evaluate(`!!document.querySelector('[name=keywords]')`),
+    (await readWall()).cards.some((c) => c.id === "card-0"),
+    true,
+  );
+  await click(".tear");
+  await waitFor(() => evaluate("!document.querySelector('.sw')"), "撕掉");
+  data = await readWall();
+  assert.equal(
+    data.cards.some((c) => c.id === "card-0"),
     false,
   );
-  await click('.clues-actions [type="submit"]');
-  await visible('.clues-list [data-mode="pinned"] .clues-card');
-  assert.deepEqual((await cards())[0].scenes, []);
-  assert.deepEqual((await cards())[0].keywords, []);
-  await click(".clues-card");
-  await click('.clues-actions [type="button"]');
-  await visible(".clues-list");
-  assert.deepEqual(await cards(), []);
-  await click(".clues-back");
+  assert.equal(
+    data.pins.some((p) => p.cardId === "card-0"),
+    false,
+  );
+  const backup = await (await fetch(backend.base + "/api/backup")).json();
+  assert.deepEqual(backup.clues, data);
+  await call("Page.reload");
+  await visible(".portrait");
+  await waitFor(
+    () => evaluate("document.querySelectorAll('.item.card').length===8"),
+    "刷新恢复墙面",
+  );
+  assert.deepEqual(await readWall(), data);
+
+  // 小屏上纸片和编辑页保持在屏幕内。
+  await call("Emulation.setDeviceMetricsOverride", {
+    width: 320,
+    height: 568,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await click(".envc");
+  await visible(".ov.show");
+  await sleep(320);
+  assert.equal(
+    await evaluate(
+      "[...document.querySelectorAll('.pp')].filter(e=>getComputedStyle(e).opacity==='1').every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=320&&r.top>=0&&r.bottom<=568})",
+    ),
+    true,
+  );
+  await tap('.pp[data-layout="0"]');
+  await visible(".sw.show");
+  await sleep(280);
+  assert.equal(
+    await evaluate(
+      "(()=>{const r=document.querySelector('.sheet').getBoundingClientRect();return r.left>=0&&r.right<=320&&r.top>=0&&r.bottom<=568})()",
+    ),
+    true,
+  );
+  await click(".done");
+  await waitFor(() => evaluate("!document.querySelector('.sw')"), "小屏收起");
+  await click(".back-btn");
   await waitFor(
     () =>
       evaluate(
-        `location.pathname === '/' && !document.querySelector('[data-transition-active=true]')`,
+        "location.pathname==='/' && !document.querySelector('[data-transition-active=true]')",
       ),
     "返回主屏",
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS clues: 主屏入口、增改删、关键词与场景、保存纸条、刷新持久化、横向滑动。",
+    "PASS clues wall: 8 layouts, envelope swipes, editing, dragging, resize, pins, threads, portrait, persistence, backup and small screen.",
   );
 } finally {
   const exited = once(browser, "exit");

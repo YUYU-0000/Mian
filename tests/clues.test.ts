@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { WebSocket } from "ws";
-import { cluePrompt, getActiveScenes, type Clue } from "../server/src/clues.ts";
-import { apiRequestMessages } from "../server/src/apiPrompt.ts";
+import { migrateClues, type Clue } from "../server/src/clues.ts";
+import {
+  selectCluePrompt,
+  getActiveScenes,
+  CLUE_SELECTION_INSTRUCTION,
+} from "../server/src/clueSelection.ts";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
 import { completeBackup } from "../client/src/settingsBackup.ts";
 import { createId } from "../client/src/id.ts";
@@ -16,61 +20,87 @@ const card = (patch: Partial<Clue> = {}): Clue => ({
   title: "常駐",
   content: "卡片內容",
   mode: "pinned",
-  keywords: [],
+  when: "",
   scenes: [],
+  layout: 0,
+  x: 20,
+  y: 320,
+  w: 150,
+  h: 160,
+  r: -2,
   order: 0,
   createdAt: "2026-11-15T00:00:00.000Z",
   updatedAt: "2026-11-15T00:00:00.000Z",
   ...patch,
 });
 
-test("clues match substrings without case, union scenes once, pinned first and sorted", () => {
+test("natural selection sends only metadata and six messages; scene matches bypass selection", async () => {
   const clues = [
+    card({ title: "常駐二", order: 2 }),
     card({
-      title: "觸發二",
+      id: "voice",
+      title: "語音",
       mode: "trigger",
-      keywords: ["HELLO"],
       scenes: ["voice"],
-      order: 8,
+      order: -1,
     }),
-    card({ title: "常駐二", order: 5 }),
-    card({ title: "語音", mode: "trigger", scenes: ["voice"], order: -1 }),
     card({ title: "常駐一", order: 1 }),
-    card({ title: "觸發一", mode: "trigger", keywords: ["你好"], order: 2 }),
-    card({ title: "未命中", mode: "trigger", keywords: ["old"], order: 0 }),
+    card({ id: "chosen", title: "挑中", mode: "trigger", when: "想念對方時" }),
+    card({ id: "other", mode: "trigger", when: "準備出門時" }),
   ];
+  const history = Array.from({ length: 9 }, (_, index) => ({
+    role: index % 2 ? ("assistant" as const) : ("user" as const),
+    content: `message ${index}`,
+  }));
   assert.deepEqual(getActiveScenes(), []);
+  const prompt = await selectCluePrompt(
+    clues,
+    history,
+    async (system, recent) => {
+      assert.equal(system.split("\n\n")[0], CLUE_SELECTION_INSTRUCTION);
+      assert.deepEqual(JSON.parse(system.split("\n\n")[1]), [
+        { id: "chosen", title: "挑中", when: "想念對方時" },
+        { id: "other", title: "常駐", when: "準備出門時" },
+      ]);
+      assert.deepEqual(recent, history.slice(-6));
+      assert.doesNotMatch(system, /卡片內容/);
+      return "chosen,chosen,unknown";
+    },
+    ["voice"],
+  );
   assert.equal(
-    cluePrompt(clues, "wellHello，說你好", ["voice"]),
-    ["常駐一", "常駐二", "語音", "觸發一", "觸發二"]
+    prompt,
+    ["常駐一", "常駐二", "語音", "挑中"]
       .map((title) => `【${title}】\n卡片內容`)
       .join("\n\n"),
   );
+  const fail = async () => {
+    throw new Error("failed");
+  };
   assert.equal(
-    cluePrompt(
-      clues.filter((clue) => clue.mode === "trigger"),
-      "無匹配",
-    ),
+    await selectCluePrompt(clues, history, fail, ["voice"]),
+    ["常駐一", "常駐二", "語音"]
+      .map((title) => `【${title}】\n卡片內容`)
+      .join("\n\n"),
+  );
+  assert.equal(await selectCluePrompt([clues[3]], history, async () => ""), "");
+  assert.equal(
+    await selectCluePrompt([], history, async () => {
+      assert.fail("no pre-request when no triggers");
+    }),
     "",
   );
-  const original = apiRequestMessages(
-    [{ role: "user", content: "你好" }],
-    "現在",
+  await selectCluePrompt(
+    [clues[0], clues[1]],
+    history,
+    async () => {
+      assert.fail("scene already matched");
+    },
+    ["voice"],
   );
-  assert.deepEqual(
-    apiRequestMessages([{ role: "user", content: "你好" }], "現在", ""),
-    original,
-  );
-  const injected = apiRequestMessages(
-    [{ role: "user", content: "你好" }],
-    "現在",
-    "【線索】\n內容",
-  );
-  assert.equal(injected[0].content, original[0].content + "\n\n【線索】\n內容");
-  assert.deepEqual(injected.slice(1), original.slice(1));
 });
 
-test("the latest user record travels separately from grouped history", async () => {
+test("six recent records travel separately from grouped chat history", async () => {
   let sent: unknown[] = [];
   const store = new ChatSessionStore({
     conversationId: "c1",
@@ -83,15 +113,20 @@ test("the latest user record travels separately from grouped history", async () 
       stop: async () => {},
     },
   });
-  store.saveUserRecord("舊詞 apple");
-  store.saveUserRecord("最新一句 hello");
+  for (let index = 0; index < 9; index++)
+    store.saveUserRecord(`record ${index}`);
   await store.startPendingTurn();
-  assert.match(String(sent[0]), /apple/);
-  assert.equal(sent[4], "最新一句 hello");
+  assert.deepEqual(
+    sent[4],
+    Array.from({ length: 6 }, (_, index) => ({
+      role: "user",
+      content: `record ${index + 3}`,
+    })),
+  );
   store.dispose();
 });
 
-test("clues CRUD persist JSON and round trip through archive, accepting older backups", async () => {
+test("wall migration, CRUD, pin removal, portrait geometry and archive round trip", async () => {
   const server = await fileTicketServer();
   const request = (url: string, method = "GET", body?: unknown) =>
     fetch(server.base + url, {
@@ -99,29 +134,51 @@ test("clues CRUD persist JSON and round trip through archive, accepting older ba
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+  const get = async () => (await request("/api/clues")).json();
   try {
-    assert.deepEqual(await (await request("/api/clues")).json(), []);
-    const input = card({
+    const legacy = {
+      id: "legacy",
+      title: "舊卡片",
+      content: "保留內容",
       mode: "trigger",
-      keywords: ["hello"],
-      scenes: ["voice"],
-    });
-    const createdResponse = await request("/api/clues", "POST", input);
-    assert.equal(createdResponse.status, 201);
-    const created = await createdResponse.json();
-    const updated = await (
-      await request(`/api/clues/${input.id}`, "PUT", {
-        ...created,
-        title: "修改",
-        order: 3,
-      })
-    ).json();
-    assert.equal(updated.createdAt, created.createdAt);
-    assert.equal(updated.title, "修改");
-    assert.deepEqual(
-      await (await request(`/api/clues/${input.id}`)).json(),
-      updated,
+      keywords: ["晚安"],
+      scenes: [],
+      order: 0,
+      createdAt: "before",
+      updatedAt: "before",
+    };
+    await writeFile(
+      path.join(server.directory, "server/data/clues.json"),
+      JSON.stringify([legacy, { ...legacy, id: "second" }]),
     );
+    const wall = await get();
+    assert.equal(wall.cards[0].when, "提到 晚安 時");
+    assert.equal("keywords" in wall.cards[0], false);
+    assert.ok(wall.cards[1].y > wall.cards[0].y + wall.cards[0].h);
+    const input = card({ id: "new", when: "提到回家時", mode: "trigger" });
+    assert.equal((await request("/api/clues", "POST", input)).status, 201);
+    const saved = await (
+      await request("/api/clues/new", "PUT", { ...input, title: "修改" })
+    ).json();
+    assert.equal(
+      (await (await request("/api/clues/new")).json()).title,
+      "修改",
+    );
+    const layout = {
+      ...(await get()),
+      portrait: { x: 20, y: 30, w: 170, h: 200, r: 4 },
+      pins: [
+        { id: "p1", cardId: "new", x: 0.25, y: 0.8 },
+        { id: "p2", cardId: null, x: 10, y: 20 },
+        { id: "p3", cardId: "portrait", x: 0.4, y: 0.6 },
+      ],
+      threads: [
+        { from: "p1", to: "p2" },
+        { from: "p2", to: "p3" },
+      ],
+    };
+    assert.equal((await request("/api/clues", "PUT", layout)).status, 200);
+    assert.deepEqual(await get(), layout);
     assert.deepEqual(
       JSON.parse(
         await readFile(
@@ -129,99 +186,110 @@ test("clues CRUD persist JSON and round trip through archive, accepting older ba
           "utf8",
         ),
       ),
-      [updated],
+      layout,
     );
     const backup = completeBackup(await (await request("/api/backup")).json(), {
       getItem: () => null,
     });
-    assert.deepEqual(backup.clues, [updated]);
-    await request(`/api/clues/${input.id}`, "DELETE");
-    assert.deepEqual(await (await request("/api/clues")).json(), []);
+    assert.deepEqual(backup.clues, layout);
+    await request("/api/clues/new", "DELETE");
+    assert.deepEqual((await get()).threads, [{ from: "p2", to: "p3" }]);
+    assert.equal((await get()).pins.length, 2);
     assert.equal((await request("/api/backup", "POST", backup)).status, 200);
-    assert.deepEqual(await (await request("/api/clues")).json(), [updated]);
-    const pinned = await (
-      await request(`/api/clues/${input.id}`, "PUT", {
-        ...updated,
-        mode: "pinned",
-      })
-    ).json();
-    assert.deepEqual(pinned.keywords, []);
-    assert.deepEqual(pinned.scenes, []);
+    assert.deepEqual(await get(), layout);
+    assert.equal((await get()).cards.at(-1).createdAt, saved.createdAt);
+    const oldBackup = { ...backup, clues: [legacy] };
+    assert.equal((await request("/api/backup", "POST", oldBackup)).status, 200);
+    assert.equal((await get()).cards[0].when, "提到 晚安 時");
     delete backup.clues;
     assert.equal((await request("/api/backup", "POST", backup)).status, 200);
-    assert.deepEqual(await (await request("/api/clues")).json(), []);
+    assert.deepEqual(await get(), migrateClues());
   } finally {
     await server.close();
   }
 });
 
-test(
-  "both turn channels select the latest user message instead of grouped history",
-  { timeout: 20000 },
-  async () => {
-    const server = await fileTicketServer();
-    const socket = new WebSocket(server.base.replace("http", "ws") + "/ws");
-    await once(socket, "open");
-    const request = (url: string, method: string, body: unknown) =>
-      fetch(server.base + url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+for (const selectionFails of [false, true])
+  test(
+    `both channels ${selectionFails ? "skip failed selection" : "select naturally"} before the formal turn`,
+    { timeout: 20000 },
+    async () => {
+      const server = await fileTicketServer({
+        selection: "chosen",
+        selectionFails,
       });
-    const turn = async (latestUserMessage: string) => {
-      const completed = new Promise<void>((resolve) => {
-        const listen = (raw: Buffer) => {
-          const message = JSON.parse(String(raw));
-          if (message.event?.type === "turn-completed") {
-            socket.off("message", listen);
-            resolve();
-          }
-        };
-        socket.on("message", listen);
-      });
-      const response = await request("/api/turn", "POST", {
-        conversationId: "c1",
-        text: "old-word\n" + latestUserMessage,
-        latestUserMessage,
-        messages: [
-          { role: "user", content: "old-word" },
-          { role: "assistant", content: "舊回覆" },
-          { role: "user", content: latestUserMessage },
-        ],
-      });
-      assert.equal(response.status, 200);
-      await completed;
-    };
-    try {
-      for (const clue of [
-        card(),
-        card({ title: "命中", mode: "trigger", keywords: ["HELLO"] }),
-        card({ title: "舊詞", mode: "trigger", keywords: ["old-word"] }),
-        card({ title: "語音", mode: "trigger", scenes: ["voice"] }),
-      ]) {
-        assert.equal((await request("/api/clues", "POST", clue)).status, 201);
+      const socket = new WebSocket(server.base.replace("http", "ws") + "/ws");
+      await once(socket, "open");
+      const events: any[] = [];
+      socket.on("message", (raw) => events.push(JSON.parse(String(raw)).event));
+      const request = (url: string, method: string, body: unknown) =>
+        fetch(server.base + url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      const recent = [{ role: "user", content: "我有點想你" }];
+      const turn = async () => {
+        const completed = new Promise<void>((resolve) => {
+          const listen = (raw: Buffer) => {
+            if (JSON.parse(String(raw)).event?.type === "turn-completed") {
+              socket.off("message", listen);
+              resolve();
+            }
+          };
+          socket.on("message", listen);
+        });
+        assert.equal(
+          (
+            await request("/api/turn", "POST", {
+              conversationId: "c1",
+              text: "我有點想你",
+              messages: recent,
+              recentMessages: recent,
+            })
+          ).status,
+          200,
+        );
+        await completed;
+      };
+      try {
+        for (const clue of [
+          card(),
+          card({
+            id: "chosen",
+            title: "回憶",
+            mode: "trigger",
+            when: "想念對方時",
+          }),
+        ])
+          assert.equal((await request("/api/clues", "POST", clue)).status, 201);
+        await turn();
+        const pre = server.received[0];
+        assert.equal(pre.model, "file-model");
+        assert.match(pre.messages[0].content, /下面是一些卡片/);
+        assert.deepEqual(pre.messages.slice(1), recent);
+        const formal = server.received[1].messages[0];
+        assert.equal(formal.role, "system");
+        assert.match(formal.content, /【常駐】/);
+        assert.equal(formal.content.includes("【回憶】"), !selectionFails);
+        assert.equal(
+          (await request("/api/subscriptions/codex/use", "POST", {})).status,
+          200,
+        );
+        await turn();
+        assert.deepEqual(server.selections[0].messages, recent);
+        assert.equal(
+          server.systemPrompts[0],
+          "【常駐】\n卡片內容" +
+            (selectionFails ? "" : "\n\n【回憶】\n卡片內容"),
+        );
+        assert.equal(
+          events.filter((event) => event?.type === "turn-started").length,
+          2,
+        );
+      } finally {
+        socket.close();
+        await server.close();
       }
-      await turn("say hello");
-      const system = server.received[0].messages[0];
-      assert.equal(system.role, "system");
-      assert.match(system.content, /【常駐】\n卡片內容\n\n【命中】\n卡片內容$/);
-      assert.doesNotMatch(system.content, /【舊詞】|【語音】/);
-      assert.doesNotMatch(
-        JSON.stringify(server.received[0].messages.slice(1)),
-        /卡片內容/,
-      );
-      assert.equal((await request("/api/subscriptions/codex/use", "POST", {})).status, 200);
-      await turn("hello again");
-      assert.equal(
-        server.systemPrompts[0],
-        "【常駐】\n卡片內容\n\n【命中】\n卡片內容",
-      );
-      assert.doesNotMatch(server.prompts[0], /卡片內容/);
-      await turn("無匹配");
-      assert.equal(server.systemPrompts[1], "【常駐】\n卡片內容");
-    } finally {
-      socket.close();
-      await server.close();
-    }
-  },
-);
+    },
+  );

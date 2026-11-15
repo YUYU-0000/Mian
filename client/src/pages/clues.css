@@ -1,96 +1,79 @@
+@import "./clues/wall.css";
+@import "./clues/paper.css";
+@import "./clues/envelope.css";
+@import "./clues/sheet.css";
+
 .clues-page {
-  height: 100dvh;
-  padding: 24px 20px;
-  overflow-y: auto;
+  font-family: var(--serif);
   color: var(--ink);
-  background: var(--bg);
-  font-family: var(--font-main);
 }
-.clues-header,
-.clues-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+.clues-page .in {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
-.clues-header h1 {
-  margin: 0 auto 0 0;
-  font-size: 22px;
+.clues-page .portrait .ph {
+  background-image: var(
+    --avatar-assistant,
+    linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396)
+  );
+  background-size: cover;
+  background-position: center;
 }
-.clues-page button,
-.clues-editor input,
-.clues-editor textarea,
-.clues-editor select {
-  color: inherit;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 10px 12px;
-}
-.clues-page button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.clues-list section {
-  margin-top: 28px;
-}
-.clues-list h2 {
-  font-size: 18px;
-  font-weight: 500;
-}
-.clues-list p,
-.clues-preview {
-  color: var(--muted);
-}
-.clues-card {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  margin-bottom: 12px;
-  text-align: left;
-}
-.clues-card .scroll-text {
-  display: block;
-  min-width: 0;
-}
-.clues-preview {
-  font-size: 14px;
-}
-.clues-editor {
-  margin-top: 24px;
-}
-.clues-editor fieldset {
-  display: grid;
-  gap: 20px;
-  min-width: 0;
-  padding: 0;
-  margin: 0;
+.clues-page .sheet button {
   border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
 }
-.clues-editor label {
-  display: grid;
-  gap: 8px;
+.clues-page .sheet button:disabled {
+  pointer-events: none;
+}
+.clues-page .fld .lab {
+  display: block;
+}
+.clues-page .content {
+  min-height: 0;
+}
+.clues-page .paper .tt {
+  max-width: calc(100% - 24px);
+}
+.clues-page .paper .tt.centered {
+  max-width: none;
+}
+.clues-page .paper[data-layout="1"] .tt {
+  max-width: 92px;
+}
+.clues-page .paper[data-layout="6"] .tt {
+  max-width: 70px;
+}
+.clues-page .paper .tt .scroll-text {
+  display: block;
+  max-width: 100%;
+}
+.clues-page .tape .scroll-text {
   min-width: 0;
 }
-.clues-editor input,
-.clues-editor textarea,
-.clues-editor select {
-  width: 100%;
-  min-width: 0;
+.clues-page .envc {
+  z-index: 8;
+  transition:
+    right 0.28s cubic-bezier(0.22, 0.8, 0.3, 1),
+    transform 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
 }
-.clues-editor textarea {
-  resize: vertical;
-  line-height: 1.6;
+.clues-page .dock {
+  z-index: auto;
 }
-.clues-editor .clues-scene {
-  display: flex;
-  align-items: center;
+.clues-page .h-env {
+  z-index: 7;
 }
-.clues-scene input {
-  width: auto;
-  accent-color: var(--ink);
+.clues-page .tray {
+  z-index: 9;
 }
-.clues-actions {
-  margin-top: 28px;
-  padding-bottom: env(safe-area-inset-bottom);
+.clues-page .envc.open {
+  z-index: 21;
+  right: calc(50% - 135px);
+  transform-origin: 50% 100%;
+  transform: scale(var(--kc));
 }

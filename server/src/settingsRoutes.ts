@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { parseClue, readClues, writeClues, type Clue } from "./clues.js";
+import {
+  migrateClues,
+  parseClue,
+  readClues,
+  writeClues,
+  type ClueWall,
+} from "./clues.js";
 import { readConfig, saveConfig } from "./config.js";
 import { readPresets, writePresets, type ApiPreset } from "./apiPresets.js";
 import {
@@ -22,7 +28,7 @@ type Backup = {
   config: AppConfig;
   apiPresets: Omit<ApiPreset, "key">[];
   fonts: FontSettings;
-  clues: Clue[];
+  clues: ClueWall;
   conversations: ConversationRecord[];
   chats: Record<string, unknown[]>;
   preferences: Record<string, string | null>;
@@ -134,12 +140,14 @@ function parseBackup(value: Backup): Backup {
     new Set(presets.map((preset) => preset.id)).size !== presets.length
   )
     throw invalidBackup();
+  const clues = migrateClues(value.clues);
+  clues.cards = clues.cards.map(parseClue);
   return {
     ...value,
     apiPresets: presets,
     conversations,
     fonts: fontSettings(value.fonts),
-    clues: (value.clues ?? []).map(parseClue),
+    clues,
   };
 }
 

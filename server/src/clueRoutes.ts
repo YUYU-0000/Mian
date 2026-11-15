@@ -1,13 +1,25 @@
 import { Router } from "express";
-import { parseClue, readClues, writeClues } from "./clues.js";
+import { parseClue, readClues, writeClues, removeClue } from "./clues.js";
 
 export function clueRoutes() {
   const router = Router();
   router.get("/", async (_request, response) => {
     response.json(await readClues());
   });
+  router.put("/", async (request, response) => {
+    try {
+      const wall = {
+        ...request.body,
+        cards: request.body.cards.map(parseClue),
+      };
+      await writeClues(wall);
+      response.json(wall);
+    } catch (error) {
+      response.status(400).json({ error: (error as Error).message });
+    }
+  });
   router.get("/:id", async (request, response) => {
-    const clue = (await readClues()).find(
+    const clue = (await readClues()).cards.find(
       (item) => item.id === request.params.id,
     );
     if (!clue) {
@@ -24,12 +36,12 @@ export function clueRoutes() {
         createdAt: now,
         updatedAt: now,
       });
-      const clues = await readClues();
-      if (clues.some((item) => item.id === clue.id)) {
+      const wall = await readClues();
+      if (wall.cards.some((item) => item.id === clue.id)) {
         response.status(409).json({ error: "線索已存在。" });
         return;
       }
-      await writeClues([...clues, clue]);
+      await writeClues({ ...wall, cards: [...wall.cards, clue] });
       response.status(201).json(clue);
     } catch (error) {
       response.status(400).json({ error: (error as Error).message });
@@ -37,7 +49,8 @@ export function clueRoutes() {
   });
   router.put("/:id", async (request, response) => {
     try {
-      const clues = await readClues();
+      const wall = await readClues();
+      const clues = wall.cards;
       const index = clues.findIndex((item) => item.id === request.params.id);
       if (index < 0) {
         response.status(404).json({ error: "線索不存在。" });
@@ -50,15 +63,14 @@ export function clueRoutes() {
         updatedAt: new Date().toISOString(),
       });
       clues[index] = clue;
-      await writeClues(clues);
+      await writeClues(wall);
       response.json(clue);
     } catch (error) {
       response.status(400).json({ error: (error as Error).message });
     }
   });
   router.delete("/:id", async (request, response) => {
-    const clues = await readClues();
-    await writeClues(clues.filter((clue) => clue.id !== request.params.id));
+    await writeClues(removeClue(await readClues(), request.params.id));
     response.json({ ok: true });
   });
   return router;

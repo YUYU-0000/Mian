@@ -1,5 +1,5 @@
 import { subscribe } from "./realtime";
-import type { Clue } from "./clueTypes";
+import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
 import {
   backupFilename,
@@ -63,20 +63,11 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
   );
 
 export const api = {
-  clues: () => request<Clue[]>("/api/clues"),
-  createClue: (clue: Clue) =>
-    request<Clue>("/api/clues", {
-      method: "POST",
-      body: JSON.stringify(clue),
-    }),
-  updateClue: (clue: Clue) =>
-    request<Clue>(`/api/clues/${encodeURIComponent(clue.id)}`, {
+  clues: () => request<ClueWall>("/api/clues"),
+  saveClueWall: (wall: ClueWall) =>
+    request<ClueWall>("/api/clues", {
       method: "PUT",
-      body: JSON.stringify(clue),
-    }),
-  deleteClue: (id: string) =>
-    request<{ ok: boolean }>(`/api/clues/${encodeURIComponent(id)}`, {
-      method: "DELETE",
+      body: JSON.stringify(wall),
     }),
   subStatus: (provider: Provider) =>
     provider === "codex"
@@ -320,7 +311,7 @@ export const api = {
     conversationId: string,
     messages?: ChatMessage[],
     files?: ChatFile[],
-    latestUserMessage?: string,
+    recentMessages?: ChatMessage[],
   ) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
@@ -330,7 +321,7 @@ export const api = {
         messages,
         files: files?.map((file) => file.id),
         localTime: localDateTime(),
-        latestUserMessage,
+        recentMessages,
       }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)
