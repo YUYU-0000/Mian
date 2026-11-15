@@ -12,6 +12,8 @@ type Options = {
   direction: "left" | "down";
   canDismiss?: () => boolean;
   beforeDismiss?: () => Promise<void>;
+  onDragStart?: () => void;
+  onReboundComplete?: () => void;
   onExitComplete: () => void;
 };
 
@@ -19,10 +21,13 @@ export function useTicketSwipe({
   direction,
   canDismiss = () => true,
   beforeDismiss,
+  onDragStart,
+  onReboundComplete,
   onExitComplete,
 }: Options) {
   const motionRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
+  const exitAnimation = useRef<Animation | null>(null);
   const suppressClickRef = useRef(false);
   const suppressTimerRef = useRef<number | null>(null);
   const dragRef = useRef<{
@@ -77,6 +82,7 @@ export function useTicketSwipe({
         motion.style.transition = "";
         dragRef.current = null;
         frameRef.current = null;
+        onReboundComplete?.();
         return;
       }
     } else if (state.phase === "exit") {
@@ -101,7 +107,7 @@ export function useTicketSwipe({
         opacity = Math.max(0, opacity - Math.max(0, (absX - 72) / 148) * 0.72);
     }
     motion.style.transform = `${direction === "left" ? `translate3d(${state.offset}px, 0, 0)` : `translate3d(0, ${state.offset}px, 0)`} rotate(${state.angle}deg)`;
-    if (state.phase !== "rebound") {
+    if (state.phase !== "rebound" || direction === "down") {
       motion.style.opacity = String(opacity);
       motion.style.filter = `blur(${blurPx}px)`;
     }
@@ -113,6 +119,10 @@ export function useTicketSwipe({
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       if (suppressTimerRef.current !== null)
         window.clearTimeout(suppressTimerRef.current);
+      if (exitAnimation.current) {
+        exitAnimation.current.onfinish = null;
+        exitAnimation.current.cancel();
+      }
     },
     [],
   );
@@ -162,6 +172,7 @@ export function useTicketSwipe({
     if (direction === "down" && state.claimed && deltaY <= 0) state.targetOffset = 0;
     if (direction === "left" ? state.direction !== "horizontal" : state.direction !== "vertical" || deltaY <= 0) return;
     if (direction === "down" && !state.claimed) event.currentTarget.setPointerCapture(event.pointerId);
+    if (!state.claimed) onDragStart?.();
     state.claimed = true;
     event.preventDefault();
     suppressClickRef.current = true;
@@ -181,6 +192,27 @@ export function useTicketSwipe({
     const state = dragRef.current;
     if (!state || state.phase !== "drag" || state.pointerId !== event.pointerId)
       return;
+    const exit = () => {
+      state.phase = "exit";
+      if (direction === "left") return;
+      cancelAnimationFrame(frameRef.current!);
+      frameRef.current = null;
+      const motion = motionRef.current!;
+      const animation = motion.animate([
+        {
+          transform: motion.style.transform,
+          opacity: motion.style.opacity,
+          filter: motion.style.filter,
+        },
+        {
+          transform: `translate3d(0, ${state.offset + state.height}px, 0) rotate(0deg) scale(0.94)`,
+          opacity: 0,
+          filter: "blur(2px)",
+        },
+      ], { duration: 260, easing: "ease-out", fill: "forwards" });
+      exitAnimation.current = animation;
+      animation.onfinish = onExitComplete;
+    };
     if (
       !cancelled &&
       state.claimed &&
@@ -190,10 +222,12 @@ export function useTicketSwipe({
       if (beforeDismiss) {
         state.phase = "waiting";
         void authorizeTicketArchive(beforeDismiss).then((authorized) => {
-          if (dragRef.current === state)
-            state.phase = authorized ? "exit" : "rebound";
+          if (dragRef.current === state) {
+            if (authorized) exit();
+            else state.phase = "rebound";
+          }
         });
-      } else state.phase = "exit";
+      } else exit();
     } else if (state.claimed) state.phase = "rebound";
     else {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);

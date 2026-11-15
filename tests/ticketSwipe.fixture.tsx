@@ -7,7 +7,7 @@ import "../client/src/components/file-ticket.css";
 import "../client/src/components/scroll-text.css";
 import "../client/src/ticket-drawer.css";
 
-const result = { removed: 0, archived: 0, exited: 0, activated: 0 };
+const result = { removed: 0, archived: 0, exited: 0, activated: 0, exitOpacity: 1 };
 Object.assign(window, { result });
 function Fixture() {
   const [ids, setIds] = useState([0, 1, 2, 3]);
@@ -23,7 +23,11 @@ function Fixture() {
       <div className="file-drafts">{ids.map(id => <FileDraftTicket key={id} conversationId="a"
         draft={{ draftId: String(id), file: { id: String(id), name: `image-${id}.png`, size: 1, mimeType: "image/png", createdAt: "2026-11-16" }, progress: 100, uploaded: true,
           previewUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" }}
-        onRemove={() => { result.removed++; setIds(values => values.filter(value => value !== id)); }} />)}</div>
+        onRemove={() => {
+          result.exitOpacity = Number(getComputedStyle(document.querySelector('.file-draft-floating > div')!).opacity);
+          result.removed++;
+          setIds(values => values.filter(value => value !== id));
+        }} />)}</div>
       <textarea />
     </div>
   </>;

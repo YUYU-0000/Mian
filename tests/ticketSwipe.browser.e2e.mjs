@@ -77,7 +77,7 @@ try {
     const p = await rect(selector);
     await call("Input.dispatchMouseEvent", { type:"mousePressed", x:p.x,y:p.y,button:"left",clickCount:1 });
     for(let i=1;i<=8;i++) { await call("Input.dispatchMouseEvent", {type:"mouseMoved", x:p.x+dx*i/8,y:p.y+dy*i/8,button:"left",buttons:1}); await sleep(ms); }
-    const moving = await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)}).firstElementChild;return {transform:el.style.transform,opacity:Number(el.style.opacity),blur:el.style.filter}})()`);
+    const moving = await evaluate(`(()=>{const el=${selector === ".file-draft" ? "document.querySelector('.file-draft-floating > div') || " : ""}document.querySelector(${JSON.stringify(selector)}).firstElementChild;return {transform:el.style.transform,opacity:Number(el.style.opacity),blur:el.style.filter}})()`);
     await call("Input.dispatchMouseEvent", {type:"mouseReleased",x:p.x+dx,y:p.y+dy,button:"left",clickCount:1});
     return moving;
   };
@@ -90,10 +90,15 @@ try {
     await sleep(400);
   };
   assert.equal(await evaluate("!!document.querySelector('.file-draft-remove')"),false);
+  assert.deepEqual(await evaluate(`(()=>{
+    const row=document.querySelector('.file-drafts'),style=getComputedStyle(row),items=row.children;
+    return {gap:style.gap,padding:style.padding,margin:style.marginBottom,height:row.getBoundingClientRect().height,
+      step:items[1].getBoundingClientRect().left-items[0].getBoundingClientRect().left};
+  })()`),{gap:"10px",padding:"8px 0px",margin:"0px",height:90,step:238});
   const rebound = await mouse('.file-draft',0,25);
   assert.match(rebound.transform,/translate3d\(0(?:px)?,/);
   assert.ok(rebound.opacity >= .72 && rebound.opacity < 1);
-  await waitFor(()=>evaluate("document.querySelector('.file-draft').firstElementChild.style.transform===' ' .trim()"),'draft rebounds');
+  await waitFor(()=>evaluate("!document.querySelector('.file-draft-floating')"),'draft rebounds into its original slot');
   assert.equal(await evaluate('result.removed'),0);
   await mouse('.file-draft',0,-60);
   assert.equal(await evaluate('result.removed'),0);
@@ -111,7 +116,28 @@ try {
   await evaluate("document.querySelector('.file-drafts').scrollLeft=0");
   const exiting = await mouse('.file-draft',0,45);
   assert.ok(await evaluate(`new DOMMatrix(${JSON.stringify(exiting.transform || "none")}).m42>37`), JSON.stringify(exiting));
+  const exit = await evaluate(`(()=>{
+    const floating=document.querySelector('.file-draft-floating'),motion=floating.firstElementChild;
+    const animation=motion.getAnimations()[0];animation.pause();animation.currentTime=130;window.draftExit=animation;
+    const style=getComputedStyle(motion),rect=motion.getBoundingClientRect();
+    return {duration:animation.effect.getTiming().duration,easing:animation.effect.getTiming().easing,
+      body:floating.parentElement===document.body,outside:rect.bottom>document.querySelector('.file-drafts').getBoundingClientRect().bottom,
+      opacity:Number(style.opacity),blur:parseFloat(style.filter.slice(5)),scale:new DOMMatrix(style.transform).a,removed:result.removed};
+  })()`);
+  assert.equal(exit.duration,260);
+  assert.equal(exit.easing,"ease-out");
+  assert.ok(exit.body && exit.outside);
+  assert.ok(exit.opacity>0 && exit.opacity<.72);
+  assert.ok(exit.blur>.45 && exit.blur<2);
+  assert.ok(exit.scale>.94 && exit.scale<1);
+  assert.equal(exit.removed,0);
+  await evaluate("draftExit.currentTime=259");
+  assert.equal(await evaluate('result.removed'),0);
+  await evaluate("draftExit.finish()");
   await waitFor(()=>evaluate('result.removed===1'),'mouse downward exit');
+  assert.equal(await evaluate('result.exitOpacity'),0);
+  assert.equal(await evaluate("document.querySelector('.file-draft').getAnimations()[0].effect.getTiming().duration"),200);
+  await evaluate("document.querySelectorAll('.file-draft').forEach(item=>item.getAnimations().forEach(animation=>animation.finish()))");
   assert.equal(await evaluate("!!document.querySelector('.pv-viewer')"),false);
   await touch(0,45);
   await waitFor(()=>evaluate('result.removed===2'),'touch downward exit');
@@ -124,7 +150,7 @@ try {
   assert.equal(await evaluate('result.archived'),1);
   assert.equal(await evaluate('result.activated'),0);
   assert.deepEqual(errors,[]);
-  console.log('PASS shared ticket motion: draft mouse/touch delete, rebound, upward ignored, native horizontal scroll both ways, click suppression, unchanged MiniTicket archive.');
+  console.log('PASS original draft spacing, unclipped overlay, 260ms full fade/blur/shrink, 200ms neighbor movement, mouse/touch delete, rebound, native horizontal scrolling and unchanged MiniTicket archive.');
 } finally {
   const exited = once(browser, "exit");
   if (call) await call("Browser.close");

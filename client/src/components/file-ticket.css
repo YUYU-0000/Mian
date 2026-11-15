@@ -236,9 +236,7 @@
   right: 0;
   display: flex;
   gap: 10px;
-  padding: 8px 0 80px;
-  margin-bottom: -72px;
-  pointer-events: none;
+  padding: 8px 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -251,10 +249,14 @@
   flex: 0 0 228px;
   max-width: 100%;
   touch-action: pan-x;
-  pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
 }
 .file-draft .scroll-text {
   touch-action: pan-x;
+}
+.file-draft-floating {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
 }
