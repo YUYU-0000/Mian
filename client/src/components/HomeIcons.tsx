@@ -6,7 +6,7 @@ export const ChatGlyph = () => (
     <line x1="6.5" y1="11.9" x2="11.5" y2="11.9" />
   </svg>
 );
-export const ClueGlyph = () => (
+export const DockOpenBook = () => (
   <svg
     width="22"
     height="22"
@@ -39,7 +39,7 @@ export const DockHouse = () => (
     <path d="M4 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9M2.5 10.5l8.25-7.13a2 2 0 0 1 2.5 0l8.25 7.13M10 21v-7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7" />
   </svg>
 );
-export const DockBook = () => (
+export const DockBookmark = () => (
   <svg
     width="22"
     height="22"

@@ -1,9 +1,9 @@
 import {
   ChatGlyph,
-  ClueGlyph,
+  DockOpenBook,
   House,
   DockHouse,
-  DockBook,
+  DockBookmark,
 } from "../components/HomeIcons";
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
@@ -197,14 +197,14 @@ export default function Home({
           aria-label="设置"
           onClick={onSettings}
         >
-          <DockBook />
+          <DockOpenBook />
         </button>
         <button
           className="home-app-icon dock-3"
           aria-label="線索"
           onClick={onClues}
         >
-          <ClueGlyph />
+          <DockBookmark />
         </button>
         <Icon className="dock-4" />
       </footer>
