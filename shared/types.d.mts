@@ -8,6 +8,7 @@ export type ChatFile = {
   size: number;
   mimeType: string;
   createdAt: string;
+  replyBubbleId?: string;
 };
 export type ChatMessage = {
   role: "user" | "assistant";

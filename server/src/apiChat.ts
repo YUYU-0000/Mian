@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ChatEvent } from "../../shared/types.mjs";
+import { parseReply } from "../../shared/replyProtocol.mjs";
+import { ChatFiles } from "./chatFiles.js";
 import { completeClueChat, type ApiClues } from "./clueChat.js";
 import {
   providerMessage,
@@ -9,7 +11,7 @@ import {
 } from "./providers/openai.js";
 
 type ActiveTurn = { turnId: string; controller: AbortController };
-type ApiChatEvent = Extract<ChatEvent, { type: "turn-started" | "assistant-delta" | "turn-completed" }> & {
+type ApiChatEvent = Extract<ChatEvent, { type: "turn-started" | "assistant-delta" | "files" | "turn-completed" }> & {
   conversationId: string;
   format: "api";
 };
@@ -24,6 +26,7 @@ export class ApiChat {
       conversationId: string,
       usage: TokenUsage,
     ) => Promise<void>,
+    private readonly files = new ChatFiles(),
   ) {}
 
   getActiveTurns() {
@@ -86,6 +89,7 @@ export class ApiChat {
     let status = "completed";
     let error: string | undefined;
     let usage: TokenUsage | undefined;
+    let raw = "";
     try {
       for await (const event of completeClueChat(
         config,
@@ -96,13 +100,21 @@ export class ApiChat {
         protocol,
       )) {
         if (event.type === "usage") usage = event.usage;
-        else if (event.type === "text")
+        else if (event.type === "text") {
+          raw += event.text;
           this.emit({
             ...base,
             type: "assistant-delta",
             delta: event.text,
             immediate: event.immediate && !event.text.includes("<mian-") && !event.text.includes("<voice"),
           });
+        }
+      }
+      for (const output of parseReply(raw, "api", true).files ?? []) {
+        if (!output.complete) continue;
+        turn.controller.signal.throwIfAborted();
+        const file = await this.files.save(conversationId, output.name, Buffer.from(output.content, "utf8"), "text/plain", turn.turnId);
+        this.emit({ ...base, type: "files", files: [{ ...file, replyBubbleId: `${turn.turnId}:${output.section}:${output.index}` }] });
       }
     } catch (cause) {
       status = turn.controller.signal.aborted ? "interrupted" : "failed";

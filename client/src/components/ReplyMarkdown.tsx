@@ -11,6 +11,7 @@ import {
 import { replyMarkup, type ReplyCode as Code } from "../replyMarkup";
 import ReplyCode from "./ReplyCode";
 import ReplyImageTicket from "./ReplyImageTicket";
+import ReplyLink from "./ReplyLink";
 import { replyImageSource, splitReplyImages } from "../replyImages";
 import type { ChatFile } from "../types";
 import "./reply-markdown.css";
@@ -74,10 +75,10 @@ function renderNodes(
         disabled: true,
         checked: element.hasAttribute("checked"),
       });
-    if (tag === "a")
-      Object.assign(props, { target: "_blank", rel: "noopener noreferrer" });
     if (tag === "img") props.loading = "lazy";
     const children = renderNodes(element, codes, key, tail);
+    if (tag === "a")
+      return <ReplyLink key={key} href={element.getAttribute("href") ?? ""} title={element.getAttribute("title") ?? undefined}>{children}</ReplyLink>;
     const rendered = createElement(tag, props, ...children);
     if (tag === "table")
       return (

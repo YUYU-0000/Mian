@@ -226,6 +226,7 @@ const apiChat = new ApiChat(
     });
     publishConversation(conversation);
   },
+  files,
 );
 
 bridge.on("event", (event: any) => {
