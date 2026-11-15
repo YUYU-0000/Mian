@@ -372,18 +372,19 @@ test("turn/start keeps the reply protocol out of persisted user input", async ()
   bridge.close();
 });
 
-test("clues replace per-turn application instructions without entering user input", async () => {
+test("clues and proactive voice rules replace per-turn instructions without entering user input", async () => {
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
   const clues = "【線索】\n僅本輪命中";
-  const turn = await bridge.startTurn("第一條", "c1", clues);
+  const protocol = `${MIAN_PUBLIC_REPLY_PROTOCOL}\n本輪主動語音規則`;
+  const turn = await bridge.startTurn("第一條", "c1", clues, protocol);
   children[0].stdout.write(`${JSON.stringify({ method: "turn/completed", params: { threadId: turn.threadId, turn: { id: turn.turnId, status: "completed" } } })}\n`);
   await bridge.startTurn("第二條", "c1");
   const requests = children[0].requests.filter((item) => item.method === "turn/start");
   const first = requests[0].params as any;
   const second = requests[1].params as any;
   assert.equal(first.input[0].text, "第一條");
-  assert.equal(first.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, `${MIAN_PUBLIC_REPLY_PROTOCOL}\n\n${clues}`);
+  assert.equal(first.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, `${protocol}\n\n${clues}`);
   assert.equal(second.additionalContext[MIAN_PUBLIC_REPLY_CONTEXT_KEY].value, MIAN_PUBLIC_REPLY_PROTOCOL);
   bridge.close();
 });

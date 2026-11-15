@@ -28,6 +28,7 @@ const defaults: AppConfig = {
   sandbox: "workspace-write",
   model: "",
   channel: { kind: "codex" },
+  proactive: { voice: true },
 };
 
 export async function readConfig(): Promise<AppConfig> {
@@ -37,6 +38,7 @@ export async function readConfig(): Promise<AppConfig> {
   } catch {
     config = { ...defaults };
   }
+  config.proactive = { ...defaults.proactive, ...config.proactive };
   // 老配置迁出项目目录，保留模型、权限和当前通道。
   if (isProjectDirectory(config.workingDirectory)) {
     config.workingDirectory = defaultWorkingDirectory;
@@ -67,11 +69,13 @@ export async function saveConfig(input: unknown) {
     throw new Error(PROJECT_DIRECTORY_ERROR);
   if (!sandboxes.includes(value.sandbox as Sandbox))
     throw new Error("无效的 sandbox");
+  const current = await readConfig();
   const config: AppConfig = {
     workingDirectory: path.resolve(value.workingDirectory),
     sandbox: value.sandbox as Sandbox,
     model: typeof value.model === "string" ? value.model.trim() : "",
-    channel: value.channel ?? (await readConfig()).channel,
+    channel: value.channel ?? current.channel,
+    proactive: { ...current.proactive, ...value.proactive },
   };
   await mkdir(config.workingDirectory, { recursive: true });
   await writeConfig(config);

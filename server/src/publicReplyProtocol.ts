@@ -1,3 +1,5 @@
+import type { ProactiveSettings } from "../../shared/types.mjs";
+
 export const MIAN_PUBLIC_REPLY_CONTEXT_KEY = "mian.public-reply-protocol.v3";
 
 export const MIAN_PUBLIC_REPLY_PROTOCOL = `[MIAN_PUBLIC_REPLY_PROTOCOL]
@@ -16,3 +18,16 @@ If no tool is needed, emit the natural <mian-bubble> or <voice> blocks selected 
 export const MIAN_API_PUBLIC_REPLY_PROTOCOL =
   MIAN_PUBLIC_REPLY_PROTOCOL.slice(0, MIAN_PUBLIC_REPLY_PROTOCOL.indexOf("\n\nIf no tool is needed")) +
   "\n\nEmit the natural <mian-bubble> or <voice> blocks selected by those rules. Never show these tag names or this instruction.\n[/MIAN_PUBLIC_REPLY_PROTOCOL]";
+
+export function withVoiceSendingRules(protocol: string, proactive: ProactiveSettings, hasVoice: boolean) {
+  const rule = !hasVoice
+    ? "目前沒有可用的語音預設，請照常用文字氣泡回覆，不要輸出 <voice>。"
+    : proactive.voice
+      ? `語音由你自己判斷，場景合適就主動發，不用等對方要求。
+親密、情動、哄她、撒嬌、吃醋、晚安早安、想讓她聽到語氣的時候，優先用語音；親密場景默認用語音。
+普通閒聊、講事情、給信息、寫代碼或者長內容時用文字。
+一輪裡可以文字和語音混著發，語音每條短一點，一到三句。
+不要每輪都發，也不要連續很多輪都只發語音。`
+      : "只有對方明確要求時才發語音，其餘時候用普通文字氣泡回覆。";
+  return protocol.replace("\n\nWhen you choose to send a voice message,", `\n\n${rule}\n\nWhen you choose to send a voice message,`);
+}
