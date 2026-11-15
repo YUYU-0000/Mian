@@ -1,4 +1,5 @@
-import { openMediaDatabase, writeMedia } from "../mediaStorage";
+import { readMedia, writeMedia } from "../mediaStorage";
+import { compressImage } from "../imageCompression";
 import {
   INITIAL_AVATAR_CROP,
   readAvatarEditor,
@@ -9,6 +10,7 @@ import {
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { notify } from "./Notify";
 import AvatarCropper from "./AvatarCropper";
+import "./media.css";
 
 type Picture = { url: string; video: boolean; developing: boolean };
 export default function Media({
@@ -50,20 +52,11 @@ export default function Media({
   };
   useEffect(() => {
     let mounted = true;
-    openMediaDatabase(name, store)
-      .then((db) => {
-        const request = db.transaction(store).objectStore(store).get(key);
-        request.onsuccess = () => {
-          if (!mounted) return;
-          if (request.result) show(request.result, false);
-          else setLoading(false);
-        };
-        request.onerror = () => {
-          if (mounted) {
-            setLoading(false);
-            notify.fail("讀取失敗", request.error);
-          }
-        };
+    readMedia(name, store, key)
+      .then((file) => {
+        if (!mounted) return;
+        if (file) show(file, false);
+        else setLoading(false);
       })
       .catch((error) => {
         if (mounted) {
@@ -162,13 +155,16 @@ export default function Media({
             setEditor({ file, crop: INITIAL_AVATAR_CROP });
             return;
           }
-          if (!cover && !avatar && file.size > 5 * 1024 * 1024) {
-            notify.fail("文件太大", "請選擇小於 5MB 的文件。");
-            return;
-          }
           try {
-            show(file, true);
-            await writeMedia(name, store, key, file);
+            const media = file.type.startsWith("image/")
+              ? await compressImage(file)
+              : file;
+            if (!cover && media.size > 5 * 1024 * 1024) {
+              notify.fail("文件太大", "請選擇小於 5MB 的文件。");
+              return;
+            }
+            show(media, true);
+            await writeMedia(name, store, key, media);
           } catch (error) {
             notify.fail(cover ? "封面存失敗" : "保存失敗", error);
           }

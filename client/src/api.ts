@@ -1,9 +1,10 @@
 import { subscribe } from "./realtime";
-import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
-import type { ChatGroup, UserGroup } from "./chatModel";
 import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
 import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
+import { blobToDataURL, compressImage } from "./imageCompression";
+import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
+import type { ChatGroup, UserGroup } from "./chatModel";
 import {
   backupFilename,
   completeBackup,
@@ -228,11 +229,24 @@ export const api = {
     }),
   test: () =>
     request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
-  listConversations: () =>
-    request<{
+  listConversations: async () => {
+    const data = await request<{
       defaultConversationId: string;
       conversations: ConversationRecord[];
-    }>("/api/conversations"),
+    }>("/api/conversations");
+    for (const record of data.conversations) {
+      if (!record.image) continue;
+      const file = await (await fetch(record.image)).blob();
+      const compressed = await compressImage(file, 1200, true);
+      if (compressed === file) continue;
+      const { conversation } = await api.updateConversation(
+        record.conversationId,
+        { image: await blobToDataURL(compressed) },
+      );
+      Object.assign(record, conversation);
+    }
+    return data;
+  },
   createConversation: () =>
     request<{ conversation: ConversationRecord }>("/api/conversations", {
       method: "POST",

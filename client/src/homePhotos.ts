@@ -1,3 +1,4 @@
+import { blobToDataURL, compressImage } from "./imageCompression";
 import {
   readSettingsMedia,
   removeSettingsMedia,
@@ -17,12 +18,7 @@ export async function exportHomePhotos() {
     Object.values(homePhotoKeys).map(async (key) => {
       const file = await readSettingsMedia(key);
       if (!file) return;
-      photos[key] = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
+      photos[key] = await blobToDataURL(file);
     }),
   );
   return photos;
@@ -40,7 +36,9 @@ export async function restoreHomePhotos(
         "LauncherDB",
         "mediaStore",
         `savedMediaFile_${key}`,
-        file,
+        file.type.startsWith("image/")
+          ? await compressImage(file, 1600, true)
+          : file,
       );
     }),
   );

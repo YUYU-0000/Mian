@@ -18,6 +18,7 @@ import {
   formatTokenUsage,
 } from "../conversationDisplay";
 import { adjacentConversationId } from "../ticketGestures";
+import { blobToDataURL, compressImage } from "../imageCompression";
 
 type ConversationPatch = Partial<
   Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">
@@ -213,19 +214,17 @@ export default memo(function TicketDrawer({
     fileInput.current?.click();
   };
 
-  const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const onImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     const conversationId = pendingImageId.current;
     pendingImageId.current = null;
     if (!file || !conversationId || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== "string") return;
-      void onUpdate(conversationId, { image: reader.result }).catch(
-        console.error,
-      );
-    };
-    reader.readAsDataURL(file);
+    try {
+      const image = await blobToDataURL(await compressImage(file, 1200));
+      await onUpdate(conversationId, { image });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const pinPreview = async () => {

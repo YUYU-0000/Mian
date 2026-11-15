@@ -1,3 +1,5 @@
+import { compressImage } from "./imageCompression";
+
 // 封面和设置媒体共用 IndexedDB 连接。
 const databases = new Map<string, Promise<IDBDatabase>>();
 export function openMediaDatabase(name: string, store: string) {
@@ -26,18 +28,28 @@ export async function removeSettingsMedia(key: string) {
   });
 }
 
-export async function readSettingsMedia(
+export function readSettingsMedia(key: string) {
+  return readMedia("LauncherDB", "mediaStore", `savedMediaFile_${key}`);
+}
+
+export async function readMedia(
+  name: string,
+  store: string,
   key: string,
 ): Promise<Blob | undefined> {
-  const db = await openMediaDatabase("LauncherDB", "mediaStore");
-  return new Promise((resolve, reject) => {
+  const db = await openMediaDatabase(name, store);
+  const file = await new Promise<Blob | undefined>((resolve, reject) => {
     const request = db
-      .transaction("mediaStore")
-      .objectStore("mediaStore")
-      .get(`savedMediaFile_${key}`);
+      .transaction(store)
+      .objectStore(store)
+      .get(key);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  if (!file || !file.type.startsWith("image/")) return file;
+  const compressed = await compressImage(file, 1600, true);
+  if (compressed !== file) await writeMedia(name, store, key, compressed);
+  return compressed;
 }
 
 export async function writeMedia(
