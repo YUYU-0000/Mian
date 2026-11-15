@@ -1,24 +1,33 @@
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { stripVoiceTags, type VoiceClip } from "../../../shared/voice.mjs";
+import { cacheLazyImport } from "../lazyImport";
 import { voicePlayer } from "../voicePlayer";
 import { notify } from "./Notify";
+import ScrollText from "./ScrollText";
+import AnimatedText from "./AnimatedText";
+import AnimatedSwap from "./AnimatedSwap";
 import "./file-ticket.css";
 import "./voice-ticket.css";
 
 const emptyPeaks = Array<number>(38).fill(0);
+const PaperPreview = lazy(cacheLazyImport("paper-preview", () => import("./PaperPreview")));
 
 function durationLabel(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-export default function VoiceTicket({ clip, time }: { clip: VoiceClip; time: string }) {
+export default function VoiceTicket({ clip, fallback }: { clip: VoiceClip; fallback?: "failed" | "stopped" }) {
   const player = useSyncExternalStore(voicePlayer.subscribe, voicePlayer.getSnapshot);
   const active = player.id === clip.url;
   const playing = active && player.playing;
-  const [expanded, setExpanded] = useState(false);
-  const transcriptId = useId();
+  const [viewing, setViewing] = useState(false);
+  const closePreview = useCallback(() => setViewing(false), []);
   const [knownDuration, setKnownDuration] = useState<number | null>(null);
   const duration = clip.duration ?? knownDuration;
+  const failureText = fallback === "stopped" ? "已停止" : "生成失敗";
+  const durationText = fallback ? failureText : duration === null ? "--:--" : durationLabel(duration);
+  const previewName = !clip.url && !fallback ? "生成中" : durationText;
+  const transcript = stripVoiceTags(clip.text);
   const progress = active && duration ? player.currentTime / duration : 0;
   useEffect(() => {
     if (active && player.duration !== null) setKnownDuration(player.duration);
@@ -34,17 +43,22 @@ export default function VoiceTicket({ clip, time }: { clip: VoiceClip; time: str
       else voicePlayer.resume();
     } else void play();
   };
+  const playButton = <button className={`voice-play${playing ? " is-playing" : ""}`} type="button" disabled={!clip.url}
+    aria-label={playing ? "暫停語音" : "播放語音"}
+    onClick={event => { event.stopPropagation(); toggle(); }} />;
   return (
-    <div className={`voice-ticket${playing ? " on" : ""}${expanded ? " open" : ""}`}>
-      <div className="ft" onClick={() => setExpanded(value => !value)}>
+    <>
+      <AnimatedSwap value={fallback ? "text" : "ticket"} className="voice-reply">
+        {displayed => displayed === "text"
+          ? <div className={`archive-bubble${fallback === "stopped" ? " stopped" : ""}`}><AnimatedText text={transcript} /></div>
+          : <div className="voice-ticket"><div className="ft" onClick={() => setViewing(true)}>
         <div className="ft-body" />
         <div className="ft-main">
           <div className="ft-kicker">VOICE  語音</div>
           <div className="voice-row">
-            <button className="voice-play" type="button" disabled={!clip.url}
-              aria-label={playing ? "暫停語音" : "播放語音"}
-              onClick={event => { event.stopPropagation(); toggle(); }} />
-            {clip.url ? <button className="voice-wave" type="button" disabled={duration === null}
+            {playButton}
+            <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot">
+              {content => content === "wave" ? <button className="voice-wave" type="button" disabled={duration === null}
               aria-label="跳轉語音播放位置"
               onClick={event => {
                 event.stopPropagation();
@@ -56,23 +70,33 @@ export default function VoiceTicket({ clip, time }: { clip: VoiceClip; time: str
               }}>
               {(clip.peaks ?? emptyPeaks).map((peak, index) => <i key={index} aria-hidden="true"
                 className={index / 38 < progress ? "done" : undefined} style={{ height: `${peak * 20}px` }} />)}
-            </button> : <div className="voice-generating" role="status">生成中</div>}
+            </button> : <div className="voice-generating" role="status"><AnimatedText text={fallback ? failureText : "生成中"} /></div>}
+            </AnimatedSwap>
           </div>
           <div className="ft-meta">
-            <span><b>{duration === null ? "--:--" : durationLabel(duration)}</b></span>
-            <span>{time}</span>
-            <button className="ft-act" type="button" aria-expanded={expanded} aria-controls={transcriptId}>台詞</button>
+            <span><b><AnimatedText text={durationText} /></b></span>
+            <button className="ft-act" type="button" aria-haspopup="dialog">台詞</button>
           </div>
         </div>
         <div className="ft-perf" />
         <div className="ft-stub"><div className="ft-ext">VOICE</div></div>
-      </div>
-      <div className="voice-transcript" id={transcriptId} aria-hidden={!expanded}>
-        <div className="voice-transcript-paper">
-          <div className="voice-transcript-kicker">TRANSCRIPT  台詞</div>
-          <div className="voice-transcript-text">{stripVoiceTags(clip.text)}</div>
-        </div>
-      </div>
-    </div>
+      </div></div>}
+      </AnimatedSwap>
+      {viewing && <Suspense fallback={null}>
+        <PaperPreview label="語音台詞" onClose={closePreview} footer={playButton}>
+          <div className="pv-photo pv-document">
+            <div className="pv-file-head">
+              <div className="pv-kicker">VOICE  語音</div>
+              <ScrollText className="pv-name"><AnimatedText text={previewName} /></ScrollText>
+            </div>
+            <div className="pv-file-content">
+              <div className="pv-source reply-code pv-voice-text">
+                <pre><code><AnimatedText text={transcript} /></code></pre>
+              </div>
+            </div>
+          </div>
+        </PaperPreview>
+      </Suspense>}
+    </>
   );
 }

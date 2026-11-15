@@ -30,7 +30,7 @@ export function usePaperPreview(
   ready: boolean,
   image: boolean,
   onClose: () => void,
-  onSave: () => void,
+  onSave?: () => void,
 ) {
   const dialog = useRef<HTMLDialogElement>(null);
   const paper = useRef<HTMLDivElement>(null);
@@ -163,7 +163,7 @@ export function usePaperPreview(
       saved.current = false;
       if (!target.closest("a, button, input, textarea, select")) {
         paper.current!.style.scale = ".98";
-        hold.current = {
+        if (onSave) hold.current = {
           id: event.pointerId,
           point,
           timer: window.setTimeout(() => {
