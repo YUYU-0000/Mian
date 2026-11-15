@@ -29,17 +29,17 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
 .disc{position:relative;width:250px;height:250px;margin-top:-18px}
 .back,.front{position:absolute;inset:0;border-radius:50%}
 .back{background:#7590a3;background-image:var(--grain);transform:translate(14px,10px) rotate(8deg)}
-.front{background:var(--sheet);background-image:var(--grain);transform:rotate(-2deg)}
+.front{background:var(--sheet);background-image:var(--grain);}
 .front svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .win{position:absolute;left:50%;top:52px;width:124px;height:124px;margin-left:-62px;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 52% 44%,#e9d8c8 0 22%,transparent 23%),radial-gradient(ellipse at 52% 92%,#4f6475 0 38%,transparent 39%),linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3);
   box-shadow:inset 0 0 0 1px rgba(59,77,90,.18)}
 .ctl{position:absolute;left:0;right:0;top:184px;display:flex;flex-direction:column;align-items:center}
-.swap{font-size:9.5px;letter-spacing:2px;color:var(--muted)}
+.swap{font-size:9.5px;letter-spacing:2px;padding-left:2px;color:var(--muted)}
 .slider{position:relative;width:104px;height:1px;background:rgba(59,77,90,.4);margin:9px 0 10px}
 .slider i{position:absolute;left:38%;top:-4px;width:9px;height:9px;border-radius:50%;background:#7590a3}
 .act{display:flex;gap:26px;font-size:12px;letter-spacing:2px;color:var(--ink)}
-.act span{border-bottom:1px solid currentColor;padding-bottom:1px}
+.act span{border-bottom:1px solid currentColor;padding:0 0 1px 2px}
 .act span+span{color:var(--muted)}
 </style></head><body>
 <div class="phone">
@@ -55,9 +55,10 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
           <circle cx="125" cy="18" r="6.5" fill="none" stroke="rgba(59,77,90,.25)" stroke-width="1.2"/>
           <circle cx="125" cy="18" r="4.5" fill="#5d6b75"/>
           <circle cx="125" cy="125" r="114" fill="none" stroke="rgba(59,77,90,.28)" stroke-width=".8"/>
-          <text font-family="ZSFT-br" font-weight="500" font-size="7" letter-spacing="2.2" fill="#72828e" style="white-space:pre">
-            <textPath href="#rim" startOffset="50%" text-anchor="middle">PORTRAIT                                   彼方肖像</textPath>
-          </text>
+          <g font-family="ZSFT-br" font-weight="500" font-size="7" letter-spacing="2.2" fill="#72828e">
+            <text><textPath href="#rim" startOffset="22%" text-anchor="middle">PORTRAIT</textPath></text>
+            <text><textPath href="#rim" startOffset="78%" text-anchor="middle">彼方肖像</textPath></text>
+          </g>
         </svg>
         <div class="win"></div>
         <div class="ctl">
