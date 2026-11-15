@@ -19,6 +19,7 @@ import {
 import {
   MIAN_PUBLIC_REPLY_CONTEXT_KEY,
   MIAN_PUBLIC_REPLY_PROTOCOL,
+  MIAN_TURN_CONTEXT_KEY,
 } from "./publicReplyProtocol.js";
 
 type Waiter = {
@@ -480,6 +481,7 @@ export class CodexBridge extends EventEmitter {
 
   private threadOptions(conversationId: string) {
     if (!this.config) throw new Error("尚未连接 Codex");
+    // 正式线程沿用固定的默认 baseInstructions，逐轮上下文只交给 turn/start。
     return {
       cwd: path.join(this.config.workingDirectory, conversationId),
       sandbox: this.config.sandbox,
@@ -629,6 +631,7 @@ export class CodexBridge extends EventEmitter {
     conversationId: string,
     clues: string | (() => Promise<string>) = "",
     protocol = MIAN_PUBLIC_REPLY_PROTOCOL,
+    localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
   ) {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
@@ -645,9 +648,11 @@ export class CodexBridge extends EventEmitter {
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {
-            value: [protocol, instructions]
-              .filter(Boolean)
-              .join("\n\n"),
+            value: protocol,
+            kind: "application",
+          },
+          [MIAN_TURN_CONTEXT_KEY]: {
+            value: [localTime, instructions].filter(Boolean).join("\n\n"),
             kind: "application",
           },
         },

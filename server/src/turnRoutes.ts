@@ -111,6 +111,7 @@ export function turnRoutes({
         result = await bridge.startTurn(prompt, conversationId, async () =>
           [await selectCluePrompt(wall.cards, recent, bridge.selectClues.bind(bridge)), voiceCluePrompt(wall.cards)].filter(Boolean).join("\n\n"),
           protocol,
+          request.body.localTime,
         );
       } catch (error) {
         workspaceFiles.delete(conversationId);

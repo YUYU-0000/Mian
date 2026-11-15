@@ -221,8 +221,9 @@ export async function* completeChat(
   messages: ChatMessage[],
   signal: AbortSignal,
   tools?: ChatTool[],
+  toolChoice?: "none",
 ): AsyncGenerator<CompletionEvent> {
-  const body = { model: config.model, messages, tools };
+  const body = { model: config.model, messages, tools, tool_choice: toolChoice };
   let emitted = false;
   try {
     let response: Response;
@@ -238,8 +239,6 @@ export async function* completeChat(
         signal,
       );
     } catch (error) {
-      if (tools && error instanceof ProviderError && error.status === 400)
-        throw error;
       if (!unsupported(error, "stream_options")) throw error;
       response = await providerResponse(
         config,
@@ -253,8 +252,6 @@ export async function* completeChat(
       yield event;
     }
   } catch (error) {
-    if (tools && error instanceof ProviderError && error.status === 400)
-      throw error;
     // 仅在明确不支持流式且尚未输出时重发，避免重复生成。
     if (emitted || signal.aborted || !unsupported(error, "stream")) throw error;
     const response = await providerResponse(

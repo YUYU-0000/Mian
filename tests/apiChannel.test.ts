@@ -8,6 +8,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { WebSocket } from "ws";
 import { API_FORMAT_REMINDER } from "../server/src/apiPrompt.ts";
+import { appendUserRecord, applyReplyEvent, closePendingGroup } from "../shared/chatModel.mjs";
 
 test(
   "API channel routes persist selection, stream history, fork, stop, and return to Codex",
@@ -31,7 +32,7 @@ test(
       response.write(
         `data: ${JSON.stringify({ choices: [{ delta: { content: "API 回答" } }] })}\n\n`,
       );
-      if (body.messages.at(-1).content === `stop\n\n${API_FORMAT_REMINDER}`) {
+      if (body.messages.at(-1).content.startsWith("stop\n\n")) {
         response.on("close", () => providerStopped());
         return;
       }
@@ -154,10 +155,14 @@ test(
         { role: "assistant", content: "旧回答" },
         { role: "user", content: "新问题" },
       ];
+      let groups = closePendingGroup(appendUserRecord([], "旧问题", "02:00", "old-user", "old-group"), "old-group");
+      groups = applyReplyEvent(groups, { type: "assistant-delta", turnId: "old-reply", delta: "旧回答", format: "plain" }, "02:00");
+      groups = applyReplyEvent(groups, { type: "turn-completed", turnId: "old-reply", status: "completed" }, "02:00");
+      await request("/api/conversations/c1/messages", "PUT", { groups, initialize: true });
       const turn = await request("/api/turn", "POST", {
         conversationId: "c1",
         text: "新问题",
-        messages,
+        localTime: "現在是 2026-11-16 星期一 02:01",
       });
       await waitEvent(
         (event) =>
@@ -165,10 +170,10 @@ test(
       );
       assert.deepEqual(received[0].messages.slice(1), [
         ...messages.slice(0, -1),
-        { role: "user", content: `新问题\n\n${API_FORMAT_REMINDER}` },
+        { role: "user", content: `新问题\n\n現在是 2026-11-16 星期一 02:01\n\n${API_FORMAT_REMINDER}` },
       ]);
       assert.equal(received[0].messages[0].role, "system");
-      assert.match(received[0].messages[0].content, /現在是/);
+      assert.doesNotMatch(received[0].messages[0].content, /現在是/);
       assert.match(received[0].messages[0].content, /<mian-thinking>/);
       assert.doesNotMatch(
         received[0].messages[0].content,
@@ -200,11 +205,6 @@ test(
       const stopping = await request("/api/turn", "POST", {
         conversationId: branch.conversationId,
         text: "stop",
-        messages: [
-          ...messages,
-          { role: "assistant", content: "API 回答" },
-          { role: "user", content: "stop" },
-        ],
       });
       await waitEvent(
         (event) =>

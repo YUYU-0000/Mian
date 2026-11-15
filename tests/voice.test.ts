@@ -102,7 +102,7 @@ for (const channel of ["api", "codex"])
       });
       if (channel === "codex") await request("/api/subscriptions/codex/use", "POST", {});
       await (await start()).done;
-      const scenePrompt = channel === "api" ? server.received[0].messages[0].content : server.systemPrompts[0];
+      const scenePrompt = channel === "api" ? server.received[0].messages.at(-1).content : server.systemPrompts[0];
       assert.match(scenePrompt, /生成語音條時的線索/);
       assert.match(scenePrompt, /VOICE_SCENE_WORDING/);
       const snapshot = await (await request("/api/conversations/c1/messages")).json();

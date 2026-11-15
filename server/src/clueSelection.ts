@@ -15,10 +15,18 @@ function matchesScene(clue: Clue, scenes: Clue["scenes"]) {
   return clue.scenes.some((scene) => scenes.includes(scene));
 }
 
+const compareClueIds = (a: Clue, b: Clue) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+const compareClues = (a: Clue, b: Clue) => a.order - b.order || compareClueIds(a, b);
+const formatClue = (clue: Clue) => `【${clue.title}】\n${clue.content}`;
+
+export function pinnedCluePrompt(clues: Clue[]) {
+  return clues.filter(clue => clue.mode === "pinned").sort(compareClueIds).map(formatClue).join("\n\n");
+}
+
 export function clueDirectory(clues: Clue[], withTools = false) {
   const cards = clues
     .filter((clue) => clue.mode === "trigger")
-    .sort((a, b) => a.order - b.order)
+    .sort(compareClues)
     .map((clue) =>
       withTools ? clueMetadata(clue) : { title: clue.title, when: clue.when },
     );
@@ -63,9 +71,9 @@ export function cluePrompt(
     .sort(
       (a, b) =>
         Number(a.mode === "trigger") - Number(b.mode === "trigger") ||
-        a.order - b.order,
+        compareClues(a, b),
     )
-    .map((clue) => `【${clue.title}】\n${clue.content}`)
+    .map(formatClue)
     .join("\n\n");
 }
 
@@ -77,7 +85,7 @@ export async function selectCluePrompt(
 ) {
   const candidates = clues.filter(
     (clue) => clue.mode === "trigger" && !matchesScene(clue, scenes),
-  );
+  ).sort(compareClues);
   let selected: string[] = [];
   if (candidates.length) {
     const system = `${CLUE_SELECTION_INSTRUCTION}\n\n${JSON.stringify(candidates.map(clueMetadata))}`;

@@ -296,9 +296,11 @@ for (const selectionFails of [false, true])
         const formal = server.received[2].messages[0];
         assert.equal(formal.role, "system");
         assert.match(formal.content, /【常駐】/);
-        assert.equal(formal.content.includes("【回憶】"), !selectionFails);
-        assert.match(formal.content, /線索目錄/);
-        assert.doesNotMatch(formal.content, /調用 read_clue/);
+        assert.doesNotMatch(formal.content, /【回憶】|線索目錄/);
+        const context = server.received[2].messages.at(-1).content;
+        assert.equal(context.includes("【回憶】"), !selectionFails);
+        assert.match(context, /線索目錄/);
+        assert.doesNotMatch(context, /調用 read_clue/);
         const presetsPath = path.join(
           server.directory,
           "server/data/api-presets.json",

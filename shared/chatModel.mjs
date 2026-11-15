@@ -15,18 +15,11 @@ export function chatHistory(groups) {
             : [];
         if (!content && !files.length)
             continue;
-        const previous = messages.at(-1);
-        if (previous?.role === group.role) {
-            previous.content += `\n\n${content}`;
-            if (files.length)
-                previous.files = [...(previous.files ?? []), ...files];
-        }
-        else
-            messages.push({
-                role: group.role,
-                content,
-                ...(files.length ? { files } : {}),
-            });
+        messages.push({
+            role: group.role,
+            content,
+            ...(files.length ? { files } : {}),
+        });
     }
     return messages;
 }

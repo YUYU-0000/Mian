@@ -10,12 +10,14 @@ export function apiRequestMessages(
   localTime: string,
   clues = "",
   protocol = MIAN_API_PUBLIC_REPLY_PROTOCOL,
+  pinned = "",
 ): ChatMessage[] {
   const lastUser = messages.map(({ role }) => role).lastIndexOf("user");
+  const context = [localTime, clues, API_FORMAT_REMINDER].filter(Boolean).join("\n\n");
   return [
     {
       role: "system",
-      content: [protocol, localTime, clues]
+      content: [protocol, pinned]
         .filter(Boolean)
         .join("\n\n"),
     },
@@ -25,12 +27,12 @@ export function apiRequestMessages(
             ...message,
             content:
               typeof message.content === "string"
-                ? `${message.content}\n\n${API_FORMAT_REMINDER}`
+                ? `${message.content}\n\n${context}`
                 : [
                     ...message.content,
                     {
                       type: "text" as const,
-                      text: `\n\n${API_FORMAT_REMINDER}`,
+                      text: `\n\n${context}`,
                     },
                   ],
           }

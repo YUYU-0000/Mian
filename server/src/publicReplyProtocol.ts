@@ -1,6 +1,7 @@
 import type { ProactiveSettings } from "../../shared/types.mjs";
 
 export const MIAN_PUBLIC_REPLY_CONTEXT_KEY = "mian.public-reply-protocol.v3";
+export const MIAN_TURN_CONTEXT_KEY = "mian.turn-context.v1";
 
 export const MIAN_PUBLIC_REPLY_PROTOCOL = `[MIAN_PUBLIC_REPLY_PROTOCOL]
 Write exactly one short public, fictionalized character thought for the user to see; it is not hidden chain-of-thought. Put it in exactly one <mian-thinking>...</mian-thinking>. The thought must be 1-3 natural sentences, specific to this turn, and must not be a fixed template or a full analysis. Every visible assistant chat bubble must use one <mian-bubble>...</mian-bubble>.
