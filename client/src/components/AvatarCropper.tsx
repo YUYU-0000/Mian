@@ -155,6 +155,16 @@ export default function AvatarCropper({
     pointers.current.delete(event.pointerId);
   };
   const short = size ? Math.min(size.width, size.height) : 1;
+  const actions = [
+    { name: "confirm", label: "確定", offset: "31%", run: save },
+    {
+      name: "replace",
+      label: "換照片",
+      offset: "50%",
+      run: () => fileInput.current!.click(),
+    },
+    { name: "cancel", label: "取消", offset: "69%", run: close },
+  ];
 
   return createPortal(
     <dialog
@@ -163,6 +173,7 @@ export default function AvatarCropper({
       aria-label="調整頭像"
       tabIndex={-1}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         close();
       }}
@@ -225,6 +236,20 @@ export default function AvatarCropper({
               />
             )}
           </div>
+          {actions.map((action) => (
+            <button
+              key={action.name}
+              type="button"
+              className="avatar-crop-button"
+              data-action={action.name}
+              aria-label={action.label}
+              disabled={saving || !size}
+              onClick={async () => {
+                await action.run();
+                (document.activeElement as HTMLElement | null)?.blur();
+              }}
+            />
+          ))}
           <svg className="avatar-crop-ring" viewBox="0 0 200 200">
             <defs>
               <path
@@ -271,26 +296,15 @@ export default function AvatarCropper({
                 </textPath>
               </text>
             </g>
-            <g className="avatar-crop-actions" textAnchor="middle">
-              {[
-                { name: "confirm", label: "確定", offset: "31%", run: save },
-                {
-                  name: "replace",
-                  label: "換照片",
-                  offset: "50%",
-                  run: () => fileInput.current!.click(),
-                },
-                { name: "cancel", label: "取消", offset: "69%", run: close },
-              ].map((action) => (
+            <g
+              className="avatar-crop-actions"
+              textAnchor="middle"
+              aria-hidden="true"
+            >
+              {actions.map((action) => (
                 <text
                   key={action.name}
                   className={`avatar-crop-${action.name}`}
-                  role="button"
-                  aria-disabled={saving || !size}
-                  onClick={async () => {
-                    if (!saving && size) await action.run();
-                    (document.activeElement as HTMLElement | null)?.blur();
-                  }}
                 >
                   <textPath
                     href={`#${pathId}-bottom`}

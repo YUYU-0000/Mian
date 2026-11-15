@@ -330,10 +330,36 @@ try {
       role === "assistant" ? "彼方肖像" : "此方肖像",
     );
   };
-  const cropAction = (name) =>
-    evaluate(
-      `document.querySelector('.avatar-crop-${name}').dispatchEvent(new MouseEvent('click', {bubbles:true}))`,
+  const cropAction = async (name) => {
+    const point = await evaluate(`(() => {
+      const rect=document.querySelector('.avatar-crop-${name}').getBoundingClientRect();
+      const x=rect.x+rect.width/2,y=rect.y+rect.height/2,hit=document.elementFromPoint(x,y);
+      return {x,y,button:hit instanceof HTMLButtonElement,action:hit.dataset.action};
+    })()`);
+    assert.equal(point.button, true, JSON.stringify(point));
+    assert.equal(point.action, name);
+    await call("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: point.x,
+      y: point.y,
+      button: "left",
+      buttons: 1,
+      clickCount: 1,
+    });
+    assert.equal(
+      await evaluate(
+        `getComputedStyle(document.querySelector('.avatar-crop-${name}')).opacity`,
+      ),
+      "0.6",
     );
+    await call("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: point.x,
+      y: point.y,
+      button: "left",
+      clickCount: 1,
+    });
+  };
   const cropZoom = () =>
     evaluate(
       "document.querySelector('.avatar-crop-frame img').getBoundingClientRect().height / document.querySelector('.avatar-crop-frame').getBoundingClientRect().height",
@@ -360,7 +386,7 @@ try {
       center:[rect.x+rect.width/2-innerWidth/2,rect.y+rect.height/2-innerHeight/2],
       headingSize:getComputedStyle(document.querySelector('.avatar-crop-heading')).fontSize,
       shade:getComputedStyle(document.querySelector('.avatar-cropper .tag-overlay')).backgroundColor,
-      textStyles:Array.from(document.querySelectorAll('.avatar-crop-actions [role=button]'),node=>{const style=getComputedStyle(node);return [style.fontSize,style.fill,style.stroke,style.fontWeight]}),
+      textStyles:Array.from(document.querySelectorAll('.avatar-crop-actions text:not(.avatar-crop-divider)'),node=>{const style=getComputedStyle(node);return [style.fontSize,style.fill,style.stroke,style.fontWeight]}),
       oldControls:document.querySelectorAll('.avatar-cropper input[type=range],.avatar-cropper .pv-card,.avatar-cropper .pv-under').length};
   })()`);
   assert.deepEqual(tag, {
@@ -524,6 +550,9 @@ try {
       ),
     "重新调整已保存头像",
   );
+  await evaluate(
+    "Promise.all(document.querySelector('.avatar-cropper').getAnimations({subtree:true}).map(animation=>animation.finished))",
+  );
   assert.ok(Math.abs((await cropZoom()) - 2) < 0.001);
   assert.deepEqual(
     await evaluate(
@@ -531,7 +560,7 @@ try {
     ),
     [180, 100],
   );
-  // SVG 环形文字能触发换图；取消仍保留上次保存的头像。
+  // 环形文字上的 HTML 按钮触发换图，取消保留上次保存的头像。
   await evaluate(
     "window.replaceOpened=false;document.querySelector('.avatar-cropper input[type=file]').addEventListener('click',()=>window.replaceOpened=true)",
   );
@@ -544,7 +573,10 @@ try {
     input.files=data.files;input.dispatchEvent(new Event('change',{bubbles:true}));
   })()`);
   await waitFor(
-    async () => Math.abs((await cropZoom()) - 1) < 0.001,
+    async () =>
+      (await evaluate(
+        "!document.querySelector('.avatar-crop-button[data-action=cancel]').disabled",
+      )) && Math.abs((await cropZoom()) - 1) < 0.001,
     "换照片重置取景",
   );
   await cropAction("cancel");
