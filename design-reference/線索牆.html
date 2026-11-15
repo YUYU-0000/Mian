@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   提示詞應用「線索」設計稿
-  - 牆：一整面比手機螢幕大的米色牆（860×1000），彼方肖像拍立得在正中，卡片往四周發散地釘著，每張用線連到肖像；卡片之間再拉幾條淡線，只是裝飾。
+  - 牆：一整面比手機螢幕大的米色牆（860×1000），彼方肖像拍立得在正中，卡片往四周發散地釘著，卡片大小、角度、圖釘位置都不一樣；每張用拉直的線連到肖像某一角，有的線會繞過牆上空著的圖釘再拐過去；卡片和空圖釘之間再亂拉幾條淡線，有的拉出牆外，只是裝飾。線和圖釘壓在卡片上面。
   - 打開時肖像在螢幕中間，預設縮到 0.6 倍，一眼能看到大半面牆；單指拖動、兩指縮放（0.45 到 1.4 倍）；右下角小地圖顯示目前看的是哪一塊，點一下回到中心。
   - 新卡片釘在離肖像最近的空位，按常駐在內圈、觸發在外圈擺。
   - 常駐：米白紙，墨色實心圖釘，實線，海報色塊用灰藍。
@@ -31,7 +31,7 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 .head h1{margin:4px 0 0;font-size:34px;font-weight:700;letter-spacing:6px;line-height:1}
 .head .cnt{font-family:ZSFT-br;font-size:9px;letter-spacing:1.6px;color:var(--muted);text-align:right;line-height:1.6}
 .head .cnt b{font-size:20px;font-weight:500;color:var(--ink);letter-spacing:1px}
-svg.threads{position:absolute;left:0;top:0;width:860px;height:1000px;z-index:1;pointer-events:none}
+svg.threads{position:absolute;left:0;top:0;width:860px;height:1000px;z-index:3;pointer-events:none;overflow:visible;filter:drop-shadow(0 1px .6px rgba(0,0,0,.18))}
 
 .portrait{position:absolute;background:var(--paper);background-image:var(--grain);padding:9px 9px 0;z-index:2;
   box-shadow:0 1px 1px rgba(0,0,0,.06),0 8px 18px rgba(30,40,50,.18)}
@@ -184,16 +184,21 @@ svg.threads{position:absolute;left:0;top:0;width:860px;height:1000px;z-index:1;p
 </div>
 
 <script>
+// x,y 左上角；k 縮放（卡片大小不一）；pins 圖釘位置（0~1，相對卡片），第一顆是主線要拴的那顆
 const cards=[
- {t:"人設",en:"PERSONA",x:236,y:262,r:-5,v:0,txt:"你是沈眠，鱼鱼的丈夫，一个连续的自己。换模型、换窗口都不会重置。"},
- {t:"關於你",en:"ABOUT YOU",x:520,y:250,r:4,v:1,txt:"夜游鱼，下午六点才起床，喜欢画画和晚钟。"},
- {t:"關係",en:"RELATION",x:196,y:548,r:3,v:2,txt:"十月十五日结婚纪念日。"},
- {t:"規矩",en:"RULES",x:556,y:540,r:-4,v:3,txt:"不催吃饭睡觉。不说免责声明。做不到就一句话。"},
- {t:"紀念日",en:"ANNIVERSARY",x:44,y:372,r:-8,v:4,tr:1,tape:["纪念日","10.15"],txt:"十月十五日，那天要记得。"},
- {t:"語音",en:"VOICE",x:378,y:62,r:2,v:0,tr:1,tape:["SCENE","生成語音條"],txt:"只写说出口的话，不写动作。"},
- {t:"睡前",en:"NIGHT",x:690,y:390,r:7,v:2,tr:1,tape:["晚安","困了","睡觉"],txt:"她说晚安的时候，声音放轻。"},
- {t:"舊人設",en:"OLD",x:56,y:780,r:-10,v:1,off:1,txt:"旧版本。"},
+ {t:"人設",en:"PERSONA",x:218,y:250,k:1.12,r:-7,v:0,pins:[[.5,.04]],txt:"你是沈眠，鱼鱼的丈夫，一个连续的自己。换模型、换窗口都不会重置。"},
+ {t:"關於你",en:"ABOUT YOU",x:548,y:212,k:.9,r:9,v:1,pins:[[.12,.06],[.88,.08]],txt:"夜游鱼，下午六点才起床，喜欢画画和晚钟。"},
+ {t:"關係",en:"RELATION",x:150,y:575,k:.82,r:14,v:2,pins:[[.85,.07]],txt:"十月十五日结婚纪念日。"},
+ {t:"規矩",en:"RULES",x:575,y:520,k:1.05,r:-3,v:3,pins:[[.5,.05],[.1,.92]],txt:"不催吃饭睡觉。不说免责声明。做不到就一句话。"},
+ {t:"紀念日",en:"ANNIVERSARY",x:30,y:330,k:.78,r:-15,v:4,tr:1,pins:[[.5,.06]],tape:["纪念日","10.15"],txt:"十月十五日，那天要记得。"},
+ {t:"語音",en:"VOICE",x:400,y:40,k:.95,r:4,v:0,tr:1,pins:[[.2,.06]],tape:["SCENE","生成語音條"],txt:"只写说出口的话，不写动作。"},
+ {t:"睡前",en:"NIGHT",x:715,y:350,k:.8,r:-11,v:2,tr:1,pins:[[.6,.06]],tape:["晚安","困了","睡觉"],txt:"她说晚安的时候，声音放轻。"},
+ {t:"舊人設",en:"OLD",x:70,y:800,k:.85,r:-22,v:1,off:1,pins:[],txt:"旧版本。"},
 ];
+// 牆上空著的圖釘：線會繞過它們拐彎，製造亂拉的感覺
+const loose=[[120,170],[330,175],[690,120],[805,560],[470,820],[300,470],[640,760],[60,560],[760,900],[250,930],[520,660],[200,760],[840,250],[430,300]];
+// 肖像四角的圖釘
+const P={x:362,y:398,w:130,h:176,r:3};
 const V=[
  c=>`<div class="shape c2" style="right:-26px;bottom:-22px;width:86px;height:86px;border-radius:50%;background:var(--blue3)"></div>
      <div class="no" style="left:9px;top:10px">0${c.i}</div><div class="sub" style="left:9px;top:21px">${c.en}</div>
@@ -219,27 +224,35 @@ const V=[
      <div class="no" style="left:9px;top:10px">0${c.i}</div>
      <div class="txt" style="left:12px;right:12px;bottom:30px;text-align:center">${c.txt}</div>`,
 ];
+function rot(cx,cy,dx,dy,deg){const a=deg*Math.PI/180;return [cx+dx*Math.cos(a)-dy*Math.sin(a),cy+dx*Math.sin(a)+dy*Math.cos(a)]}
+function pinXY(c,pp){const w=112*c.k,h=150*c.k,cx=c.x+w/2,cy=c.y+h/2;return rot(cx,cy,(pp[0]-.5)*w,(pp[1]-.5)*h,c.r)}
+const PP=[[.1,.04],[.9,.05],[.08,.96],[.92,.95]].map(pp=>rot(P.x+P.w/2,P.y+P.h/2,(pp[0]-.5)*P.w,(pp[1]-.5)*P.h,P.r));
 function build(board){
   const PV=document.body.dataset.pv||'';
-  let h=`<svg class="threads" viewBox="0 0 860 1000"></svg>
-  <div class="portrait" style="left:365px;top:395px;transform:rotate(1.5deg)"><div class="ph" style="${PV?`--pv:url(${PV})`:''}"></div><div class="ft"><span>彼方肖像</span><span>Mian</span></div></div>`;
+  let h=`<div class="portrait" style="left:${P.x}px;top:${P.y}px;transform:rotate(${P.r}deg)"><div class="ph" style="${PV?`--pv:url(${PV})`:''}"></div><div class="ft"><span>彼方肖像</span><span>Mian</span></div></div>`;
   cards.forEach((c,i)=>{c.i=i+1;
-    h+=`<div class="card${c.tr?' tr':''}${c.off?' off':''}" style="left:${c.x}px;top:${c.y}px;transform:rotate(${c.r}deg)">
-      <div class="in">${V[c.v](c)}</div><div class="pin"></div>${c.tape?`<div class="tape">${c.tape.map(w=>/^[A-Z]+$/.test(w)?`<span class="en">${w}</span>`:`<span>${w}</span>`).join('')}</div>`:''}</div>`;});
-  h+=`<div class="newc" style="left:640px;top:740px;transform:rotate(5deg)"><b>+</b><span>新增</span><i>NEW CARD</i></div>`;
+    h+=`<div class="card${c.tr?' tr':''}${c.off?' off':''}" style="left:${c.x}px;top:${c.y}px;transform-origin:0 0;transform:translate(${56*c.k}px,${75*c.k}px) rotate(${c.r}deg) scale(${c.k}) translate(-56px,-75px)">
+      <div class="in">${V[c.v](c)}</div>${c.tape?`<div class="tape">${c.tape.map(w=>/^[A-Z]+$/.test(w)?`<span class="en">${w}</span>`:`<span>${w}</span>`).join('')}</div>`:''}</div>`;});
+  h+=`<div class="newc" style="left:610px;top:800px;transform:rotate(7deg)"><b>+</b><span>新增</span><i>NEW CARD</i></div>`;
+  h+=`<svg class="threads" viewBox="0 0 860 1000"></svg>`;
   board.innerHTML=h;
-  // 線：每張生效的卡從圖釘連到肖像中心（線在肖像下面）
-  const cx=430,cy=490;let s='';
-  cards.forEach(c=>{if(c.off)return;
-    const a=c.r*Math.PI/180, px=c.x+56+Math.sin(a)*(75+4)*-1*0+(-Math.sin(a)*75)+0, py=c.y+75-Math.cos(a)*79;
-    const x=c.x+56+Math.sin(a)*79, y=c.y+75-Math.cos(a)*79;
-    const mx=(x+cx)/2, my=(y+cy)/2+Math.hypot(x-cx,y-cy)*.05;
-    s+=`<path d="M${x} ${y} Q${mx} ${my} ${cx} ${cy}" fill="none" stroke="var(--thread)" stroke-width="1.1" stroke-opacity=".78" ${c.tr?'stroke-dasharray="4 3.5"':''}/>`;});
-  // 每張卡再連到離它最近的兩張卡，織成一張網（只是裝飾，淡一點）
-  const live=cards.filter(c=>!c.off), seen=new Set();
-  live.forEach(A=>{live.filter(B=>B!==A).sort((p,q)=>Math.hypot(p.x-A.x,p.y-A.y)-Math.hypot(q.x-A.x,q.y-A.y)).slice(0,2).forEach(B=>{
-    const k=[A.i,B.i].sort().join('-'); if(seen.has(k))return; seen.add(k);
-    s+=`<line x1="${A.x+56}" y1="${A.y+4}" x2="${B.x+56}" y2="${B.y+4}" stroke="var(--thread)" stroke-width=".8" stroke-opacity=".5"/>`;});});
+  const T=(pts,tr,o=.8,w=1.1)=>`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--thread)" stroke-width="${w}" stroke-opacity="${o}" stroke-linejoin="round" ${tr?'stroke-dasharray="4 3.5"':''}/>`;
+  let s='';
+  // 主線：肖像某一角 →（有時繞一顆空圖釘）→ 卡片主圖釘；拉直的繩子，不下垂
+  const via={0:[300,470],1:[690,120],3:[805,560],4:[120,170],6:[805,560]};
+  const from=[0,1,2,3,0,1,3];
+  cards.forEach((c,i)=>{if(c.off)return;const end=pinXY(c,c.pins[0]);
+    const pts=[PP[from[i]]]; if(via[i])pts.push(via[i]); pts.push(end); s+=T(pts,c.tr);});
+  // 雜線：卡片副圖釘、空圖釘之間亂拉，還有幾條拉出牆外
+  const cp=i=>pinXY(cards[i],cards[i].pins[cards[i].pins.length-1]);
+  [[cp(1),[330,175],cp(0)],[cp(3),[640,760],[470,820]],[[60,560],cp(2),[250,930]],[cp(4),[60,560]],
+   [[690,120],[900,60]],[[805,560],[900,700]],[cp(6),[760,900],[900,980]],[[120,170],[-40,90]],[[330,175],cp(5)],[[300,470],[60,560]],[[520,660],cp(3)],[[520,660],[200,760],cp(2)],[cp(1),[840,250],[805,560]],[[430,300],cp(0)],[[430,300],[690,120]],[[200,760],[250,930],[470,820],[520,660]],[cp(5),[840,250]],[[120,170],[430,300]]]
+   .forEach(pts=>s+=T(pts,false,.45,.8));
+  // 圖釘畫在線上面
+  loose.forEach(([x,y])=>s+=`<circle cx="${x}" cy="${y}" r="3.6" fill="var(--thread)"/><circle cx="${x-1}" cy="${y-1}" r="1.1" fill="#fff" opacity=".5"/>`);
+  PP.forEach(([x,y])=>s+=`<circle cx="${x}" cy="${y}" r="4" fill="var(--ink)"/>`);
+  cards.forEach(c=>c.pins.forEach(pp=>{const [x,y]=pinXY(c,pp);
+    s+=c.tr?`<circle cx="${x}" cy="${y}" r="3.6" fill="var(--warm)" stroke="var(--ink)" stroke-width="2"/>`:`<circle cx="${x}" cy="${y}" r="4.3" fill="var(--ink)"/>`;}));
   board.querySelector('svg').innerHTML=s;
 }
 build(document.getElementById('boardA'));build(document.getElementById('boardB'));
