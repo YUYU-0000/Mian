@@ -27,7 +27,8 @@ export const notify = {
 export default function Notify({ page }: { page: string }) {
   const pageLabel = page === "/connections" ? "連接設置"
     : page === "/settings" ? "檔案館"
-    : page === "/chat" ? "對話" : "主界面";
+    : page === "/chat" ? "對話"
+    : page === "/clues" ? "線索" : "主界面";
   const [notice, setNotice] = useState<Notice>({
     kind: "ok",
     title: "",

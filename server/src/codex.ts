@@ -608,7 +608,7 @@ export class CodexBridge extends EventEmitter {
     this.conversations.remove(conversationId);
   }
 
-  async startTurn(text: string, conversationId: string) {
+  async startTurn(text: string, conversationId: string, clues = "") {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
     const runtime = this.conversations.require(conversationId);
@@ -623,7 +623,9 @@ export class CodexBridge extends EventEmitter {
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {
-            value: MIAN_PUBLIC_REPLY_PROTOCOL,
+            value: [MIAN_PUBLIC_REPLY_PROTOCOL, clues]
+              .filter(Boolean)
+              .join("\n\n"),
             kind: "application",
           },
         },

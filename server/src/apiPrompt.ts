@@ -8,12 +8,15 @@ export const API_FORMAT_REMINDER =
 export function apiRequestMessages(
   messages: ChatMessage[],
   localTime: string,
+  clues = "",
 ): ChatMessage[] {
   const lastUser = messages.map(({ role }) => role).lastIndexOf("user");
   return [
     {
       role: "system",
-      content: `${MIAN_API_PUBLIC_REPLY_PROTOCOL}\n\n${localTime}`,
+      content: [MIAN_API_PUBLIC_REPLY_PROTOCOL, localTime, clues]
+        .filter(Boolean)
+        .join("\n\n"),
     },
     ...messages.map((message, index) =>
       index === lastUser

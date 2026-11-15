@@ -507,6 +507,8 @@ body,
   background-color: #e8e6df;
 }
 .route-transition-press[data-transition-target="/chat"] .icon-1,
+.route-transition-press[data-transition-target="/clues"] .icon-2,
+.route-transition-press[data-transition-target="/"] .clues-back,
 .route-transition-press[data-transition-target="/connections"] .dock-1,
 .route-transition-press[data-transition-target="/"] .ribbon-back-hit {
   animation: routeControlPress 40ms ease-out both;

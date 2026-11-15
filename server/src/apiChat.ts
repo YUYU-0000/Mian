@@ -47,6 +47,7 @@ export class ApiChat {
     config: ProviderConfig,
     messages: ChatMessage[],
     localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
+    clues = "",
   ) {
     if (this.isBusy(conversationId))
       throw new Error("当前会话已有正在运行的 turn");
@@ -62,7 +63,7 @@ export class ApiChat {
       conversationId,
       turn,
       config,
-      apiRequestMessages(messages, localTime),
+      apiRequestMessages(messages, localTime, clues),
     );
     return { conversationId, turnId: turn.turnId };
   }

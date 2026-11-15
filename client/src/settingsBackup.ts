@@ -1,4 +1,5 @@
 import { pad2 } from "./format";
+import type { Clue } from "./clueTypes";
 import { CHAT_STORAGE_KEY, loadChatGroups, type ChatGroup } from "./chatModel";
 import type { Config, ConversationRecord } from "./types";
 import type { ApiPreset } from "./connectionTypes";
@@ -10,6 +11,7 @@ export type ServerBackup = {
   config: Config;
   apiPresets: Omit<ApiPreset, "key" | "hasKey" | "keyHint">[];
   fonts: FontSettings;
+  clues?: Clue[];
   conversations: ConversationRecord[];
 };
 export type Backup = ServerBackup & {

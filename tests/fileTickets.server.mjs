@@ -19,6 +19,7 @@ export async function fileTicketServer() {
   const workspace = path.join(directory, "workspace");
   const received = [];
   const prompts = [];
+  const systemPrompts = [];
   const provider = createServer(async (request, response) => {
     let body = "";
     for await (const chunk of request) body += chunk;
@@ -77,10 +78,10 @@ export async function fileTicketServer() {
     let turn = 0;
     CodexBridge.prototype.connect = async function(config) { this.config = config; return { state:'ready', message:'fake Codex' }; };
     CodexBridge.prototype.forkConversationThread = async function(id) { return { threadId:'fork-'+id+'-'+turn, metadata:{} }; };
-    CodexBridge.prototype.startTurn = async function(text, conversationId) {
+    CodexBridge.prototype.startTurn = async function(text, conversationId, clues) {
       const turnId = 'files-'+(++turn), threadId = 'thread-'+conversationId;
       this.registerConversationThread(conversationId, threadId, true);
-      process.send({ prompt:text });
+      process.send({ prompt:text, clues });
       this.emit('event', {type:'turn-started',conversationId,turnId});
       setTimeout(async () => {
         await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.html'), '<h1>local file</h1>');
@@ -119,6 +120,7 @@ export async function fileTicketServer() {
   });
   backend.on("message", (message) => {
     if (message.prompt) prompts.push(message.prompt);
+    if (message.clues !== undefined) systemPrompts.push(message.clues);
   });
   const [{ port }] = await Promise.race([
     once(backend, "message"),
@@ -131,6 +133,7 @@ export async function fileTicketServer() {
     workspace,
     received,
     prompts,
+    systemPrompts,
     base: `http://127.0.0.1:${port}`,
     async close() {
       const exited = once(backend, "exit");

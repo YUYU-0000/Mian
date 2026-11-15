@@ -1,0 +1,96 @@
+.clues-page {
+  height: 100dvh;
+  padding: 24px 20px;
+  overflow-y: auto;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font-main);
+}
+.clues-header,
+.clues-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.clues-header h1 {
+  margin: 0 auto 0 0;
+  font-size: 22px;
+}
+.clues-page button,
+.clues-editor input,
+.clues-editor textarea,
+.clues-editor select {
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.clues-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.clues-list section {
+  margin-top: 28px;
+}
+.clues-list h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.clues-list p,
+.clues-preview {
+  color: var(--muted);
+}
+.clues-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: left;
+}
+.clues-card .scroll-text {
+  display: block;
+  min-width: 0;
+}
+.clues-preview {
+  font-size: 14px;
+}
+.clues-editor {
+  margin-top: 24px;
+}
+.clues-editor fieldset {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.clues-editor label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.clues-editor input,
+.clues-editor textarea,
+.clues-editor select {
+  width: 100%;
+  min-width: 0;
+}
+.clues-editor textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.clues-editor .clues-scene {
+  display: flex;
+  align-items: center;
+}
+.clues-scene input {
+  width: auto;
+  accent-color: var(--ink);
+}
+.clues-actions {
+  margin-top: 28px;
+  padding-bottom: env(safe-area-inset-bottom);
+}

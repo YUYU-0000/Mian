@@ -1,4 +1,5 @@
 import { subscribe } from "./realtime";
+import type { Clue } from "./clueTypes";
 import { localDateTime } from "./format";
 import {
   backupFilename,
@@ -62,6 +63,21 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
   );
 
 export const api = {
+  clues: () => request<Clue[]>("/api/clues"),
+  createClue: (clue: Clue) =>
+    request<Clue>("/api/clues", {
+      method: "POST",
+      body: JSON.stringify(clue),
+    }),
+  updateClue: (clue: Clue) =>
+    request<Clue>(`/api/clues/${encodeURIComponent(clue.id)}`, {
+      method: "PUT",
+      body: JSON.stringify(clue),
+    }),
+  deleteClue: (id: string) =>
+    request<{ ok: boolean }>(`/api/clues/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   subStatus: (provider: Provider) =>
     provider === "codex"
       ? request<Subscription>("/api/subscriptions/codex")
@@ -304,6 +320,7 @@ export const api = {
     conversationId: string,
     messages?: ChatMessage[],
     files?: ChatFile[],
+    latestUserMessage?: string,
   ) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
@@ -313,6 +330,7 @@ export const api = {
         messages,
         files: files?.map((file) => file.id),
         localTime: localDateTime(),
+        latestUserMessage,
       }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)

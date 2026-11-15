@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { parseClue, readClues, writeClues, type Clue } from "./clues.js";
 import { readConfig, saveConfig } from "./config.js";
 import { readPresets, writePresets, type ApiPreset } from "./apiPresets.js";
 import {
@@ -21,6 +22,7 @@ type Backup = {
   config: AppConfig;
   apiPresets: Omit<ApiPreset, "key">[];
   fonts: FontSettings;
+  clues: Clue[];
   conversations: ConversationRecord[];
   chats: Record<string, unknown[]>;
   preferences: Record<string, string | null>;
@@ -137,6 +139,7 @@ function parseBackup(value: Backup): Backup {
     apiPresets: presets,
     conversations,
     fonts: fontSettings(value.fonts),
+    clues: (value.clues ?? []).map(parseClue),
   };
 }
 
@@ -166,16 +169,18 @@ export function settingsRoutes(
     }
   });
   router.get("/backup", async (_request, response) => {
-    const [config, { presets }, fonts] = await Promise.all([
+    const [config, { presets }, fonts, clues] = await Promise.all([
       readConfig(),
       readPresets(),
       readFontSettings(),
+      readClues(),
     ]);
     response.json({
       format: "mian-backup",
       version: 1,
       config,
       fonts,
+      clues,
       // 金钥和提示前缀都不进入备份。
       apiPresets: presets.map(({ id, note, endpoint, model, format }) => ({
         id,
@@ -208,6 +213,7 @@ export function settingsRoutes(
         })),
       });
       await writeFontSettings(backup.fonts);
+      await writeClues(backup.clues);
       await conversations.replace(backup.conversations);
       await afterImport(previous);
       response.json({ ok: true });

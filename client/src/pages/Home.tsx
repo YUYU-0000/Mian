@@ -22,12 +22,14 @@ export default function Home({
   onChat,
   onConnections,
   onSettings,
+  onClues,
 }: {
   status: ConnectionStatus;
   channelName: string;
   onChat: () => void;
   onConnections: () => void;
   onSettings: () => void;
+  onClues: () => void;
 }) {
   const [now, setNow] = useState(new Date());
   const [page, setPage] = useState(0);
@@ -92,8 +94,13 @@ export default function Home({
               <ChatGlyph />
             </button>
             <div className="home-label lbl-1">CHAT</div>
-            <Icon className="icon-2 bg-2" />
-            <div className="home-label lbl-2">APP</div>
+            <button className="home-app-icon icon-2 bg-2" aria-label="線索" onClick={onClues}>
+              <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                <rect x="5" y="3" width="18" height="22" rx="2" />
+                <path d="M9 9h10M9 14h10M9 19h6" />
+              </svg>
+            </button>
+            <div className="home-label lbl-2">線索</div>
             <Icon className="icon-3 bg-3" />
             <div className="home-label lbl-3">APP</div>
             <Icon className="icon-4 bg-4" />

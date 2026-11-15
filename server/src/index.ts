@@ -11,6 +11,7 @@ import { ApiChat } from "./apiChat.js";
 import { ChatFiles } from "./chatFiles.js";
 import { fileRoutes } from "./fileRoutes.js";
 import { settingsRoutes } from "./settingsRoutes.js";
+import { clueRoutes } from "./clueRoutes.js";
 import { WorkspaceFiles } from "./workspaceFiles.js";
 import { readChannel } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
@@ -52,6 +53,7 @@ app.use(
 );
 app.use("/api/backup", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
+app.use("/api/clues", clueRoutes());
 app.use(
   "/api",
   settingsRoutes(

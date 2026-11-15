@@ -19,6 +19,7 @@ import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Connections from "./pages/Connections";
 import Settings from "./pages/Settings";
+import Clues from "./pages/Clues";
 import Notify, { notify } from "./components/Notify";
 import { preloadReplyMarkdown } from "./components/DeferredReplyMarkdown";
 import ErrorBoundary from "./ErrorBoundary";
@@ -520,6 +521,7 @@ export default function App() {
               onChat={() => navigateWithTransition("/chat")}
               onConnections={() => navigateWithTransition("/connections")}
               onSettings={() => navigateWithTransition("/settings")}
+              onClues={() => navigateWithTransition("/clues")}
             />
           </ErrorBoundary>
         }
@@ -567,6 +569,14 @@ export default function App() {
               channel={channel}
               onBack={() => navigateWithTransition("/")}
             />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/clues"
+        element={
+          <ErrorBoundary>
+            <Clues onBack={() => navigateWithTransition("/")} />
           </ErrorBoundary>
         }
       />
