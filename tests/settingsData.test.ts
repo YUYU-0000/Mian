@@ -182,7 +182,7 @@ test("浏览器备份包含完整气泡和文件信息，导入清除旧对话�
   storage.setItem(CHAT_STORAGE_KEY, JSON.stringify(groups));
   storage.setItem("launcher_settings", JSON.stringify({ cssVars: {} }));
   const backup = completeBackup(
-    { conversations: [{ conversationId: "c1" }] } as Backup,
+    { conversations: [{ conversationId: "c1" }], chats: { c1: groups } } as Backup,
     storage,
   );
   assert.equal(backup.chats.c1[1].role, "assistant");

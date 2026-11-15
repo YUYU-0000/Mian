@@ -1,6 +1,6 @@
 import { pad2 } from "./format";
 import type { ClueWall } from "./clueTypes";
-import { CHAT_STORAGE_KEY, loadChatGroups, type ChatGroup } from "./chatModel";
+import { CHAT_STORAGE_KEY, type ChatGroup } from "./chatModel";
 import type { Config, ConversationRecord } from "./types";
 import type { ApiPreset } from "./connectionTypes";
 import type { FontSettings } from "./settingsTypes";
@@ -13,17 +13,18 @@ export type ServerBackup = {
   fonts: FontSettings;
   clues?: ClueWall;
   conversations: ConversationRecord[];
+  chats: Record<string, ChatGroup[]>;
+  files?: { conversationId: string; file: import("./types").ChatFile; content: string }[];
 };
 export type Backup = ServerBackup & {
   exportedAt: string;
-  chats: Record<string, ChatGroup[]>;
   preferences: Record<string, string | null>;
   homePhotos?: Record<string, string>;
 };
 const preferenceKeys = ["launcher_settings", "mian.active-conversation.v1"];
 const chatKey = (id: string) => `mian.conversation.${id}.${CHAT_STORAGE_KEY}`;
 
-// 对话正文在当前浏览器，档案和设置由后端提供。
+// 正文和附件来自服务器，浏览器只补充显示偏好。
 export function completeBackup(
   server: ServerBackup,
   storage: Pick<Storage, "getItem">,
@@ -31,18 +32,6 @@ export function completeBackup(
   return {
     ...server,
     exportedAt: new Date().toISOString(),
-    chats: Object.fromEntries(
-      server.conversations.map(({ conversationId }) => [
-        conversationId,
-        loadChatGroups({
-          getItem: () =>
-            storage.getItem(chatKey(conversationId)) ??
-            (conversationId === "c1"
-              ? storage.getItem(CHAT_STORAGE_KEY)
-              : null),
-        }),
-      ]),
-    ),
     preferences: Object.fromEntries(
       preferenceKeys.map((key) => [key, storage.getItem(key)]),
     ),
@@ -77,7 +66,8 @@ export function restoreBrowserBackup(backup: Backup, storage: Storage) {
             bubbleComplete: group.bubbles.map(() => true),
           },
     );
-    storage.setItem(chatKey(conversationId), JSON.stringify(groups));
+    try { storage.setItem(chatKey(conversationId), JSON.stringify(groups)); }
+    catch { /* 导入正文已保存在服务器，浏览器缓存可稍后重建。 */ }
   }
   for (const key of preferenceKeys) {
     const value = backup.preferences[key];

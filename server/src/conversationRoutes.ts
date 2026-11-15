@@ -8,12 +8,15 @@ import type { ChatFiles } from "./chatFiles.js";
 import type { CodexBridge } from "./codex.js";
 import type { ConversationRegistry } from "./conversations.js";
 import type { ConversationRecord } from "./types.js";
+import type { ConversationMessages } from "./messages.js";
 
 export type ConversationServices = {
   bridge: CodexBridge;
   apiChat: ApiChat;
   conversations: ConversationRegistry;
   files: ChatFiles;
+  messages: ConversationMessages;
+  publishMessages: (id: string) => void;
   publishConversation: (conversation: ConversationRecord) => void;
 };
 
@@ -22,6 +25,7 @@ export function conversationRoutes({
   apiChat,
   conversations,
   files,
+  messages,
   publishConversation,
   activityTimers,
 }: ConversationServices & { activityTimers: Map<string, NodeJS.Timeout> }) {
@@ -100,6 +104,7 @@ export function conversationRoutes({
           request.params.id,
           conversation.conversationId,
         );
+        await messages.copy(request.params.id, conversation.conversationId);
         bridge.restoreConversationThreads([conversation]);
         publishConversation(conversation);
         response.status(201).json({ conversation });
@@ -123,6 +128,7 @@ export function conversationRoutes({
         request.params.id,
         conversation.conversationId,
       );
+      await messages.copy(request.params.id, conversation.conversationId);
       bridge.registerConversationThread(
         conversation.conversationId,
         binding.threadId,
@@ -185,6 +191,7 @@ export function conversationRoutes({
       if (conversation.threadId) await bridge.connect(await readConfig());
       await bridge.archiveConversationThread(conversationId);
       await conversations.remove(conversationId);
+      await messages.remove(conversationId);
       bridge.forgetConversation(conversationId);
       const activityTimer = activityTimers.get(conversationId);
       if (activityTimer) clearTimeout(activityTimer);

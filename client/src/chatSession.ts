@@ -1,5 +1,5 @@
 import { pad2 } from "./format";
-import { recentClueMessages } from "./clueMessages";
+import { MessageSync, type MessageApi, type MessageSnapshot } from "./messageSync";
 import { visualTarget } from "./replyTimeline";
 import { api } from "./api";
 import { FileDrafts } from "./fileDrafts";
@@ -7,7 +7,6 @@ import {
   CHAT_STORAGE_KEY,
   applyReplyEvent,
   appendUserRecord,
-  chatHistory,
   closePendingGroup,
   finalizeReplyGroup,
   loadChatGroups,
@@ -15,14 +14,13 @@ import {
   recoverLastUnansweredUserGroup,
   saveChatGroups,
   type ChatGroup,
+  type UserGroup,
 } from "./chatModel";
-import { buildPublicReplyPrompt } from "./replyProtocol";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
 import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
 import type {
   ChatEvent,
   ChatFile,
-  ChatMessage,
   ConversationActivity,
 } from "./types";
 import {
@@ -40,9 +38,8 @@ type SessionApi = {
   send: (
     text: string,
     conversationId: string,
-    messages?: ChatMessage[],
     files?: ChatFile[],
-    recentMessages?: ChatMessage[],
+    message?: UserGroup,
   ) => Promise<{ turnId: string }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
@@ -67,6 +64,7 @@ export type ChatSessionOptions = {
   requireRemoteSynchronization?: boolean;
   storage?: StorageLike;
   apiClient?: SessionApi;
+  messageApi?: MessageApi;
   nowLabel?: () => string;
   nowMs?: () => number;
   nowIso?: () => string;
@@ -120,9 +118,10 @@ function conversationStorage(
       );
     },
     setItem(key, value) {
-      storage.setItem(scopedKey(key), value);
-      // 同步旧存储键，兼容旧版的 C-01。
-      if (isDefault) storage.setItem(key, value);
+      try {
+        storage.setItem(scopedKey(key), value);
+        if (isDefault) storage.setItem(key, value);
+      } catch { /* 缓存写满不影响服务器保存和聊天。 */ }
     },
     removeItem(key) {
       storage.removeItem(scopedKey(key));
@@ -191,6 +190,10 @@ export class ChatSessionStore {
   private readonly remoteTurnSynchronization: Promise<void>;
   private resolveRemoteTurnSynchronization: (() => void) | null = null;
   private snapshot: ChatSessionSnapshot;
+  private readonly messageSync?: MessageSync;
+  private messageSequence = 0;
+  private messageStreamId = "";
+  private syncingEvents: ChatEvent[] | null = null;
 
   constructor(options: ChatSessionOptions) {
     if (!options.conversationId) throw new Error("conversationId is required");
@@ -239,6 +242,11 @@ export class ChatSessionStore {
         ]),
     );
     this.snapshot = this.createSnapshot();
+    if (options.messageApi) {
+      this.messageSync = new MessageSync(this.conversationId, this.messages, this.storage, options.messageApi,
+        () => { this.syncingEvents = []; }, snapshot => this.receiveMessages(snapshot));
+      void this.messageSync.refresh().catch(() => {});
+    }
   }
 
   readonly subscribe = (listener: () => void) => {
@@ -249,6 +257,12 @@ export class ChatSessionStore {
   readonly getSnapshot = () => this.snapshot;
 
   enqueueEvent(event: ChatEvent) {
+    if (event.type === "messages-updated") {
+      this.refreshMessages();
+      return;
+    }
+    if (event.streamId === this.messageStreamId && event.eventSeq !== undefined && event.eventSeq <= this.messageSequence) return;
+    this.syncingEvents?.push(event);
     if (event.conversationId && event.conversationId !== this.conversationId)
       throw new Error(
         `Event for ${event.conversationId} cannot enter ${this.conversationId}`,
@@ -264,6 +278,7 @@ export class ChatSessionStore {
   }
 
   synchronizeRemoteTurn(turnId: string | null, _reset: boolean) {
+    this.refreshMessages();
     if (turnId) {
       if (this.activeTurnId !== turnId) {
         this.activeTurnId = turnId;
@@ -302,6 +317,7 @@ export class ChatSessionStore {
       files,
     );
     this.commit(true, false);
+    this.messageSync?.queue(pendingUserGroup(this.messages)!);
     this.onActivity?.({
       lastActivityAt: this.nowIso(),
       lastMessage: value || files.map((file) => file.name).join("、"),
@@ -310,6 +326,12 @@ export class ChatSessionStore {
 
   async startPendingTurn() {
     if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
+    if (this.messageSync && !this.messageSync.initialized) {
+      try { await this.messageSync.refresh(); }
+      catch (error) {
+        if (!this.messageSync.initialized) { this.onSendError?.(error); return; }
+      }
+    }
     if (this.activeTurnId || this.startingTurn) return;
     let group = pendingUserGroup(this.messages);
     if (!group) {
@@ -327,13 +349,10 @@ export class ChatSessionStore {
     this.commit(false, false);
     try {
       const result = await this.apiClient.send(
-        buildPublicReplyPrompt(userText),
+        userText,
         this.conversationId,
-        chatHistory(this.messages.slice(0, this.messages.indexOf(group) + 1)),
         group.records.flatMap((record) => record.files ?? []),
-        recentClueMessages(
-          this.messages.slice(0, this.messages.indexOf(group) + 1),
-        ),
+        group,
       );
       const reply = this.messages.find(
         (message) =>
@@ -426,9 +445,11 @@ export class ChatSessionStore {
     this.storage.removeItem(CHAT_STORAGE_KEY);
     this.storage.removeItem(SESSION_STORAGE_KEY);
     this.storage.removeItem(PENDING_STORAGE_KEY);
+    this.storage.removeItem("mian.message-outbox.v1");
   }
 
   dispose() {
+    this.messageSync?.dispose();
     this.attachments.dispose();
     if (this.playbackTimer !== null) {
       this.cancelSchedule!(this.playbackTimer);
@@ -513,6 +534,32 @@ export class ChatSessionStore {
         ...(lastMessage ? { lastMessage } : {}),
       });
     }
+    this.schedulePlayback();
+  }
+
+  refreshMessages() { this.messageSync?.invalidate(); }
+
+  private receiveMessages(snapshot: MessageSnapshot) {
+    this.messages = snapshot.groups;
+    this.messageSequence = snapshot.eventSeq;
+    this.messageStreamId = snapshot.streamId;
+    for (const event of this.syncingEvents ?? []) {
+      if ("turnId" in event && (event.streamId !== snapshot.streamId || (event.eventSeq ?? Infinity) > snapshot.eventSeq))
+        this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
+    }
+    this.syncingEvents = null;
+    this.visualReplies = Object.fromEntries(this.messages.filter(group => group.role === "assistant").map(group => [
+      group.replyGroupId,
+      group.replyGroupId === this.activeTurnId && this.visualReplies[group.replyGroupId]
+        ? this.visualReplies[group.replyGroupId] : hydrateVisualReply(visualTarget(group)),
+    ]));
+    const active = this.messages.find(group => group.role === "assistant" && group.replyGroupId === this.activeTurnId);
+    if (active?.role === "assistant") {
+      const queue = this.playbackQueues.get(active.replyGroupId) ?? new ReplyPlaybackQueue();
+      queue.enqueue("snapshot", visualTarget(active), this.nowMs());
+      this.playbackQueues.set(active.replyGroupId, queue);
+    }
+    this.commit(true, false);
     this.schedulePlayback();
   }
 

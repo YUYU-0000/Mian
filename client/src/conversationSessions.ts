@@ -5,6 +5,7 @@ import type {
   RealtimeSession,
 } from "./types";
 import { ChatSessionStore, type ChatSessionOptions } from "./chatSession";
+import { api } from "./api";
 
 type ConversationSessionsOptions = {
   initialConversationIds: string[];
@@ -63,6 +64,7 @@ export class ConversationSessions {
         requireRemoteSynchronization: true,
         ...(this.storage ? { storage: this.storage } : {}),
         ...(this.apiClient ? { apiClient: this.apiClient } : {}),
+        ...(!this.apiClient ? { messageApi: api } : {}),
         onActivity: (activity) => this.onActivity(conversationId, activity),
         onSendError: this.onSendError,
       });

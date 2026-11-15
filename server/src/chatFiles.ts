@@ -1,8 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
   mkdir,
   readFile,
+  readdir,
   realpath,
   stat,
   writeFile,
@@ -49,9 +50,60 @@ export type FileMessage = {
   files?: Pick<ChatFile, "id">[];
 };
 
+export type BackupFile = { conversationId: string; file: ChatFile; content: string };
+
 // 文件内容与票根信息分开保存，分支可直接复制整个会话目录。
 export class ChatFiles {
+  private readonly images = new Map<string, Promise<string>>();
   constructor(private readonly root = path.join(dataDirectory, "files")) {}
+
+  saveDataImage(conversationId: string, dataUrl: string): Promise<string> {
+    const id = `image-${createHash("sha256").update(dataUrl).digest("hex")}`;
+    const key = `${conversationId}/${id}`;
+    let saved = this.images.get(key);
+    if (!saved) {
+      saved = (async () => {
+        const comma = dataUrl.indexOf(",");
+        const mimeType = dataUrl.slice(5, comma).split(";")[0];
+        const content = dataUrl.slice(comma + 1);
+        const bytes = dataUrl.slice(0, comma).endsWith(";base64") ? Buffer.from(content, "base64") : Buffer.from(decodeURIComponent(content));
+        const directory = this.directory(conversationId, id);
+        const file: ChatFile = { id, name: `${id}.${mimeType.split("/")[1].replace("+xml", "")}`, mimeType, size: bytes.length, createdAt: new Date().toISOString() };
+        await mkdir(directory, { recursive: true });
+        await writeFile(path.join(directory, "content"), bytes);
+        await writeFile(path.join(directory, "metadata.json"), JSON.stringify(file));
+        return `/api/conversations/${conversationId}/files/${id}?inline=1`;
+      })().catch(error => { this.images.delete(key); throw error; });
+      this.images.set(key, saved);
+    }
+    return saved;
+  }
+
+  async export(conversationIds: string[]): Promise<BackupFile[]> {
+    const entries: BackupFile[] = [];
+    for (const conversationId of conversationIds) {
+      let ids: string[];
+      try { ids = await readdir(this.directory(conversationId)); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        continue;
+      }
+      for (const id of ids) {
+        const stored = await this.get(conversationId, id);
+        entries.push({ conversationId, file: stored.file, content: (await readFile(stored.path)).toString("base64") });
+      }
+    }
+    return entries;
+  }
+
+  async restore(entries: BackupFile[]) {
+    for (const { conversationId, file, content } of entries) {
+      const directory = this.directory(conversationId, file.id);
+      await mkdir(directory, { recursive: true });
+      await writeFile(path.join(directory, "content"), Buffer.from(content, "base64"));
+      await writeFile(path.join(directory, "metadata.json"), JSON.stringify(file));
+    }
+  }
 
   private directory(conversationId: string, id = "") {
     if (![conversationId, id].every((value) => /^[\w-]*$/.test(value)))

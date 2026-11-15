@@ -35,6 +35,10 @@ const initial: ConnectionStatus = {
 };
 const DEFAULT_CONVERSATION_ID = "c1";
 const ACTIVE_CONVERSATION_KEY = "mian.active-conversation.v1";
+function cacheActiveConversation(id: string) {
+  try { localStorage.setItem(ACTIVE_CONVERSATION_KEY, id); }
+  catch { /* 浏览器偏好存不下时仍可切换服务器上的会话。 */ }
+}
 const defaultConversation: ConversationRecord = {
   conversationId: DEFAULT_CONVERSATION_ID,
   threadId: null,
@@ -213,7 +217,7 @@ export default function App() {
         records.some((conversation) => conversation.conversationId === current)
       )
         return current;
-      localStorage.setItem(ACTIVE_CONVERSATION_KEY, fallback);
+      cacheActiveConversation(fallback);
       return fallback;
     });
     if (
@@ -368,7 +372,7 @@ export default function App() {
   };
   const selectConversation = (conversationId: string) => {
     conversationSessions.get(conversationId);
-    localStorage.setItem(ACTIVE_CONVERSATION_KEY, conversationId);
+    cacheActiveConversation(conversationId);
     setActiveConversationId(conversationId);
     requestDisplayedConversation(conversationId);
   };
@@ -410,7 +414,7 @@ export default function App() {
     const source = conversationSessions.get(conversationId).getSnapshot();
     if (!hasCompletedConversation(source)) return null;
     const { conversation } = await api.forkConversation(conversationId);
-    conversationSessions.register(conversation).seedFrom(source);
+    conversationSessions.register(conversation);
     setConversations((current) => upsertConversation(current, conversation));
     return conversation;
   };

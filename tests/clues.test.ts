@@ -11,6 +11,7 @@ import {
   CLUE_SELECTION_INSTRUCTION,
 } from "../server/src/clueSelection.ts";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
+import { recentClueMessages, type UserGroup } from "../client/src/chatModel.ts";
 import { completeBackup } from "../client/src/settingsBackup.ts";
 import { createId } from "../client/src/id.ts";
 import { fileTicketServer } from "./fileTickets.server.mjs";
@@ -111,7 +112,7 @@ test("natural selection sends only metadata and twelve messages; scene matches b
   );
 });
 
-test("twelve recent records travel separately from grouped chat history", async () => {
+test("only the new records travel to the server, which selects twelve recent records", async () => {
   let sent: unknown[] = [];
   const store = new ChatSessionStore({
     conversationId: "c1",
@@ -128,7 +129,7 @@ test("twelve recent records travel separately from grouped chat history", async 
     store.saveUserRecord(`record ${index}`);
   await store.startPendingTurn();
   assert.deepEqual(
-    sent[4],
+    recentClueMessages([sent[3] as UserGroup]),
     Array.from({ length: 12 }, (_, index) => ({
       role: "user",
       content: `record ${index + 3}`,
@@ -269,8 +270,6 @@ for (const selectionFails of [false, true])
             await request("/api/turn", "POST", {
               conversationId: "c1",
               text: "我有點想你",
-              messages: recent,
-              recentMessages: recent,
             })
           ).status,
           200,
@@ -328,7 +327,10 @@ for (const selectionFails of [false, true])
           200,
         );
         await turn();
-        assert.deepEqual(server.selections[0].messages, recent);
+        assert.deepEqual(server.selections[0].messages, [
+          ...recent, { role: "assistant", content: "已收到文件。" },
+          ...recent, { role: "assistant", content: "已收到文件。" }, ...recent,
+        ]);
         assert.equal(
           server.systemPrompts[0],
           "【常駐】\n卡片內容" +

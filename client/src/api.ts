@@ -1,4 +1,6 @@
 import { subscribe } from "./realtime";
+import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
+import type { ChatGroup, UserGroup } from "./chatModel";
 import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
 import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
@@ -11,7 +13,6 @@ import {
 } from "./settingsBackup";
 import type { FontPreset, FontSettings } from "./settingsTypes";
 import type {
-  ChatMessage,
   ChatFile,
   Config,
   ConnectionStatus,
@@ -202,6 +203,7 @@ export const api = {
     await restoreHomePhotos(homePhotos);
   },
   exportData: async () => {
+    await flushMessageSyncs();
     const content = completeBackup(
       await request<ServerBackup>("/api/backup"),
       localStorage,
@@ -264,6 +266,12 @@ export const api = {
     }),
   fileUrl: (conversationId: string, fileId: string, inline = false) =>
     `/api/conversations/${encodeURIComponent(conversationId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`,
+  loadMessages: (conversationId: string) =>
+    request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`),
+  saveMessages: (conversationId: string, groups: ChatGroup[], initialize = false) =>
+    request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: "PUT", body: JSON.stringify({ groups, initialize }),
+    }),
   fileText: async (
     conversationId: string,
     fileId: string,
@@ -313,19 +321,17 @@ export const api = {
   send: async (
     text: string,
     conversationId: string,
-    messages?: ChatMessage[],
     files?: ChatFile[],
-    recentMessages?: ChatMessage[],
+    message?: UserGroup,
   ) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
       body: JSON.stringify({
         text,
         conversationId,
-        messages,
+        message,
         files: files?.map((file) => file.id),
         localTime: localDateTime(),
-        recentMessages,
       }),
     });
     if (typeof result?.turnId !== "string" || !result.turnId)

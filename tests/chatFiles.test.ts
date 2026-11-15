@@ -424,7 +424,7 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   store.saveUserRecord("", [input]);
   assert.equal(store.getSnapshot().messages.length, 1);
   await store.startPendingTurn();
-  assert.deepEqual(sent[0][3], [input]);
+  assert.deepEqual(sent[0][2], [input]);
   store.enqueueEvent({
     type: "files",
     conversationId: "c1",
@@ -460,6 +460,7 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   assert.deepEqual(branch.getSnapshot().messages, snapshot.messages);
   const exported = completeBackup(
     {
+      chats: { branch: snapshot.messages },
       conversations: [
         {
           conversationId: "branch",

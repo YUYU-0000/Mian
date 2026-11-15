@@ -9,13 +9,18 @@ import {
 } from "./workspaceFiles.js";
 import { requestConversationId } from "./requestConversation.js";
 import type { ConversationServices } from "./conversationRoutes.js";
+import { chatHistory, recentClueMessages, type UserGroup } from "../../shared/chatModel.mjs";
+import { buildPublicReplyPrompt } from "../../shared/replyProtocol.mjs";
+import { createId } from "../../shared/id.mjs";
 
 export function turnRoutes({
   bridge,
   apiChat,
   conversations,
   files,
+  messages: savedMessages,
   publishConversation,
+  publishMessages,
   workspaceFiles,
   waitForConversationWrites,
 }: ConversationServices & {
@@ -25,7 +30,7 @@ export function turnRoutes({
   const router = Router();
   router.post("/turn", async (request, response) => {
     try {
-      if (typeof request.body?.text !== "string" || !request.body.text.trim())
+      if (typeof request.body?.text !== "string" || (!request.body.text.trim() && !request.body.files?.length))
         throw new Error("消息不能为空");
       const conversationId = requestConversationId(
         request.body,
@@ -39,8 +44,16 @@ export function turnRoutes({
       )
         throw new Error("当前会话已有正在运行的 turn");
       const wall = await readClues();
-      const recent = request.body.recentMessages ??
-        request.body.messages ?? [{ role: "user", content: request.body.text }];
+      const attachments = await Promise.all((request.body.files ?? []).map(async (id: string) => (await files.get(conversationId, id)).file));
+      const time = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const message: UserGroup = request.body.message ?? {
+        role: "user", groupId: createId(), time, pending: true,
+        records: [{ messageId: createId(), text: request.body.text.trim(), time, ...(attachments.length ? { files: attachments } : {}) }],
+      };
+      const { groups } = await savedMessages.submit(conversationId, message);
+      publishMessages(conversationId);
+      const history = chatHistory(groups);
+      const recent = recentClueMessages(groups);
       if (config.channel.kind === "api") {
         const preset = await requirePreset(config.channel.presetId);
         const conversation = await conversations.updateRuntime(conversationId, {
@@ -51,13 +64,7 @@ export function turnRoutes({
         publishConversation(conversation);
         const messages = await files.apiMessages(
           conversationId,
-          request.body.messages ?? [
-            {
-              role: "user",
-              content: request.body.text.trim(),
-              files: (request.body.files ?? []).map((id: string) => ({ id })),
-            },
-          ],
+          history,
         );
         response.json(
           apiChat.startTurn(
@@ -83,7 +90,7 @@ export function turnRoutes({
       const prompt = await files.codexPrompt(
         conversationId,
         workspace,
-        request.body.text.trim(),
+        buildPublicReplyPrompt(message.records.map(record => record.text).join("\n\n")),
         request.body.files ?? [],
       );
       const capture = await WorkspaceFiles.start(workspace);
@@ -138,6 +145,7 @@ export function turnRoutes({
         request.body?.allow === true,
         conversationId,
       );
+      await savedMessages.dismissApproval(conversationId, request.params.id);
       response.json({ ok: true });
     } catch (error) {
       response.status(404).json({ error: (error as Error).message });

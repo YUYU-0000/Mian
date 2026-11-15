@@ -18,6 +18,9 @@ import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
 import { conversationRoutes } from "./conversationRoutes.js";
 import { turnRoutes } from "./turnRoutes.js";
+import { ConversationMessages } from "./messages.js";
+import { messageRoutes } from "./messageRoutes.js";
+import type { ChatEvent } from "../../shared/types.mjs";
 import type {
   ConversationRecord,
   ConversationRuntimeMetadata,
@@ -37,6 +40,7 @@ const wss = new WebSocketServer({ server, path: "/ws" });
 const bridge = new CodexBridge();
 const conversations = await ConversationRegistry.load();
 const files = new ChatFiles();
+const messages = new ConversationMessages(files);
 const workspaceFiles = new Map<string, WorkspaceFiles>();
 let channel = await readChannel();
 bridge.restoreConversationThreads(conversations.list());
@@ -52,6 +56,7 @@ app.use(
   fileRoutes(files, (id) => conversations.require(id)),
 );
 app.use("/api/backup", express.json({ limit: "64mb" }));
+app.use("/api/conversations/:id/messages", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
 app.use("/api/clues", clueRoutes());
 app.use(
@@ -67,6 +72,7 @@ app.use(
       for (const timer of activityTimers.values()) clearTimeout(timer);
       activityTimers.clear();
       await conversationWriteQueue;
+      await messages.close();
     },
     async (previous) => {
       for (const record of previous)
@@ -77,6 +83,8 @@ app.use(
       channel = await readChannel();
       broadcast({ type: "channel", channel });
     },
+    messages,
+    files,
   ),
 );
 app.use(
@@ -99,6 +107,9 @@ const broadcast = (event: unknown) => {
     event,
   };
   eventBuffer.push(envelope);
+  if (conversationId && event && typeof event === "object" && "turnId" in event)
+    void messages.recordEvent(conversationId, event as Extract<ChatEvent, { turnId: string }>, envelope.seq)
+      .catch(error => console.error("[messages]", error));
   if (eventBuffer.length > maxBufferedEvents) eventBuffer.shift();
   const data = JSON.stringify({ kind: "event", ...envelope });
   for (const ws of wss.clients)
@@ -308,8 +319,11 @@ const chatServices = {
   apiChat,
   conversations,
   files,
+  messages,
+  publishMessages: (conversationId: string) => broadcast({ type: "messages-updated", conversationId }),
   publishConversation,
 };
+app.use("/api", messageRoutes(messages, id => conversations.require(id), streamId, chatServices.publishMessages));
 app.use("/api", conversationRoutes({ ...chatServices, activityTimers }));
 app.use(
   "/api",
@@ -336,9 +350,10 @@ server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
       if (address?.family === "IPv4" && !address.internal)
         console.log(`Mian LAN: http://${address.address}:${port}`);
 });
-const shutdown = () => {
+const shutdown = async () => {
   apiChat.close();
   bridge.close();
+  await messages.close();
   server.close();
 };
 process.on("SIGTERM", shutdown);
