@@ -11,6 +11,12 @@ import type { ConnectionStatus } from "../types";
 import ScrollText from "../components/ScrollText";
 import Media from "../components/Media";
 import { homePhotoKeys } from "../homePhotos";
+import {
+  preloadChat,
+  preloadClues,
+  preloadConnections,
+  preloadSettings,
+} from "../pagePreloads";
 
 function HomePhoto({
   className,
@@ -36,17 +42,10 @@ function HomePhoto({
   );
 }
 
-const Icon = ({
-  className = "",
-  onClick,
-}: {
-  className?: string;
-  onClick?: () => void;
-}) => (
+const PlaceholderIcon = ({ className }: { className: string }) => (
   <button
     className={`home-app-icon ${className}`}
-    onClick={onClick}
-    aria-hidden={!onClick}
+    aria-hidden="true"
   />
 );
 export default function Home({
@@ -124,15 +123,19 @@ export default function Home({
           </header>
           <div className="home-spacer" />
           <div className="home-grid">
-            <button className="home-app-icon icon-1 bg-1" onClick={onChat}>
+            <button
+              className="home-app-icon icon-1 bg-1"
+              onPointerDown={() => void preloadChat()}
+              onClick={onChat}
+            >
               <ChatGlyph />
             </button>
             <div className="home-label lbl-1">CHAT</div>
-            <Icon className="icon-2 bg-2" />
+            <PlaceholderIcon className="icon-2 bg-2" />
             <div className="home-label lbl-2">APP</div>
-            <Icon className="icon-3 bg-3" />
+            <PlaceholderIcon className="icon-3 bg-3" />
             <div className="home-label lbl-3">APP</div>
-            <Icon className="icon-4 bg-4" />
+            <PlaceholderIcon className="icon-4 bg-4" />
             <div className="home-label lbl-4">APP</div>
             <HomePhoto className="widget" photo="widget" active={page === 0} />
             <div className="home-label widget-label">PHOTO</div>
@@ -150,13 +153,15 @@ export default function Home({
             <div className="home-label square-left-label">PHOTO</div>
             {[1, 2, 3, 4].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
-                <Icon className={n === 1 || n === 4 ? "bg-1" : "bg-2"} />
+                <PlaceholderIcon
+                  className={n === 1 || n === 4 ? "bg-1" : "bg-2"}
+                />
                 <div className="home-label">APP</div>
               </div>
             ))}
             {[5, 6, 7, 8].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
-                <Icon
+                <PlaceholderIcon
                   className={n === 5 ? "bg-3" : n === 8 ? "bg-2" : "bg-1"}
                 />
                 <div className="home-label">APP</div>
@@ -188,6 +193,7 @@ export default function Home({
         <button
           className="home-app-icon dock-1"
           aria-label="连接中心"
+          onPointerDown={() => void preloadConnections()}
           onClick={onConnections}
         >
           <DockHouse />
@@ -195,6 +201,7 @@ export default function Home({
         <button
           className="home-app-icon dock-2"
           aria-label="设置"
+          onPointerDown={() => void preloadSettings()}
           onClick={onSettings}
         >
           <DockOpenBook />
@@ -202,11 +209,12 @@ export default function Home({
         <button
           className="home-app-icon dock-3"
           aria-label="線索"
+          onPointerDown={() => void preloadClues()}
           onClick={onClues}
         >
           <DockBookmark />
         </button>
-        <Icon className="dock-4" />
+        <PlaceholderIcon className="dock-4" />
       </footer>
     </main>
   );

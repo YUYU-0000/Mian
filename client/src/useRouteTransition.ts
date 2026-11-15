@@ -1,10 +1,11 @@
-import { useRef, useState, type AnimationEvent } from "react";
+import { startTransition, useRef, useState, type AnimationEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { preloadReplyMarkdown } from "./components/DeferredReplyMarkdown";
+import { pagePreloads, type RoutePath } from "./pagePreloads";
 
 type TransitionPhase = "press" | "crossfade";
 type RouteTransition = {
-  target: string;
+  target: RoutePath;
   phase: TransitionPhase;
   fromLocation: ReturnType<typeof useLocation>;
 };
@@ -13,11 +14,12 @@ export function useRouteTransition() {
   const location = useLocation();
   const [transition, setTransition] = useState<RouteTransition | null>(null);
   const transitionLocked = useRef(false);
-  const navigateWithTransition = (target: string) => {
-    if (target === "/chat") void preloadReplyMarkdown();
+  const navigateWithTransition = (target: RoutePath) => {
     if (target === location.pathname || transitionLocked.current) return;
+    if (target !== "/") void pagePreloads[target]();
+    if (target === "/chat") void preloadReplyMarkdown();
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      nav(target);
+      startTransition(() => nav(target));
       return;
     }
     transitionLocked.current = true;
@@ -39,8 +41,10 @@ export function useRouteTransition() {
       transition.phase === "press" &&
       event.animationName === "routeControlPress"
     ) {
-      nav(transition.target);
-      setTransition({ ...transition, phase: "crossfade" });
+      startTransition(() => {
+        nav(transition.target);
+        setTransition({ ...transition, phase: "crossfade" });
+      });
       return;
     }
     if (

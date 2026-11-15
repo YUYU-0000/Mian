@@ -1,5 +1,5 @@
 import { useRouteTransition } from "./useRouteTransition";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./api";
 import { applyBubbleFont } from "./bubbleFont";
@@ -16,10 +16,6 @@ import type {
   ConversationRecord,
 } from "./types";
 import Home from "./pages/Home";
-import Chat from "./pages/Chat";
-import Connections from "./pages/Connections";
-import Settings from "./pages/Settings";
-import Clues from "./pages/Clues";
 import Notify, { notify } from "./components/Notify";
 import { preloadReplyMarkdown } from "./components/DeferredReplyMarkdown";
 import ErrorBoundary from "./ErrorBoundary";
@@ -29,6 +25,19 @@ import {
   upsertConversation,
 } from "./conversationState";
 import type { FrozenConversationFrame } from "./conversationTransition";
+import {
+  pagePreloads,
+  preloadChat,
+  preloadClues,
+  preloadConnections,
+  preloadSettings,
+} from "./pagePreloads";
+
+const Chat = lazy(preloadChat);
+const Clues = lazy(preloadClues);
+const Connections = lazy(preloadConnections);
+const Settings = lazy(preloadSettings);
+
 const initial: ConnectionStatus = {
   state: "not-connected",
   message: "尚未连接",
@@ -73,6 +82,8 @@ type ConversationViewState = {
 };
 
 export default function App() {
+  const { location, transition, navigateWithTransition, handleTransitionEnd } =
+    useRouteTransition();
   useEffect(() => {
     void api
       .fontPresets()
@@ -85,7 +96,9 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
-    const preload = () => {
+    if (location.pathname !== "/") return;
+    const preload = async () => {
+      for (const preloadPage of Object.values(pagePreloads)) await preloadPage();
       void preloadReplyMarkdown();
     };
     if (typeof window.requestIdleCallback === "function") {
@@ -94,9 +107,7 @@ export default function App() {
     }
     const timer = window.setTimeout(preload, 1500);
     return () => window.clearTimeout(timer);
-  }, []);
-  const { location, transition, navigateWithTransition, handleTransitionEnd } =
-    useRouteTransition();
+  }, [location.pathname]);
   const [status, setStatus] = useState(initial);
   const [channel, setChannel] = useState<Channel>({
     kind: "codex",
@@ -632,7 +643,7 @@ export default function App() {
       data-transition-active={transition ? "true" : "false"}
       onAnimationEnd={handleTransitionEnd}
     >
-      {routeLayers}
+      <Suspense fallback={null}>{routeLayers}</Suspense>
       <Notify page={location.pathname} />
     </div>
   );
