@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <!--
-  頭像裁切設計稿：圓形吊牌
-  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張圓形米白厚卡紙（直徑 250px）。
-  - 後面墊一張同樣大小的灰藍圓卡，往右下錯開、微轉，像兩張疊在一起的吊牌。
-  - 米白圓卡：內圈一道細線；沿著上緣一圈小字，左邊 PORTRAIT，右邊「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
-  - 中間是圓形照片窗，照片在窗裡拖動、兩指縮放、滾輪縮放；手勢只在圓窗內生效。
-  - 照片窗下面依次：「換照片」小字、一條細線滑塊、「確定」「取消」兩個下劃線文字。
-  - 遮罩、繩子顏色、陰影、進出動畫沿用連接中心 .hang-tag。整張是一整塊，不拼接。
+  頭像裁切設計稿：圓形吊牌（照片做吊牌的臉）
+  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張直徑 260px 的圓卡；後面墊一張同樣大小的灰藍圓卡，往右下錯開、轉 8deg。吊牌本身不旋轉。
+  - 圓卡外圈是一道 26px 寬的米白邊，裡面整塊都是照片窗（直徑 208px），照片在窗裡拖動、兩指縮放、滾輪縮放，手勢只在照片窗內生效。
+  - 米白邊上兩道細線夾住，沿著邊繞一圈小字，像吊牌上的環形字：
+      上半圈：左 PORTRAIT，頂部打孔，右「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
+      下半圈：左「確定」（墨色），中間「換照片」（淺色小字），右「取消」（淺色）；三個都可以點，字是正著讀的。
+      字和字之間用一小段橫線隔開，不用間隔點。
+  - 不放滑塊，縮放靠手勢和滾輪。
+  - 遮罩、繩子顏色、陰影、進出動畫沿用連接中心 .hang-tag。
 -->
 <html><head><meta charset="utf-8"><style>
 @import url("../client/public/fonts/lxgw/result.css");
@@ -23,24 +25,15 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
 .page .row{height:120px;border:1px solid rgba(59,77,90,.15);margin-bottom:14px;background:#f8f6f1}
 .overlay{position:absolute;inset:0;background:rgba(40,55,66,.32)}
 
-.tag{position:absolute;left:50%;top:0;width:250px;margin-left:-125px;
+.tag{position:absolute;left:50%;top:0;width:260px;margin-left:-130px;
   filter:drop-shadow(0 22px 22px rgba(20,30,40,.34)) drop-shadow(0 4px 6px rgba(20,30,40,.2))}
-.string{width:1.5px;height:calc(17svh + 20px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
-.disc{position:relative;width:250px;height:250px;margin-top:-18px}
+.string{width:1.5px;height:calc(17svh + 13px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
+.disc{position:relative;width:260px;height:260px;margin-top:-13px}
 .back,.front{position:absolute;inset:0;border-radius:50%}
 .back{background:#7590a3;background-image:var(--grain);transform:translate(14px,10px) rotate(8deg)}
-.front{background:var(--sheet);background-image:var(--grain);}
-.front svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.win{position:absolute;left:50%;top:52px;width:124px;height:124px;margin-left:-62px;border-radius:50%;overflow:hidden;
-  background:radial-gradient(circle at 52% 44%,#e9d8c8 0 22%,transparent 23%),radial-gradient(ellipse at 52% 92%,#4f6475 0 38%,transparent 39%),linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3);
-  box-shadow:inset 0 0 0 1px rgba(59,77,90,.18)}
-.ctl{position:absolute;left:0;right:0;top:184px;display:flex;flex-direction:column;align-items:center}
-.swap{font-size:9.5px;letter-spacing:2px;padding-left:2px;color:var(--muted)}
-.slider{position:relative;width:104px;height:1px;background:rgba(59,77,90,.4);margin:9px 0 10px}
-.slider i{position:absolute;left:38%;top:-4px;width:9px;height:9px;border-radius:50%;background:#7590a3}
-.act{display:flex;gap:26px;font-size:12px;letter-spacing:2px;color:var(--ink)}
-.act span{border-bottom:1px solid currentColor;padding:0 0 1px 2px}
-.act span+span{color:var(--muted)}
+.front{background:var(--sheet);background-image:var(--grain)}
+.win{position:absolute;inset:26px;border-radius:50%;overflow:hidden;background:var(--photo,linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3)) center/cover}
+.front svg{position:absolute;inset:0;width:100%;height:100%}
 </style></head><body>
 <div class="phone">
   <div class="page"><div class="k">ARCHIVE</div><h1>檔案館</h1><div class="row"></div><div class="row"></div><div class="row"></div></div>
@@ -50,22 +43,30 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
     <div class="disc">
       <div class="back"></div>
       <div class="front">
-        <svg viewBox="0 0 250 250">
-          <defs><path id="rim" d="M 28 125 A 97 97 0 0 1 222 125"/></defs>
-          <circle cx="125" cy="18" r="6.5" fill="none" stroke="rgba(59,77,90,.25)" stroke-width="1.2"/>
-          <circle cx="125" cy="18" r="4.5" fill="#5d6b75"/>
-          <circle cx="125" cy="125" r="114" fill="none" stroke="rgba(59,77,90,.28)" stroke-width=".8"/>
-          <g font-family="ZSFT-br" font-weight="500" font-size="7" letter-spacing="2.2" fill="#72828e">
-            <text><textPath href="#rim" startOffset="22%" text-anchor="middle">PORTRAIT</textPath></text>
-            <text><textPath href="#rim" startOffset="78%" text-anchor="middle">彼方肖像</textPath></text>
+        <div class="win"></div>
+        <svg viewBox="0 0 260 260">
+          <defs>
+            <path id="top" d="M 17 130 A 113 113 0 0 1 243 130"/>
+            <path id="bot" d="M 10 130 A 120 120 0 0 0 250 130"/>
+          </defs>
+          <circle cx="130" cy="130" r="125" fill="none" stroke="rgba(59,77,90,.3)" stroke-width=".8"/>
+          <circle cx="130" cy="130" r="104.5" fill="none" stroke="rgba(59,77,90,.3)" stroke-width=".8"/>
+          <circle cx="130" cy="13" r="6" fill="none" stroke="rgba(59,77,90,.25)" stroke-width="1.1"/>
+          <circle cx="130" cy="13" r="4" fill="#5d6b75"/>
+          <g font-family="ZSFT-br" font-weight="500" font-size="7.5" letter-spacing="2.4" fill="#72828e">
+            <text><textPath href="#top" startOffset="27%" text-anchor="middle">PORTRAIT</textPath></text>
+            <text><textPath href="#top" startOffset="40%" text-anchor="middle">—</textPath></text>
+            <text><textPath href="#top" startOffset="60%" text-anchor="middle">—</textPath></text>
+            <text><textPath href="#top" startOffset="73%" text-anchor="middle">彼方肖像</textPath></text>
+          </g>
+          <g font-family="LXGW Heart Serif" letter-spacing="3">
+            <text font-size="11.5" fill="#3b4d5a" font-weight="600"><textPath href="#bot" startOffset="32%" text-anchor="middle">確定</textPath></text>
+            <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="41%" text-anchor="middle">—</textPath></text>
+            <text font-size="9" fill="#72828e"><textPath href="#bot" startOffset="50%" text-anchor="middle">換照片</textPath></text>
+            <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="59%" text-anchor="middle">—</textPath></text>
+            <text font-size="11.5" fill="#72828e"><textPath href="#bot" startOffset="68%" text-anchor="middle">取消</textPath></text>
           </g>
         </svg>
-        <div class="win"></div>
-        <div class="ctl">
-          <span class="swap">換照片</span>
-          <div class="slider"><i></i></div>
-          <div class="act"><span>確定</span><span>取消</span></div>
-        </div>
       </div>
     </div>
   </div>
