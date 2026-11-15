@@ -1,0 +1,115 @@
+/* ================= 遮罩與紙堆 ================= */
+.connections-page .paper-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: rgba(59, 77, 90, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease;
+  will-change: opacity;
+}
+.connections-page .paper-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 兩個袋子共用紙堆：底紙斜放，上層紙張以抽走與蓋回切換。 */
+.connections-page .stack {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 101;
+  width: var(--sheet-w);
+  aspect-ratio: 3.2 / 4.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, calc(-50% + 22px), 0) scale(0.97);
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1),
+    opacity 0.35s ease;
+  will-change: transform, opacity;
+}
+.connections-page .stack.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(-50%, -50%, 0) scale(1);
+}
+.connections-page .stack-bot,
+.connections-page .stack-mid {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+.connections-page .stack-bot {
+  z-index: 1;
+  background: #e1ddd2;
+  transform: rotate(-1.5deg) translate(-2px, 8px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.connections-page .stack-mid {
+  z-index: 2;
+  background: #ebe7de;
+  transform: rotate(1deg) translate(3px, 4px);
+  box-shadow: -2px 6px 15px rgba(0, 0, 0, 0.08);
+}
+.connections-page .stack-vp {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: visible;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.connections-page .stack-track {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+.connections-page .stack .stack-track > * {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, 0, 0) rotate(0deg);
+  transform-origin: 50% 85%;
+  will-change: transform, opacity;
+}
+.connections-page .stack .stack-track > :not(.stack-shadow) {
+  isolation: isolate;
+  box-shadow: none;
+}
+/* 陰影獨立於紙面，只改位置與透明度，不逐幀重畫模糊陰影。 */
+.connections-page .stack .stack-track > .stack-shadow {
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+.connections-page .stack-vp input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 訂閱封面與 API 紙片共用的底色、陰影與紙紋。 */
+.connections-page .cover,
+.connections-page .api-sheet {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--sheet);
+  border-radius: 2px;
+  box-shadow: -1px 3px 10px rgba(0, 0, 0, 0.06);
+}
+.connections-page .cover::before,
+.connections-page .api-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: var(--paper-grain);
+}

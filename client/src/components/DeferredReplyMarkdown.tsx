@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { stripProtocolMarkers } from "../chatModel";
+import { stripProtocolMarkers } from "../replyProtocol";
 
 let markdownModule: Promise<typeof import("./ReplyMarkdown")> | null = null;
 

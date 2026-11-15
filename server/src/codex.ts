@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
+import path from "node:path";
 import type {
   AppConfig,
   ConversationRuntimeMetadata,
@@ -9,7 +10,10 @@ import type {
   RpcMessage,
 } from "./types.js";
 import { ConversationRuntimeRegistry } from "./conversationRuntime.js";
-import { parseCumulativeTokenUsage } from "./tokenUsage.js";
+import {
+  handleCodexNotification,
+  resolveConversationId,
+} from "./codexEvents.js";
 import {
   MIAN_PUBLIC_REPLY_CONTEXT_KEY,
   MIAN_PUBLIC_REPLY_PROTOCOL,
@@ -413,7 +417,7 @@ export class CodexBridge extends EventEmitter {
     }
     const params = (msg.params || {}) as Record<string, unknown>;
     const requestId = String(msg.id);
-    const conversationId = this.resolveConversationId(params);
+    const conversationId = resolveConversationId(this.conversations, params);
     if (!conversationId) {
       this.respondError(
         msg.id!,
@@ -459,223 +463,18 @@ export class CodexBridge extends EventEmitter {
   }
 
   private handleNotification(method: string, params: any) {
-    const conversationId = this.resolveConversationId(params);
-    if (!conversationId) {
-      if (
-        method === "turn/started" ||
-        method.startsWith("item/") ||
-        method.startsWith("turn/") ||
-        method.startsWith("thread/") ||
-        method === "model/rerouted" ||
-        method === "error"
-      )
-        this.emit(
-          "log",
-          `忽略无法路由到 conversationId 的 app-server 事件: ${method}`,
-        );
-      return;
-    }
-    if (method === "turn/started") {
-      const turnId = String(params.turn.id);
-      this.conversations.setActiveTurn(conversationId, turnId);
-      this.emit("event", { type: "turn-started", conversationId, turnId });
-    } else if (method === "item/agentMessage/delta")
-      this.emit("event", {
-        type: "assistant-delta",
-        conversationId,
-        turnId: params.turnId,
-        delta: params.delta,
-      });
-    else if (method === "item/reasoning/summaryTextDelta")
-      this.emit("event", {
-        type: "thinking-delta",
-        conversationId,
-        turnId: params.turnId,
-        itemId: params.itemId,
-        delta: params.delta,
-      });
-    else if (method === "item/plan/delta")
-      this.emit("event", {
-        type: "thinking-delta",
-        conversationId,
-        turnId: params.turnId,
-        delta: params.delta,
-      });
-    else if (method === "item/started" || method === "item/completed") {
-      if (
-        method === "item/completed" &&
-        params.item?.type === "fileChange" &&
-        params.item.status === "completed"
-      )
-        this.emit("files-changed", {
-          conversationId,
-          paths: (params.item.changes ?? []).map(
-            (change: { path: string }) => change.path,
-          ),
-        });
-      if (params.item?.type === "reasoning") {
-        this.emit("event", {
-          type:
-            method === "item/started"
-              ? "thinking-started"
-              : "thinking-completed",
-          conversationId,
-          turnId: params.turnId,
-          itemId: params.item.id,
-        });
-        return;
-      }
-      const tool = this.toolFrom(params.item, method === "item/started");
-      if (tool)
-        this.emit("event", {
-          type: "tool",
-          conversationId,
-          turnId: params.turnId,
-          tool,
-        });
-    } else if (
-      method === "item/commandExecution/outputDelta" ||
-      method === "item/fileChange/outputDelta" ||
-      method === "item/mcpToolCall/progress"
-    )
-      this.emit("event", {
-        type: "tool",
-        conversationId,
-        turnId: params.turnId,
-        tool: {
-          id: params.itemId,
-          name: "工具运行",
-          detail: String(params.delta || params.message || ""),
-          state: "running",
-        },
-      });
-    else if (method === "model/rerouted") {
-      if (typeof params.toModel === "string" && params.toModel)
-        this.emit("conversation-metadata", {
-          conversationId,
-          patch: { model: params.toModel },
-        });
-    } else if (method === "thread/settings/updated") {
-      const settings = params.threadSettings ?? {};
-      const patch: Partial<ConversationRuntimeMetadata> = {};
-      if (typeof settings.model === "string") patch.model = settings.model;
-      if (typeof settings.effort === "string" || settings.effort === null)
-        patch.reasoningEffort = settings.effort;
-      const mode = settings.collaborationMode;
-      if (typeof mode === "string") patch.collaborationMode = mode;
-      else if (mode && typeof mode.mode === "string")
-        patch.collaborationMode = mode.mode;
-      if (Object.keys(patch).length)
-        this.emit("conversation-metadata", { conversationId, patch });
-    } else if (method === "thread/tokenUsage/updated") {
-      const usage = parseCumulativeTokenUsage(params.tokenUsage?.total);
-      if (usage.warning)
-        this.emit(
-          "log",
-          `${usage.warning} for thread ${String(params.threadId || "unknown")}`,
-        );
-      if (Object.keys(usage.patch).length)
-        this.emit("conversation-metadata", {
-          conversationId,
-          patch: usage.patch,
-        });
-    } else if (method === "turn/completed") {
-      const turnId = String(params.turn.id);
-      this.conversations.clearActiveTurn(conversationId, turnId);
-      this.emit("event", {
-        type: "turn-completed",
-        conversationId,
-        turnId,
-        status: params.turn.status,
-        error: params.turn.error?.message,
-      });
-    } else if (method === "error")
-      this.emit("event", {
-        type: "error",
-        conversationId,
-        message: params.error?.message || params.message || "Codex 错误",
-      });
+    handleCodexNotification(
+      this.conversations,
+      this.emit.bind(this),
+      method,
+      params,
+    );
   }
 
-  private resolveConversationId(params: Record<string, unknown> | undefined) {
-    const threadId = params?.threadId;
-    if (typeof threadId === "string") {
-      const conversationId = this.conversations.conversationForThread(threadId);
-      if (conversationId) return conversationId;
-    }
-    const thread = params?.thread;
-    if (thread && typeof thread === "object" && "id" in thread) {
-      const nestedThreadId = (thread as { id?: unknown }).id;
-      if (typeof nestedThreadId === "string") {
-        const conversationId =
-          this.conversations.conversationForThread(nestedThreadId);
-        if (conversationId) return conversationId;
-      }
-    }
-    const turnValue = params?.turnId;
-    if (typeof turnValue === "string") {
-      const conversationId = this.conversations.conversationForTurn(turnValue);
-      if (conversationId) return conversationId;
-    }
-    const turn = params?.turn;
-    if (turn && typeof turn === "object" && "id" in turn) {
-      const turnId = (turn as { id?: unknown }).id;
-      if (typeof turnId === "string") {
-        const conversationId = this.conversations.conversationForTurn(turnId);
-        if (conversationId) return conversationId;
-      }
-    }
-    return null;
-  }
-
-  private toolFrom(item: any, started: boolean) {
-    if (
-      !item ||
-      ![
-        "commandExecution",
-        "fileChange",
-        "mcpToolCall",
-        "dynamicToolCall",
-        "webSearch",
-        "imageView",
-      ].includes(item.type)
-    )
-      return null;
-    const name =
-      item.type === "commandExecution"
-        ? item.command || "命令"
-        : item.type === "fileChange"
-          ? "文件修改"
-          : item.type === "mcpToolCall"
-            ? `${item.server} · ${item.tool}`
-            : item.tool || item.type;
-    let state: "running" | "success" | "failed" | "rejected" = started
-      ? "running"
-      : "success";
-    const raw = String(item.status || "").toLowerCase();
-    if (raw.includes("fail") || raw.includes("error")) state = "failed";
-    if (raw.includes("declin") || raw.includes("reject")) state = "rejected";
-    const detail =
-      item.aggregatedOutput ||
-      item.error?.message ||
-      (item.changes ? JSON.stringify(item.changes, null, 2) : "");
-    return {
-      id: String(item.id || name),
-      name: String(name),
-      detail: String(detail || ""),
-      state,
-      kind: String(item.type),
-      rawName: String(item.tool || item.type),
-      arguments: item.arguments ?? item.input ?? item.params,
-      command: item.command === undefined ? undefined : String(item.command),
-      result: String(detail || ""),
-    };
-  }
-
-  private threadOptions() {
+  private threadOptions(conversationId: string) {
     if (!this.config) throw new Error("尚未连接 Codex");
     return {
-      cwd: this.config.workingDirectory,
+      cwd: path.join(this.config.workingDirectory, conversationId),
       sandbox: this.config.sandbox,
       model: this.config.model || null,
       approvalPolicy: "on-request",
@@ -711,7 +510,7 @@ export class CodexBridge extends EventEmitter {
         try {
           result = await this.request("thread/resume", {
             threadId: existingThreadId,
-            ...this.threadOptions(),
+            ...this.threadOptions(conversationId),
             excludeTurns: true,
           });
         } catch (error) {
@@ -719,13 +518,13 @@ export class CodexBridge extends EventEmitter {
             throw error;
           // 旧空线程尚无记录，只替换当前会话的失效绑定。
           result = await this.request("thread/start", {
-            ...this.threadOptions(),
+            ...this.threadOptions(conversationId),
             ephemeral: false,
           });
         }
       } else
         result = await this.request("thread/start", {
-          ...this.threadOptions(),
+          ...this.threadOptions(conversationId),
           ephemeral: false,
         });
       const binding = this.threadBinding(result);
@@ -748,23 +547,26 @@ export class CodexBridge extends EventEmitter {
     return operation;
   }
 
-  async createConversationThread() {
+  async createConversationThread(conversationId: string) {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
     const result = (await this.request("thread/start", {
-      ...this.threadOptions(),
+      ...this.threadOptions(conversationId),
       ephemeral: false,
     })) as any;
     const binding = this.threadBinding(result);
     return binding;
   }
 
-  async forkConversationThread(parentConversationId: string) {
+  async forkConversationThread(
+    parentConversationId: string,
+    conversationId: string,
+  ) {
     const parentThreadId =
       await this.ensureConversationThread(parentConversationId);
     const result = (await this.request("thread/fork", {
       threadId: parentThreadId,
-      ...this.threadOptions(),
+      ...this.threadOptions(conversationId),
       ephemeral: false,
       excludeTurns: true,
     })) as any;
@@ -817,6 +619,7 @@ export class CodexBridge extends EventEmitter {
       const threadId = await this.ensureConversationThread(conversationId);
       const result = (await this.request("turn/start", {
         threadId,
+        cwd: path.join(this.config.workingDirectory, conversationId),
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {

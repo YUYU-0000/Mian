@@ -1,30 +1,61 @@
-import { useRef, useState } from "react";
-import { api } from "../api";
+import { pad2 } from "../format";
+import { useEffect, useState } from "react";
+import { installFont, INVALID_FONT, parseFontFace } from "../bubbleFont";
+import {
+  DEFAULT_BUBBLE_SIZE,
+  DEFAULT_FONT_ID,
+  type FontPreset,
+} from "../settingsTypes";
 import Media from "../components/Media";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
 
 export default function FontPage({
-  id,
+  preset,
   index,
   total,
   active,
+  inUse,
+  onChange,
+  onSave,
   onAdd,
   onDelete,
 }: {
-  id: number;
+  preset: FontPreset;
   index: number;
   total: number;
   active: boolean;
+  inUse: boolean;
+  onChange: (preset: FontPreset) => void;
+  onSave: (preset: FontPreset) => Promise<FontPreset>;
   onAdd: () => void;
   onDelete: () => void;
 }) {
-  const page = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(16);
+  const [draft, setDraft] = useState(preset);
+  useEffect(() => setDraft(preset), [preset]);
+  const { id, name, size, face, view } = draft;
+  const fixed = id === DEFAULT_FONT_ID;
   const [direction, setDirection] = useState(-1);
-  const [name, setName] = useState("");
+  const [previewFamily, setPreviewFamily] = useState("ZSFT-br");
+  const minimum = DEFAULT_BUBBLE_SIZE - 3;
+  const maximum = DEFAULT_BUBBLE_SIZE + 3;
+  const change = (patch: Partial<FontPreset>) =>
+    setDraft((current) => ({ ...current, ...patch }));
+  const preview = () => {
+    try {
+      const font = fixed
+        ? { family: "ZSFT-br", css: "" }
+        : parseFontFace(face, id);
+      installFont(font, id);
+      setPreviewFamily(font.family);
+      return true;
+    } catch {
+      notify.fail("字體無效", INVALID_FONT);
+      return false;
+    }
+  };
   return (
-    <div className="api-page" data-id={id} ref={page}>
+    <div className="api-page" data-id={id}>
       <div className="paper-holes">
         <div className="hole" />
         <div className="hole" />
@@ -51,7 +82,9 @@ export default function FontPage({
             className="api-polaroid-input-main"
             placeholder="UNNAMED"
             value={name}
-            onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9\s\-_]/g, ""))}
+            readOnly={fixed}
+            onChange={(e) => change({ name: e.target.value })}
+            onBlur={() => onChange(draft)}
           />
         </div>
       </div>
@@ -76,25 +109,47 @@ export default function FontPage({
             strokeLinejoin="round"
           />
         </svg>
-        <div className="acc-num-top apiTotalPages">{String(total).padStart(3, "0")}</div>
+        <div className="acc-num-top apiTotalPages">
+          {String(total).padStart(3, "0")}
+        </div>
         <div className="apiBtnAdd" onClick={onAdd}>
           ADD
         </div>
-        <div className={`apiBtnDel${total <= 1 ? " disabled" : ""}`} onClick={onDelete}>
+        <div
+          className={`apiBtnDel${fixed ? " disabled" : ""}`}
+          onClick={fixed ? undefined : onDelete}
+        >
           DEL
         </div>
-        <div className="acc-num-bot apiCurrentPage">
-          {String(index + 1).padStart(2, "0")}
-        </div>
+        <div className="acc-num-bot apiCurrentPage">{pad2(index + 1)}</div>
       </div>
       <div className="api-postcard-form">
         <div className="api-field-row">
           <div className="api-field-label">FACE</div>
-          <ScrollInput type="text" className="api-field-input" placeholder="@font-face { }" />
+          <ScrollInput
+            type="text"
+            className="api-field-input"
+            placeholder={fixed ? "LXGW Heart Serif" : "@font-face { }"}
+            value={face}
+            readOnly={fixed}
+            onChange={(e) => change({ face: e.target.value })}
+            onBlur={() => onChange(draft)}
+          />
         </div>
         <div className="api-field-row">
           <div className="api-field-label">VIEW</div>
-          <ScrollInput type="text" className="api-field-input" placeholder="Still water." />
+          <ScrollInput
+            type="text"
+            className="api-field-input"
+            placeholder="Still water."
+            value={view}
+            onChange={(e) => change({ view: e.target.value })}
+            onBlur={() => onChange(draft)}
+            style={{
+              fontFamily: `"${previewFamily}", "LXGW Heart Serif", sans-serif`,
+              fontSize: size,
+            }}
+          />
         </div>
         <div className="api-field-row">
           <div className="api-field-label">SIZE</div>
@@ -102,19 +157,23 @@ export default function FontPage({
             <input
               type="range"
               className="fish-slider timeout-slider"
-              min="12"
-              max="18"
+              min={minimum}
+              max={maximum}
               step="1"
               value={size}
               onChange={(e) => {
                 const value = +e.target.value;
                 if (value !== size) setDirection(value > size ? -1 : 1);
-                setSize(value);
+                change({ size: value });
               }}
+              onBlur={() => onChange(draft)}
+              onPointerUp={() => onChange(draft)}
             />
             <div
               className="fish-thumb-wrapper"
-              style={{ left: `${((size - 12) / (18 - 12)) * 100}%` }}
+              style={{
+                left: `${((size - minimum) / (maximum - minimum)) * 100}%`,
+              }}
             >
               <div className="fish-value">{`${size} px`}</div>
               <svg
@@ -143,26 +202,23 @@ export default function FontPage({
           </div>
         </div>
       </div>
+      {inUse && <span className="font-status">IN USE</span>}
       <div className="api-actions">
         <div
           className="action-btn btnSaveStyle"
           onClick={() => {
-            void api
-              .saveFontStyle(page.current!)
-              .then(() => notify.ok("已保存"))
+            if (!preview()) return;
+            void onSave(draft)
+              .then((saved) => {
+                setDraft(saved);
+                notify.ok("已保存");
+              })
               .catch((error) => notify.fail("保存失敗", error));
           }}
         >
           <span className="btn-text">SAVE STYLE</span>
         </div>
-        <div
-          className="action-btn btnTestStyle"
-          onClick={() => {
-            void api
-              .testFontStyle(page.current!)
-              .catch((error) => notify.fail("試用失敗", error));
-          }}
-        >
+        <div className="action-btn btnTestStyle" onClick={preview}>
           <span className="btn-text">TEST STYLE</span>
         </div>
       </div>

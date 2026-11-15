@@ -1,15 +1,15 @@
-import { pad2 } from "../format";
+import SubscriptionSheet, {
+  type SubscriptionProvider,
+  type SubscriptionState,
+} from "./SubscriptionSheet";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { Provider, Quota, Subscription } from "../connectionTypes";
+import type { Provider } from "../connectionTypes";
 import type { Channel } from "../types";
-import AnimatedText from "../components/AnimatedText";
-import ScrollText from "../components/ScrollText";
-import Media from "../components/Media";
 import { notify } from "../components/Notify";
 import { makeStack, type PaperStack } from "../components/paperStack";
 import ConnectionLayout, { type TagConfig } from "./ConnectionLayout";
-import ApiSheet from "./ConnectionSheet";
+import ConnectionSheet from "./ConnectionSheet";
 import {
   blankDraft,
   readApiDrafts,
@@ -20,23 +20,11 @@ import {
   type Draft,
 } from "../apiDrafts";
 
-const providers: {
-  id: Provider;
-  name: string;
-  giant: string;
-  art: string;
-  size: number;
-}[] = [
+const providers: SubscriptionProvider[] = [
   { id: "codex", name: "Codex", giant: "CODEX", art: "#a4b8c6", size: 96 },
   { id: "gemini", name: "Gemini", giant: "GEMINI", art: "#9cadba", size: 96 },
   { id: "kimi", name: "Kimi", giant: "KIMI", art: "#adbac2", size: 96 },
 ];
-type SubState = Subscription & {
-  quota: Quota | null;
-  loaded: boolean;
-  quotaLoading?: boolean;
-};
-
 export default function Connections({
   onBack,
   channel,
@@ -53,7 +41,7 @@ export default function Connections({
   const [open, setOpen] = useState<"sub" | "api" | null>(null);
   const [subIndex, setSubIndex] = useState(0);
   const [subscriptions, setSubscriptions] = useState<
-    Record<Provider, SubState>
+    Record<Provider, SubscriptionState>
   >(
     () =>
       Object.fromEntries(
@@ -68,7 +56,7 @@ export default function Connections({
             loaded: false,
           },
         ]),
-      ) as Record<Provider, SubState>,
+      ) as Record<Provider, SubscriptionState>,
   );
   const [presets, setPresets] = useState<Draft[]>([]);
   const [plus, setPlus] = useState<Draft>(blankDraft);
@@ -84,7 +72,7 @@ export default function Connections({
   const [tagVisible, setTagVisible] = useState(false);
   const currentOpen = useRef(open);
   currentOpen.current = open;
-  const patchSub = (id: Provider, patch: Partial<SubState>) =>
+  const patchSub = (id: Provider, patch: Partial<SubscriptionState>) =>
     setSubscriptions((current) => ({
       ...current,
       [id]: { ...current[id], ...patch },
@@ -353,124 +341,22 @@ export default function Connections({
       tagVisible={tagVisible}
       onTagClose={() => setTagVisible(false)}
       onTagScroll={updateFade}
-      subPages={providers.map((provider, index) => {
-        const s = subscriptions[provider.id];
-        return (
-          <div className="cover" data-p={provider.id} key={provider.id}>
-            <div
-              className="cover-art js-art"
-              style={{ backgroundColor: provider.art }}
-              onClick={(e) => {
-                if (!(e.target as Element).closest("input"))
-                  e.currentTarget.querySelector("input")!.click();
-              }}
-            >
-              <Media storageKey={provider.id} cover />
-              <span className="cover-count">{`${pad2(index + 1)} / ${pad2(providers.length)}`}</span>
-            </div>
-            <div className="cover-band">
-              <div
-                className="cover-giant"
-                style={{ fontSize: provider.size }}
-                role={provider.id === "codex" ? "button" : undefined}
-                tabIndex={provider.id === "codex" ? 0 : undefined}
-                aria-label={
-                  provider.id === "codex" ? "使用 Codex 通道" : undefined
-                }
-                onClick={provider.id === "codex" ? useCodex : undefined}
-                onKeyDown={
-                  provider.id === "codex"
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          useCodex();
-                        }
-                      }
-                    : undefined
-                }
-              >
-                {provider.giant}
-              </div>
-              <div className="cover-band-inner">
-                <div className="cover-title">{provider.name}</div>
-                <div className="cover-sub">訂閱連接</div>
-                <div className="cover-links">
-                  <button
-                    className="cover-link js-account"
-                    type="button"
-                    onClick={() => void account(provider.id)}
-                  >
-                    <span className="cover-link-label">ACCOUNT</span>
-                    <ScrollText className="cover-link-value js-account-v">
-                      <AnimatedText
-                        className="cover-link-text"
-                        text={
-                          s.loggedIn
-                            ? (s.plan || "SIGNED IN").toUpperCase()
-                            : "未登入"
-                        }
-                      />
-                    </ScrollText>
-                  </button>
-                  <button
-                    className="cover-link js-model"
-                    type="button"
-                    onClick={() => void subModels(provider.id)}
-                  >
-                    <span className="cover-link-label">MODEL</span>
-                    <ScrollText className="cover-link-value js-model-v">
-                      <AnimatedText
-                        className="cover-link-text"
-                        text={s.model || "未設定"}
-                      />
-                    </ScrollText>
-                  </button>
-                  <button
-                    className="cover-link js-quota"
-                    type="button"
-                    onClick={() =>
-                      s.loggedIn
-                        ? void loadQuota(provider.id)
-                        : notify.note("請先登入")
-                    }
-                  >
-                    <span className="cover-link-label">QUOTA</span>
-                    <ScrollText className="cover-link-value js-quota-v">
-                      <AnimatedText
-                        className="cover-link-text"
-                        text={
-                          s.quotaLoading
-                            ? "讀取中"
-                            : s.quota
-                              ? `剩餘 ${s.quota.left}%`
-                              : "—"
-                        }
-                      />
-                    </ScrollText>
-                  </button>
-                </div>
-              </div>
-              <div className="cover-foot">
-                <AnimatedText
-                  className={`cover-status js-status${s.loggedIn ? " is-connected" : ""}`}
-                  text={s.loggedIn ? "CONNECTED" : "NOT CONNECTED"}
-                />
-                {provider.id === "codex" && (
-                  <button
-                    type="button"
-                    className="cover-workspace"
-                    onClick={() => void editWorkspace()}
-                  >
-                    WORKSPACE
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      subPages={providers.map((provider, index) => (
+        <SubscriptionSheet
+          key={provider.id}
+          provider={provider}
+          subscription={subscriptions[provider.id]}
+          index={index}
+          total={providers.length}
+          onUseCodex={useCodex}
+          onAccount={account}
+          onModels={subModels}
+          onQuota={loadQuota}
+          onWorkspace={editWorkspace}
+        />
+      ))}
       apiPages={[...presets, plus].map((draft, index) => (
-        <ApiSheet
+        <ConnectionSheet
           key={draft.paperKey}
           draft={draft}
           index={index}

@@ -111,7 +111,11 @@ try {
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description);
     return result.result.value;
   };
-  const navigate = route => call("Page.navigate", { url: base + route });
+  const navigate = async route => {
+    const connected = once(sockets, "connection");
+    await call("Page.navigate", { url: base + route });
+    await connected;
+  };
   const input = (selector, value) => evaluate(`(() => {
     const field = document.querySelector(${JSON.stringify(selector)});
     Object.getOwnPropertyDescriptor(field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value').set.call(field, ${JSON.stringify(value)});

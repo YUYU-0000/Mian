@@ -83,9 +83,8 @@ export async function fileTicketServer() {
       process.send({ prompt:text });
       this.emit('event', {type:'turn-started',conversationId,turnId});
       setTimeout(async () => {
-        await writeFile(path.join(this.config.workingDirectory, 'generated.html'), '<h1>local file</h1>');
-        await writeFile(path.join(this.config.workingDirectory, 'generated.png'), Buffer.from(${JSON.stringify(imageBytes.toString("base64"))}, 'base64'));
-        this.emit('files-changed', {conversationId, paths:['generated.html','generated.png']});
+        await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.html'), '<h1>local file</h1>');
+        await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.png'), Buffer.from(${JSON.stringify(imageBytes.toString("base64"))}, 'base64'));
         this.emit('event', {type:'assistant-delta',conversationId,turnId,delta:'<mian-bubble>文件做好了。</mian-bubble>'});
         this.emit('event', {type:'turn-completed',conversationId,turnId,status:'completed'});
       }, 80);

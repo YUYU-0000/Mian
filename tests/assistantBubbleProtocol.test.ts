@@ -3,16 +3,16 @@ import test from "node:test";
 import {
   applyReplyEvent,
   loadChatGroups,
-  parsePublicReply,
   saveChatGroups,
   type ChatGroup,
   type ReplyGroup,
 } from "../client/src/chatModel.ts";
+import { parsePublicReply } from "../client/src/replyProtocol.ts";
+import { ChatSessionStore } from "../client/src/chatSession.ts";
 import {
-  ChatSessionStore,
   isToolTimelineVisible,
   visualTarget,
-} from "../client/src/chatSession.ts";
+} from "../client/src/replyTimeline.ts";
 import {
   BUBBLE_PAUSE_MS,
   emptyVisualReply,
@@ -43,7 +43,7 @@ test("one explicit mian-bubble produces one assistant bubble", () => {
   const parsed = parsePublicReply(
     "<mian-thinking>听见了。</mian-thinking><mian-bubble>嗯。在。</mian-bubble>",
   );
-  assert.deepEqual(parsed.bubbles, ["嗯。在。"]) ;
+  assert.deepEqual(parsed.bubbles, ["嗯。在。"]);
   assert.deepEqual(parsed.bubbleComplete, [true]);
 });
 
@@ -69,14 +69,14 @@ test("excess blank lines are normalized without becoming boundaries", () => {
   const parsed = parsePublicReply(
     "<mian-bubble>第一段。\n\n\n\n\n第二段。</mian-bubble>",
   );
-  assert.deepEqual(parsed.bubbles, ["第一段。\n\n第二段。"]) ;
+  assert.deepEqual(parsed.bubbles, ["第一段。\n\n第二段。"]);
 });
 
 test("empty and whitespace-only markers do not create air bubbles", () => {
   const parsed = parsePublicReply(
     "<mian-bubble></mian-bubble><mian-bubble> \n </mian-bubble><mian-bubble>留下。</mian-bubble>",
   );
-  assert.deepEqual(parsed.bubbles, ["留下。"]) ;
+  assert.deepEqual(parsed.bubbles, ["留下。"]);
   assert.deepEqual(parsed.bubbleComplete, [true]);
 });
 
@@ -147,9 +147,12 @@ test("multiple streamed bubbles keep order, stable ids, and no marker text", () 
     "10:00",
   );
   const value = reply(groups);
-  assert.deepEqual(value.bubbles, ["第一条。", "第二条。", "第三条。"]) ;
+  assert.deepEqual(value.bubbles, ["第一条。", "第二条。", "第三条。"]);
   assert.equal(value.bubbleIds[0], firstId);
-  assert.equal(value.bubbles.some((bubble) => bubble.includes("mian")), false);
+  assert.equal(
+    value.bubbles.some((bubble) => bubble.includes("mian")),
+    false,
+  );
 });
 
 test("tool replies preserve THINKING, multiple pre-tool bubbles, tools, and post bubbles", () => {
@@ -192,8 +195,8 @@ test("tool replies preserve THINKING, multiple pre-tool bubbles, tools, and post
   const value = reply(groups);
   const visual = hydrateVisualReply(visualTarget(value));
   assert.equal(value.preToolComplete, true);
-  assert.deepEqual(value.preToolBubbles, ["嗯。", "我先查一下。"]) ;
-  assert.deepEqual(value.bubbles, ["看到了。", "问题就在这里。"]) ;
+  assert.deepEqual(value.preToolBubbles, ["嗯。", "我先查一下。"]);
+  assert.deepEqual(value.bubbles, ["看到了。", "问题就在这里。"]);
   assert.equal(isToolTimelineVisible(value, visual), true);
   assert.deepEqual(
     [
@@ -305,7 +308,7 @@ test("restoring mid-stream and appending only new deltas does not duplicate bubb
     "10:00",
   );
   const value = reply(groups);
-  assert.deepEqual(value.bubbles, ["第一。", "第二。"]) ;
+  assert.deepEqual(value.bubbles, ["第一。", "第二。"]);
   assert.equal(value.bubbleIds[0], firstId);
   assert.equal(new Set(value.bubbleIds).size, 2);
 });
@@ -339,7 +342,10 @@ test("explicit Stop preserves an incomplete current bubble and flushes it visibl
   assert.deepEqual(stopped, ["stopped-turn"]);
   assert.deepEqual(value.bubbles, ["已经收到但还没闭合"]);
   assert.deepEqual(value.bubbleComplete, [false]);
-  assert.equal(snapshot.visualReplies["stopped-turn"].bubbles[0], "已经收到但还没闭合");
+  assert.equal(
+    snapshot.visualReplies["stopped-turn"].bubbles[0],
+    "已经收到但还没闭合",
+  );
   assert.equal(snapshot.visualReplies["stopped-turn"].cursor, null);
 });
 
@@ -350,9 +356,7 @@ test("plain unmarked assistant output becomes one compatibility bubble only at f
     "<mian-thinking>想好了。</mian-thinking>第一段。\n\n第二段仍属于同一个回复。",
     { final: true },
   );
-  assert.deepEqual(completed.bubbles, [
-    "第一段。\n\n第二段仍属于同一个回复。",
-  ]);
+  assert.deepEqual(completed.bubbles, ["第一段。\n\n第二段仍属于同一个回复。"]);
   assert.deepEqual(completed.bubbleComplete, [true]);
 });
 
@@ -361,7 +365,10 @@ test("code blocks and their blank lines remain in one explicit bubble", () => {
     "<mian-bubble>```ts\nconst a = 1;\n\n\n\nconst b = 2;\n```</mian-bubble>",
   );
   assert.equal(parsed.bubbles.length, 1);
-  assert.equal(parsed.bubbles[0].includes("const a = 1;\n\n\n\nconst b = 2;"), true);
+  assert.equal(
+    parsed.bubbles[0].includes("const a = 1;\n\n\n\nconst b = 2;"),
+    true,
+  );
 });
 
 test("multiple pre-tool bubbles use the existing exact 300ms visual pause", () => {

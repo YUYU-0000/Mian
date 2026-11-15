@@ -20,6 +20,7 @@ export default memo(function FileTicket({
   progress,
   pending = false,
   previewUrl,
+  entryDelayMs,
 }: {
   file: ChatFile;
   conversationId: string;
@@ -27,6 +28,7 @@ export default memo(function FileTicket({
   progress?: number;
   pending?: boolean;
   previewUrl?: string;
+  entryDelayMs?: number;
 }) {
   const [viewing, setViewing] = useState(false);
   const closePreview = useCallback(() => setViewing(false), []);
@@ -45,7 +47,7 @@ export default memo(function FileTicket({
   const nameAndMeta = (
     <>
       <div className="ft-kicker">
-        {image ? "IMAGE · 圖片" : mine ? "SENT · 寄出" : "FILE · 檔案"}
+        {image ? "IMAGE  圖片" : mine ? "SENT  寄出" : "FILE  檔案"}
       </div>
       <ScrollText className="ft-name">{file.name}</ScrollText>
       <div className="ft-meta">
@@ -74,7 +76,12 @@ export default memo(function FileTicket({
   return (
     <>
       <div
-        className={`ft${mine ? " is-mine" : ""}${image ? " is-image" : ""}`}
+        className={`ft${mine ? " is-mine" : ""}${image ? " is-image" : ""}${entryDelayMs !== undefined ? " archive-pop-in" : ""}`}
+        style={
+          entryDelayMs === undefined
+            ? undefined
+            : { animationDelay: `${entryDelayMs}ms` }
+        }
         role={pending && !image ? undefined : "button"}
         tabIndex={pending && !image ? undefined : 0}
         aria-label={`${kind ? "查看" : "下載"} ${file.name}`}

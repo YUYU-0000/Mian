@@ -150,7 +150,7 @@ try {
     height: 74,
     paper: "#6b8396",
     ink: "#f5f2ec",
-    kicker: "IMAGE · 圖片",
+    kicker: "IMAGE  圖片",
     action: "查看",
     thumb: true,
     size: true,
@@ -320,6 +320,16 @@ try {
       ),
     "Codex 附件上传",
   );
+  await evaluate(`(() => {
+    window.ticketArrivalText = [];
+    window.ticketObserver = new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node instanceof Element && node.matches('.ft:not(.is-mine)'))
+          window.ticketArrivalText.push(node.closest('.archive-msg').querySelector('.archive-bubble')?.textContent);
+      }
+    });
+    window.ticketObserver.observe(document.querySelector('.archive-stream'), { childList: true, subtree: true });
+  })()`);
   await clickSend();
   await clickSend();
   await waitFor(
@@ -329,6 +339,25 @@ try {
       ),
     "Codex 输出文件和图片票根",
   );
+  const entrance = await evaluate(`(() => {
+    const tickets = [...document.querySelectorAll('.archive-msg .ft:not(.is-mine)')];
+    const motion = el => {
+      const style = getComputedStyle(el);
+      return [style.animationName, style.animationDuration, style.animationTimingFunction];
+    };
+    return {
+      bubble: motion(tickets[0].closest('.archive-msg').querySelector('.archive-bubble')),
+      tickets: tickets.map(motion),
+      delays: tickets.map(el => getComputedStyle(el).animationDelay),
+      fill: tickets.map(el => getComputedStyle(el).animationFillMode),
+      text: window.ticketArrivalText,
+    };
+  })()`);
+  assert.deepEqual(entrance.tickets, [entrance.bubble, entrance.bubble]);
+  assert.deepEqual(entrance.delays, ["0s", "0.08s"]);
+  assert.deepEqual(entrance.fill, ["both", "both"]);
+  assert.deepEqual(entrance.text, ["文件做好了。", "文件做好了。"]);
+  await evaluate(`window.ticketObserver.disconnect(); Promise.all([...document.querySelectorAll('.archive-msg .ft:not(.is-mine)')].flatMap(el => el.getAnimations()).map(animation => animation.finished))`);
   assert.ok(
     backend.prompts[0].includes(backend.workspace) &&
       backend.prompts[0].includes(filename),
@@ -400,6 +429,7 @@ try {
       ),
     "刷新恢复模型文件",
   );
+  assert.equal(await evaluate(`document.querySelectorAll('.ft.archive-pop-in').length`), 0);
   await writeFile(
     path.join(process.cwd(), ".tmp-file-tickets.png"),
     Buffer.from((await call("Page.captureScreenshot")).data, "base64"),

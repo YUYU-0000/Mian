@@ -104,6 +104,7 @@
   font-family: "ZSFT-br", "LXGW Heart Serif", serif;
 }
 .pv-kicker {
+  white-space: pre;
   font-weight: 500;
   font-size: 6.5px;
   letter-spacing: 2.2px;

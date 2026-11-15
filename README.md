@@ -34,6 +34,8 @@ A mobile-first chat UI backed by a local Node bridge to `codex app-server` over 
 
 正式页面不使用左侧加粗竖线或左侧色条作为装饰。回复排版统一使用 `client/src/components/reply-markdown.css`，保留定稿数值。
 
+界面标签不使用中间圆点作为分隔符，英文与中文之间空两格，例如 `FILE  檔案`。设计稿和新界面也沿用这条规则。
+
 单行文字放不下时使用 `ScrollText` 或 `ScrollInput` 横向滑动查看全文，不用省略号或手动截短。隐藏滚动条，溢出时右边缘 14px 淡出；文字横拖不触发纸片翻页或按钮点击。新界面也沿用这条规则。
 
 ---

@@ -1,20 +1,21 @@
+import { pad2 } from "./format";
+import { visualTarget } from "./replyTimeline";
 import { api } from "./api";
 import { FileDrafts } from "./fileDrafts";
 import {
   CHAT_STORAGE_KEY,
   applyReplyEvent,
   appendUserRecord,
-  buildPublicReplyPrompt,
   chatHistory,
   closePendingGroup,
   finalizeReplyGroup,
   loadChatGroups,
   pendingUserGroup,
   recoverLastUnansweredUserGroup,
-  readableToolResult,
   saveChatGroups,
   type ChatGroup,
 } from "./chatModel";
+import { buildPublicReplyPrompt } from "./replyProtocol";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
 import { ReplyPlaybackQueue } from "./replyPlaybackQueue";
 import type {
@@ -28,7 +29,6 @@ import {
   hydrateVisualReply,
   tickVisualReply,
   type VisualReply,
-  type VisualTarget,
 } from "./visualPlayback";
 
 const SESSION_STORAGE_KEY = "mian.chat-session.v1";
@@ -131,7 +131,7 @@ function conversationStorage(
 
 function currentTimeLabel() {
   const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 }
 
 function initialChatGroups(storage: StorageLike): ChatGroup[] {
@@ -161,39 +161,6 @@ function loadActiveTurn(storage: StorageLike): string | null {
     // 旧会话信息留到下次更新时重写。
   }
   return null;
-}
-
-export function visualTarget(
-  message: Extract<ChatGroup, { role: "assistant" }>,
-): VisualTarget {
-  const toolTimelineReady =
-    message.tools.length === 0 || hasCompletedPreToolBubble(message);
-  return {
-    thinking: message.thinking,
-    preToolBubbles: message.preToolBubbles,
-    tools: toolTimelineReady
-      ? message.tools.map((tool) => ({
-          id: tool.id,
-          text: tool.state === "running" ? "" : readableToolResult(tool),
-          tool,
-        }))
-      : [],
-    bubbles: toolTimelineReady ? message.bubbles : [],
-    done: Boolean(message.status),
-  };
-}
-
-export function hasCompletedPreToolBubble(
-  message: Extract<ChatGroup, { role: "assistant" }>,
-) {
-  return message.preToolBubbles.length > 0 && message.preToolComplete;
-}
-
-export function isToolTimelineVisible(
-  message: Extract<ChatGroup, { role: "assistant" }>,
-  visual: VisualReply,
-) {
-  return message.tools.length > 0 && visual.visibleToolIds.length > 0;
 }
 
 export class ChatSessionStore {

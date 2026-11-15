@@ -253,7 +253,18 @@ try {
   await click(`${current("#apiWrapper")} .btnSaveStyle`);
   await click(`${current("#apiWrapper")} .btnTestStyle`);
   assert.ok((await evaluate("window.styleActions")).includes("save"));
-  assert.ok((await evaluate("window.styleActions")).includes("test"));
+  assert.equal(
+    await evaluate(
+      "document.querySelector('.api-page .api-field-input').readOnly",
+    ),
+    true,
+  );
+  await click(`${current("#apiWrapper")} .apiBtnDel`);
+  assert.equal(
+    await evaluate("document.querySelectorAll('.api-page').length"),
+    3,
+  );
+  await drag("#apiWrapper", -170);
   const longText = "FontFamily-".repeat(35);
   const field = `${current("#apiWrapper")} .api-field-input`;
   await evaluate(
@@ -267,7 +278,7 @@ try {
     await evaluate(`document.querySelector('${field}').value`),
     longText,
   );
-  assert.equal(await selected("#apiWrapper"), 0);
+  assert.equal(await selected("#apiWrapper"), 1);
   await click(`${current("#apiWrapper")} .apiBtnDel`);
   await waitFor(
     () => evaluate("document.querySelectorAll('.api-page').length === 2"),

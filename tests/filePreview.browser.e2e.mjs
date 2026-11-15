@@ -285,7 +285,7 @@ try {
   assert.ok(Math.abs(appearance.angle + 1.2) < 0.001);
   assert.equal(appearance.saveHidden, true);
   assert.equal(appearance.removed, true);
-  await assertPaperStyle(portraitName, "IMAGE · 圖片");
+  await assertPaperStyle(portraitName, "IMAGE  圖片");
   assert.ok(
     Math.abs(appearance.photo[0] / appearance.photo[1] - 2 / 3) < 0.001,
   );
@@ -471,7 +471,7 @@ try {
 
   await open("example.ts");
   await settle();
-  await assertPaperStyle("example.ts", "FILE · 檔案");
+  await assertPaperStyle("example.ts", "FILE  檔案");
   await waitFor(
     () => evaluate(`!!document.querySelector('.pv-source .hljs-keyword')`),
     "复用代码高亮",

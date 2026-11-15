@@ -2,7 +2,7 @@
 .home-date,
 .home-time,
 .home-time span {
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-family: var(--font-main);
   font-style: normal;
   font-synthesis: none;
 }
@@ -47,7 +47,7 @@
   height: 32px;
   min-height: 32px;
   padding: 5px 0;
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-family: var(--font-main);
   font-size: 14.5px;
   font-style: normal;
   font-weight: 400;
@@ -66,7 +66,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #5a7082;
+  background: var(--muted);
   box-shadow:
     inset 1px 2px 3px rgba(255, 255, 255, 0.2),
     inset -1px -2px 3px rgba(0, 0, 0, 0.3),
@@ -81,7 +81,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3b4d5a;
+  background: var(--ink);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 .tie-container-v .tie-btn:nth-child(1) {
@@ -108,7 +108,7 @@
   height: 60px;
   overflow: visible;
   pointer-events: none;
-  stroke: #3b4d5a;
+  stroke: var(--ink);
   stroke-width: 1.5;
 }
 .string-svg-h {
@@ -119,7 +119,7 @@
   height: 80px;
   overflow: visible;
   pointer-events: none;
-  stroke: #3b4d5a;
+  stroke: var(--ink);
   stroke-width: 1.5;
 }
 
@@ -198,7 +198,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: #7590a3;
+  background-color: var(--blue);
   -webkit-clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   border-radius: 3px 3px 0 0;
@@ -259,7 +259,7 @@
   gap: 6px;
   position: relative;
   min-height: 12px;
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-family: var(--font-main);
   font-size: 11px;
   line-height: 1;
   letter-spacing: 4px;
@@ -288,7 +288,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-family: var(--font-main);
   font-size: 12px;
   line-height: 1.6;
   cursor: pointer;
@@ -341,7 +341,7 @@
 .archive-thought,
 .archive-step-summary,
 .archive-step-body {
-  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-family: var(--font-main);
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
@@ -360,11 +360,6 @@
 .archive-thought,
 .archive-tool-path {
   margin-left: 0;
-}
-.archive-thought {
-  margin-top: 0;
-}
-.archive-tool-path {
   margin-top: 0;
 }
 
@@ -393,7 +388,11 @@
 .archive-step-body .archive-tool-output {
   min-width: 0;
   max-width: 100%;
-  font: 11px/1.6 ui-monospace, "SF Mono", Consolas, monospace;
+  font:
+    11px/1.6 ui-monospace,
+    "SF Mono",
+    Consolas,
+    monospace;
   white-space: pre;
   overflow-wrap: normal;
   overflow-x: auto;
@@ -413,6 +412,10 @@
 }
 .archive-tool-step.archive-pop-in {
   animation-duration: 0.3s;
+}
+.ft.archive-pop-in {
+  animation-fill-mode: both;
+  transform-origin: left bottom;
 }
 .archive-msg[data-role="user"] .archive-msg-head,
 .archive-msg[data-role="user"] .archive-bubble {

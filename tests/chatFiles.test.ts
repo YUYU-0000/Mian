@@ -1,12 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import express from "express";
 import { ChatFiles, MAX_FILE_SIZE } from "../server/src/chatFiles.ts";
 import { fileRoutes } from "../server/src/fileRoutes.ts";
-import { WorkspaceFiles } from "../server/src/workspaceFiles.ts";
+import {
+  prepareConversationWorkspace,
+  WorkspaceFiles,
+} from "../server/src/workspaceFiles.ts";
 import {
   apiRequestMessages,
   API_FORMAT_REMINDER,
@@ -17,7 +29,10 @@ import { FileDrafts } from "../client/src/fileDrafts.ts";
 import { api } from "../client/src/api.ts";
 import { CodexBridge } from "../server/src/codex.ts";
 import { chatHistory } from "../client/src/chatModel.ts";
-import { conversationExport } from "../client/src/chatExport.ts";
+import {
+  completeBackup,
+  type ServerBackup,
+} from "../client/src/settingsBackup.ts";
 import type { ChatFile, ConversationRecord } from "../client/src/types.ts";
 
 async function fixture(t: test.TestContext) {
@@ -109,16 +124,14 @@ test("图片上传失败后移除草稿并释放预览地址", async (t) => {
   drafts.dispose();
 });
 
-test("Codex 只为成功的文件修改发出收集事件，工具事件保持原样", () => {
+test("Codex 文件修改保留原有工具事件", () => {
   const bridge = new CodexBridge(() => {
     throw new Error("不启动真实 Codex");
   });
   bridge.restoreConversationThreads([
     { conversationId: "c1", threadId: "thread-files" },
   ]);
-  const files: unknown[] = [],
-    tools: unknown[] = [];
-  bridge.on("files-changed", (event) => files.push(event));
+  const tools: unknown[] = [];
   bridge.on("event", (event) => tools.push(event));
   const notification = (
     bridge as unknown as {
@@ -137,7 +150,6 @@ test("Codex 只为成功的文件修改发出收集事件，工具事件保持�
       },
     });
   }
-  assert.deepEqual(files, [{ conversationId: "c1", paths: ["hello.txt"] }]);
   assert.equal(tools.length, 3);
   bridge.close();
 });
@@ -281,7 +293,7 @@ test("不支持图片时保留服务商原因，不重发或丢弃图片", async
   assert.equal(requests.length, 1);
 });
 
-test("Codex 输入复制到工作目录，命令写入和补丁修改都保存独立快照", async (t) => {
+test("每轮快照只收集新建和修改的文件，排除旧文件与上传原件", async (t) => {
   const { files, workspace, directory } = await fixture(t);
   const input = await files.save(
     "c1",
@@ -302,22 +314,28 @@ test("Codex 输入复制到工作目录，命令写入和补丁修改都保存�
   assert.equal(await readFile(inputPath, "utf8"), "original input");
   const existing = path.join(workspace, "existing.txt");
   await writeFile(existing, "before");
-  const capture = new WorkspaceFiles(workspace);
-  t.after(() => capture.close());
-  await writeFile(existing, "after");
-  capture.add(["existing.txt", existing]);
   await mkdir(path.join(workspace, "new-folder"));
+  await writeFile(path.join(workspace, "new-folder", "old.txt"), "old output");
+  const removed = path.join(workspace, "removed.txt");
+  await writeFile(removed, "will be deleted");
+  const capture = await WorkspaceFiles.start(workspace);
+  await writeFile(existing, "after");
+  await rm(removed);
   await writeFile(
     path.join(workspace, "new-folder", "hello.html"),
     "<p>new</p>",
   );
   await writeFile(inputPath, "edited input");
-  await new Promise((resolve) => setTimeout(resolve, 80));
+  await files.codexPrompt("c1", workspace, "", [
+    (await files.save("c1", "late.txt", Buffer.from("late upload"))).id,
+  ]);
   const outputs = await capture.finish(files, "c1", "turn-files");
   assert.deepEqual(
     outputs.map((file) => file.name).sort(),
-    ["existing.txt", "hello.html", "设计.md"].sort(),
+    ["existing.txt", "hello.html"].sort(),
   );
+  const next = await WorkspaceFiles.start(workspace);
+  assert.deepEqual(await next.finish(files, "c1", "unchanged-turn"), []);
   await writeFile(existing, "next turn");
   const output = await files.get(
     "c1",
@@ -334,6 +352,41 @@ test("Codex 输入复制到工作目录，命令写入和补丁修改都保存�
   assert.equal(await readFile(copied.path, "utf8"), "original input");
   const copiedOutput = await files.get("branch", output.file.id);
   assert.equal(await readFile(copiedOutput.path, "utf8"), "after");
+});
+
+test("各对话目录独立，修改时间或大小变化都能生成票根", async (t) => {
+  const { files, workspace } = await fixture(t);
+  await writeFile(path.join(workspace, "legacy.txt"), "shared old file");
+  const first = await prepareConversationWorkspace(workspace, "c1");
+  const second = await prepareConversationWorkspace(workspace, "c2");
+  assert.deepEqual(await readdir(first), []);
+  assert.deepEqual(await readdir(second), []);
+  const changedTime = path.join(first, "mtime.txt");
+  const changedSize = path.join(first, "size.txt");
+  await writeFile(changedTime, "old");
+  await writeFile(changedSize, "old");
+  const originalTime = new Date("2025-01-01T00:00:00Z");
+  await utimes(changedTime, originalTime, originalTime);
+  await utimes(changedSize, originalTime, originalTime);
+  const capture = await WorkspaceFiles.start(first);
+  const other = await WorkspaceFiles.start(second);
+  await writeFile(changedTime, "new");
+  await utimes(changedTime, originalTime, new Date("2025-01-02T00:00:00Z"));
+  await writeFile(changedSize, "different size");
+  await utimes(changedSize, originalTime, originalTime);
+  await writeFile(path.join(second, "other.txt"), "other conversation");
+  assert.deepEqual(
+    (await capture.finish(files, "c1", "turn-1"))
+      .map((file) => file.name)
+      .sort(),
+    ["mtime.txt", "size.txt"],
+  );
+  assert.deepEqual(
+    (await other.finish(files, "c2", "turn-2")).map((file) => file.name),
+    ["other.txt"],
+  );
+  assert.equal(await prepareConversationWorkspace(workspace, "c1"), first);
+  assert.equal((await stat(changedTime)).isFile(), true);
 });
 
 test("只发文件、重载、分支和导出都保留票根，导出不带内容或下载路径", async () => {
@@ -405,24 +458,27 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   });
   branch.seedFrom(snapshot);
   assert.deepEqual(branch.getSnapshot().messages, snapshot.messages);
-  const exported = conversationExport(
-    [
-      {
-        conversationId: "branch",
-        title: "附件对话",
-        frontName: "Mian",
-      } as ConversationRecord,
-    ],
+  const exported = completeBackup(
+    {
+      conversations: [
+        {
+          conversationId: "branch",
+          title: "附件对话",
+          frontName: "Mian",
+        } as ConversationRecord,
+      ],
+    } as ServerBackup,
     storage,
   );
   assert.deepEqual(
-    exported.conversations[0].messages.map((message) => message.files),
-    [[{ name: "input.txt", size: 12 }], [{ name: "reply.txt", size: 12 }]],
+    exported.chats.branch.flatMap((group) =>
+      group.role === "user"
+        ? group.records.flatMap((record) => record.files ?? [])
+        : (group.files ?? []),
+    ),
+    [input, output],
   );
-  assert.doesNotMatch(
-    JSON.stringify(exported),
-    /input-id|output-id|base64|mimeType|\/files\//,
-  );
+  assert.doesNotMatch(JSON.stringify(exported), /base64|\/files\//);
   reloaded.dispose();
   branch.dispose();
 });

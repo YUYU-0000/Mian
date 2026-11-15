@@ -1,0 +1,103 @@
+.avatar-cropper {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.avatar-cropper::backdrop {
+  background: transparent;
+}
+.avatar-cropper .hang-tag {
+  /* 圆心居中，绳子再伸入距顶边 10px 的孔心。 */
+  --tag-string: calc(50svh - 100px + 10px);
+  width: 200px;
+  margin-left: -100px;
+}
+.avatar-cropper .tag-string {
+  margin-bottom: -10px;
+  pointer-events: none;
+}
+.avatar-crop-disc {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: #f5f2ec;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.avatar-crop-frame {
+  position: absolute;
+  inset: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #fbfaf6;
+  touch-action: none;
+  cursor: grab;
+}
+.avatar-crop-frame:active {
+  cursor: grabbing;
+}
+.avatar-crop-frame img {
+  position: absolute;
+  max-width: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.avatar-crop-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: none;
+  pointer-events: none;
+}
+.avatar-crop-heading {
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-weight: 500;
+  font-size: 6.5px;
+  letter-spacing: 1.85px;
+  fill: var(--muted);
+}
+.avatar-crop-actions {
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 9px;
+  letter-spacing: 2.3px;
+  fill: var(--muted);
+}
+.avatar-crop-actions,
+.avatar-crop-actions * {
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatar-crop-actions [role="button"] {
+  cursor: pointer;
+  pointer-events: all;
+}
+.avatar-crop-actions [role="button"]:active {
+  opacity: 0.6;
+}
+.avatar-crop-actions [aria-disabled="true"] {
+  pointer-events: none;
+}
+.avatar-crop-confirm {
+  fill: var(--ink);
+  font-weight: 600;
+}
+.avatar-crop-divider {
+  font-size: 5.75px;
+}

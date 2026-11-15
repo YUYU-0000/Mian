@@ -1,0 +1,50 @@
+/* 连接中心和头像裁切共用吊牌的遮罩、绳子、阴影与进出动画。 */
+:is(.connections-page, .avatar-cropper) .tag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 115;
+  background: rgba(40, 55, 66, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  will-change: opacity;
+}
+:is(.connections-page, .avatar-cropper) .tag-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+:is(.connections-page, .avatar-cropper) .hang-tag {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 120;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-24px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 0.45s;
+  filter: drop-shadow(0 22px 22px rgba(20, 30, 40, 0.38))
+    drop-shadow(0 4px 6px rgba(20, 30, 40, 0.22));
+}
+:is(.connections-page, .avatar-cropper) .hang-tag.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s;
+}
+:is(.connections-page, .avatar-cropper) .tag-string {
+  position: relative;
+  z-index: 3;
+  width: 1.5px;
+  height: var(--tag-string);
+  margin-top: 0;
+  margin-inline: auto;
+  background: #d6d0c3;
+}

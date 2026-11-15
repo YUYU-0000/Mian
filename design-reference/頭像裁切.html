@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+  頭像裁切設計稿：圓形吊牌（照片做吊牌的臉）
+  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張直徑 260px 的圓卡；後面墊兩張同樣大小的灰藍圓卡（深 #5f7789、淺 #93a7b5），都以頂部打孔為軸，深的轉 11deg（底部往左擺）、淺的轉 -7deg（底部往右擺），像同一根繩上掛著一疊吊牌，底部兩側各露出一彎。吊牌本身不旋轉。
+  - 圓卡外圈是一道 26px 寬的米白邊，裡面整塊都是照片窗（直徑 208px），照片在窗裡拖動、兩指縮放、滾輪縮放，手勢只在照片窗內生效。
+  - 米白邊上兩道細線夾住，沿著邊繞一圈小字，像吊牌上的環形字：
+      上半圈：左 PORTRAIT，頂部打孔，右「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
+      下半圈：左「確定」（墨色），中間「換照片」，右「取消」（後兩個淺色），三個字號一樣 10.5px；三個都可以點，字是正著讀的。
+      字和字之間用一小段橫線隔開，不用間隔點。
+  - 不放滑塊，縮放靠手勢和滾輪。
+  - 遮罩、繩子顏色、陰影、進出動畫沿用連接中心 .hang-tag。
+-->
+<html><head><meta charset="utf-8"><style>
+@import url("../client/public/fonts/lxgw/result.css");
+@font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/main.woff2") format("woff2");font-weight:400}
+@font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/medium.woff2") format("woff2");font-weight:500}
+:root{--ink:#3b4d5a;--muted:#72828e;--sheet:#f5f2ec;
+--grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
+html,body{margin:0}
+body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
+.phone{width:390px;height:844px;background:#f1efe9;position:relative;overflow:hidden;border-radius:4px}
+.page{padding:60px 22px;color:var(--ink);opacity:.9}
+.page .k{font-family:ZSFT-br;font-size:7px;letter-spacing:2.6px;color:var(--muted)}
+.page h1{font-size:28px;letter-spacing:5px;margin:4px 0 30px}
+.page .row{height:120px;border:1px solid rgba(59,77,90,.15);margin-bottom:14px;background:#f8f6f1}
+.overlay{position:absolute;inset:0;background:rgba(40,55,66,.32)}
+
+.tag{position:absolute;left:50%;top:0;width:260px;margin-left:-130px;
+  filter:drop-shadow(0 22px 22px rgba(20,30,40,.34)) drop-shadow(0 4px 6px rgba(20,30,40,.2))}
+.string{width:1.5px;height:calc(17svh + 13px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
+.disc{position:relative;width:260px;height:260px;margin-top:-13px}
+.front{position:absolute;inset:0;border-radius:50%}
+.back{background-image:var(--grain);transform-origin:130px 13px}
+.back.a{background-color:#5f7789;transform:rotate(11deg)}
+.back.b{background-color:#93a7b5;transform:rotate(-7deg)}
+.front{background:var(--sheet);background-image:var(--grain)}
+.win{position:absolute;inset:26px;border-radius:50%;overflow:hidden;background:var(--photo,linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3)) center/cover}
+.front svg{position:absolute;inset:0;width:100%;height:100%}
+</style></head><body>
+<div class="phone">
+  <div class="page"><div class="k">ARCHIVE</div><h1>檔案館</h1><div class="row"></div><div class="row"></div><div class="row"></div></div>
+  <div class="overlay"></div>
+  <div class="tag">
+    <div class="string"></div>
+    <div class="disc">
+      <div class="back a"></div><div class="back b"></div>
+      <div class="front">
+        <div class="win"></div>
+        <svg viewBox="0 0 260 260">
+          <defs>
+            <path id="top" d="M 17 130 A 113 113 0 0 1 243 130"/>
+            <path id="bot" d="M 10 130 A 120 120 0 0 0 250 130"/>
+          </defs>
+          <circle cx="130" cy="130" r="125" fill="none" stroke="rgba(59,77,90,.3)" stroke-width=".8"/>
+          <circle cx="130" cy="130" r="104.5" fill="none" stroke="rgba(59,77,90,.3)" stroke-width=".8"/>
+          <circle cx="130" cy="13" r="6" fill="none" stroke="rgba(59,77,90,.25)" stroke-width="1.1"/>
+          <circle cx="130" cy="13" r="4" fill="#5d6b75"/>
+          <g font-family="ZSFT-br" font-weight="500" font-size="7.5" letter-spacing="2.4" fill="#72828e">
+            <text><textPath href="#top" startOffset="27%" text-anchor="middle">PORTRAIT</textPath></text>
+            <text><textPath href="#top" startOffset="40%" text-anchor="middle">—</textPath></text>
+            <text><textPath href="#top" startOffset="60%" text-anchor="middle">—</textPath></text>
+            <text><textPath href="#top" startOffset="73%" text-anchor="middle">彼方肖像</textPath></text>
+          </g>
+          <g font-family="LXGW Heart Serif" letter-spacing="3">
+            <text font-size="10.5" fill="#3b4d5a" font-weight="600"><textPath href="#bot" startOffset="31%" text-anchor="middle">確定</textPath></text>
+            <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="41%" text-anchor="middle">—</textPath></text>
+            <text font-size="10.5" fill="#72828e"><textPath href="#bot" startOffset="50%" text-anchor="middle">換照片</textPath></text>
+            <text font-size="7.5" fill="#72828e"><textPath href="#bot" startOffset="59%" text-anchor="middle">—</textPath></text>
+            <text font-size="10.5" fill="#72828e"><textPath href="#bot" startOffset="69%" text-anchor="middle">取消</textPath></text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

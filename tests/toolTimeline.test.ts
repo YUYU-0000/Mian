@@ -10,7 +10,7 @@ import {
 import {
   isToolTimelineVisible,
   visualTarget,
-} from "../client/src/chatSession.ts";
+} from "../client/src/replyTimeline.ts";
 import {
   emptyVisualReply,
   hydrateVisualReply,
@@ -56,10 +56,7 @@ test("a real tool arriving first stays outside the visible timeline", () => {
   const target = visualTarget(group);
   assert.deepEqual(target.tools, []);
   assert.deepEqual(target.bubbles, []);
-  assert.equal(
-    isToolTimelineVisible(group, hydrateVisualReply(target)),
-    false,
-  );
+  assert.equal(isToolTimelineVisible(group, hydrateVisualReply(target)), false);
 });
 
 test("a complete model bridge plays fully before TOOL CALLS becomes visible", () => {
@@ -151,12 +148,7 @@ test("completion adds one compatibility bridge before two real tools", () => {
       ...(isToolTimelineVisible(completed, visual) ? ["TOOL_CALLS"] : []),
       ...completed.bubbles.map(() => "ASSISTANT_BUBBLE"),
     ],
-    [
-      "THINKING",
-      "ASSISTANT_BUBBLE",
-      "TOOL_CALLS",
-      "ASSISTANT_BUBBLE",
-    ],
+    ["THINKING", "ASSISTANT_BUBBLE", "TOOL_CALLS", "ASSISTANT_BUBBLE"],
   );
 
   const storage = new MemoryStorage();
@@ -166,10 +158,7 @@ test("completion adds one compatibility bridge before two real tools", () => {
   assert.equal(restored.preToolBubbles.length, 1);
   assert.equal(restored.tools.length, 2);
   assert.equal(
-    isToolTimelineVisible(
-      restored,
-      hydrateVisualReply(visualTarget(restored)),
-    ),
+    isToolTimelineVisible(restored, hydrateVisualReply(visualTarget(restored))),
     true,
   );
 });
@@ -185,8 +174,7 @@ test("an unfinished model bridge is replaced once only when the turn ends", () =
     {
       type: "assistant-delta",
       turnId: "partial",
-      delta:
-        "<mian-thinking>先确认。</mian-thinking><mian-pre-tool>我先看",
+      delta: "<mian-thinking>先确认。</mian-thinking><mian-pre-tool>我先看",
     },
     "10:00",
   );
