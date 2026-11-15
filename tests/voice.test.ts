@@ -111,6 +111,9 @@ for (const channel of ["api", "codex"])
       assert.deepEqual(group.bubbles, ["在。", "陪你等天亮。", "聽見了嗎。"]);
       const clip = group.voices![group.bubbleIds[1]];
       assert.equal(clip.text, "陪你等天亮。");
+      assert.equal(clip.peaks!.length, 38);
+      assert.ok(clip.peaks!.every(peak => peak >= 0 && peak <= 1));
+      assert.ok(clip.duration! >= 1 && clip.duration! < 1.1);
       assert.match(clip.url, /^\/api\/conversations\/c1\/files\/.+\?inline=1$/);
       assert.deepEqual(Buffer.from(await (await request(clip.url)).arrayBuffer()), mp3());
       assert.equal(JSON.stringify(snapshot).includes(mp3().toString("base64")), false);
@@ -124,6 +127,8 @@ for (const channel of ["api", "codex"])
       assert.equal((await request("/api/backup", "POST", exported)).status, 200);
       assert.deepEqual(Buffer.from(await (await request(clip.url)).arrayBuffer()), mp3());
       assert.equal((await (await request("/api/voice-presets")).json()).presets[1].hasKey, true);
+      const restored = await (await request("/api/conversations/c1/messages")).json();
+      assert.deepEqual(restored.groups.at(-1).voices[group.bubbleIds[1]].peaks, clip.peaks);
 
       await request("/api/voice-presets", "POST", { ...preset, key: "reject-key" });
       const voiceCount = events.filter(event => event?.type === "voice").length;

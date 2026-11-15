@@ -12,6 +12,7 @@ export type AppConfig = {
   sandbox: Sandbox;
   model: string;
   channel: Channel;
+  proactive: import("../../shared/types.mjs").ProactiveSettings;
 };
 export type RpcMessage = {
   jsonrpc: "2.0";

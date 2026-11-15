@@ -58,6 +58,7 @@ export async function* completeClueChat(
   localTime: string,
   signal: AbortSignal,
   clues?: ApiClues,
+  protocol?: string,
 ): AsyncGenerator<CompletionEvent> {
   const cards = clues?.cards ?? [];
   const scenes = getActiveScenes();
@@ -91,7 +92,7 @@ export async function* completeClueChat(
       ? await select()
       : cluePrompt(cards, [], scenes);
   const withVoice = (prompt: string) => [prompt, voiceCluePrompt(cards)].filter(Boolean).join("\n\n");
-  let history = apiRequestMessages(messages, localTime, withVoice(instructions));
+  let history = apiRequestMessages(messages, localTime, withVoice(instructions), protocol);
   let total: TokenUsage | undefined;
   let round = 0;
   while (true) {
@@ -114,7 +115,7 @@ export async function* completeClueChat(
         throw error;
       await clues!.markToolsUnsupported();
       useTools = false;
-      history = apiRequestMessages(messages, localTime, withVoice(await select()));
+      history = apiRequestMessages(messages, localTime, withVoice(await select()), protocol);
       continue;
     }
     if (usage) {

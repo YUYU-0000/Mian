@@ -1,18 +1,138 @@
 .voice-ticket {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  --paper: #f5f2ec;
+  --line: rgba(59, 77, 90, 0.18);
+  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.06"/></svg>');
+  position: relative;
   width: min(228px, 100%);
 }
-.voice-ticket .ft-stub {
+.voice-ticket .ft {
+  z-index: 2;
+}
+.voice-ticket .ft-main {
+  padding-bottom: 6px;
+}
+.voice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  height: 20px;
+}
+.voice-play,
+.voice-wave {
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--t-ink);
-  font: inherit;
   cursor: pointer;
 }
-.voice-ticket summary {
-  margin-top: 4px;
-  font-size: 12px;
+.voice-play {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  box-shadow: inset 0 0 0 1px var(--ink);
+  border-radius: 1px;
+}
+.voice-play::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  border-left: 5px solid var(--ink);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+.voice-ticket.on .voice-play::before {
+  left: 4.5px;
+  width: 1.4px;
+  height: 6px;
+  border: 0;
+  background: var(--ink);
+  box-shadow: 3.6px 0 0 var(--ink);
+}
+.voice-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 20px;
+}
+.voice-wave i {
+  display: block;
+  width: 1.3px;
+  background: rgba(59, 77, 90, 0.26);
+  transition: background 0.25s;
+}
+.voice-wave i.done {
+  background: var(--ink);
+}
+.voice-generating {
+  font: 10px "LXGW Heart Serif", serif;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+}
+.voice-play:disabled,
+.voice-wave:disabled {
+  cursor: default;
+}
+.voice-ticket .ft-act {
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  padding: 0 0 1px;
+  background: none;
   cursor: pointer;
 }
-.voice-ticket audio {
-  display: none;
+.voice-transcript {
+  position: relative;
+  margin: -3px 6px 0;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.32s ease-out, opacity 0.32s ease-out;
+  z-index: 1;
+}
+.voice-ticket.open .voice-transcript {
+  max-height: 160px;
+  opacity: 1;
+}
+.voice-transcript-paper {
+  position: relative;
+  background: var(--paper);
+  background-image: var(--grain);
+  padding: 12px 13px 11px;
+  box-shadow: 0 3px 6px rgba(59, 77, 90, 0.1);
+  border-radius: 0 0 3px 3px;
+  transform: translateY(-14px);
+  transition: transform 0.32s ease-out;
+}
+.voice-ticket.open .voice-transcript-paper {
+  transform: none;
+}
+.voice-transcript-paper::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.voice-transcript-kicker {
+  font: 500 6.5px "ZSFT-br", serif;
+  letter-spacing: 2.2px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  white-space: pre;
+}
+.voice-transcript-text {
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+  max-height: 116px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

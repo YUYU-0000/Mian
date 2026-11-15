@@ -628,6 +628,7 @@ export class CodexBridge extends EventEmitter {
     text: string,
     conversationId: string,
     clues: string | (() => Promise<string>) = "",
+    protocol = MIAN_PUBLIC_REPLY_PROTOCOL,
   ) {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
@@ -644,7 +645,7 @@ export class CodexBridge extends EventEmitter {
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {
-            value: [MIAN_PUBLIC_REPLY_PROTOCOL, instructions]
+            value: [protocol, instructions]
               .filter(Boolean)
               .join("\n\n"),
             kind: "application",

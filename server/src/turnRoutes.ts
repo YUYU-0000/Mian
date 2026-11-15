@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { readConfig } from "./config.js";
 import { readClues } from "./clues.js";
+import { readVoicePresets } from "./voicePresets.js";
+import { MIAN_API_PUBLIC_REPLY_PROTOCOL, MIAN_PUBLIC_REPLY_PROTOCOL, withVoiceSendingRules } from "./publicReplyProtocol.js";
 import { selectCluePrompt, voiceCluePrompt } from "./clueSelection.js";
 import { markToolsUnsupported, requirePreset } from "./apiPresets.js";
 import {
@@ -45,6 +47,13 @@ export function turnRoutes({
       )
         throw new Error("当前会话已有正在运行的 turn");
       const wall = await readClues();
+      const voices = await readVoicePresets();
+      const voice = voices.presets.find(preset => preset.id === voices.activeId);
+      const protocol = withVoiceSendingRules(
+        config.channel.kind === "api" ? MIAN_API_PUBLIC_REPLY_PROTOCOL : MIAN_PUBLIC_REPLY_PROTOCOL,
+        config.proactive,
+        Boolean(voice?.key.trim() && voice.voice_id.trim()),
+      );
       const attachments = await Promise.all((request.body.files ?? []).map(async (id: string) => (await files.get(conversationId, id)).file));
       const time = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
       const message: UserGroup = request.body.message ?? {
@@ -79,6 +88,7 @@ export function turnRoutes({
               toolsUnsupported: preset.toolsUnsupported,
               markToolsUnsupported: () => markToolsUnsupported(preset.id),
             },
+            protocol,
           ),
         );
         return;
@@ -100,6 +110,7 @@ export function turnRoutes({
       try {
         result = await bridge.startTurn(prompt, conversationId, async () =>
           [await selectCluePrompt(wall.cards, recent, bridge.selectClues.bind(bridge)), voiceCluePrompt(wall.cards)].filter(Boolean).join("\n\n"),
+          protocol,
         );
       } catch (error) {
         workspaceFiles.delete(conversationId);

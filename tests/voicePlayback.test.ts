@@ -14,10 +14,12 @@ test("one global player waits for playing, replaces older audio, pauses and play
     onended: (() => void) | null = null;
     onerror: (() => void) | null = null;
     onloadedmetadata: (() => void) | null = null;
+    ontimeupdate: (() => void) | null = null;
     src = "";
     loop = true;
     paused = true;
     duration = 1;
+    currentTime = 0;
     constructor() { instances++; audio = this; }
     async play() { this.paused = false; onPlay(); }
     pause() { this.paused = true; this.onpause?.(); }
@@ -39,8 +41,12 @@ test("one global player waits for playing, replaces older audio, pauses and play
   assert.equal(started, false);
   assert.equal(settled, false);
   assert.equal(audio!.loop, false);
+  audio!.onloadedmetadata!();
   audio!.onplaying!();
   assert.equal(started, true);
+  audio!.currentTime = 0.6;
+  audio!.ontimeupdate!();
+  assert.equal(voicePlayer.getSnapshot().currentTime, 0.6);
   voicePlayer.pause();
   assert.equal(audio!.paused, true);
   voicePlayer.resume();
@@ -49,6 +55,10 @@ test("one global player waits for playing, replaces older audio, pauses and play
   audio!.onended!();
   await ready;
   assert.equal(audio!.src, "/two.mp3");
+  audio!.onloadedmetadata!();
+  audio!.currentTime = 0.4;
+  audio!.ontimeupdate!();
+  assert.equal(voicePlayer.getSnapshot().currentTime, 1.4);
   assert.equal(settled, false);
   audio!.onended!();
   await playback;
@@ -56,9 +66,27 @@ test("one global player waits for playing, replaces older audio, pauses and play
   assert.equal(audio!.paused, true);
 
   ready = new Promise<void>(resolve => { onPlay = resolve; });
-  const first = voicePlayer.play("first", async () => clip);
+  const first = voicePlayer.play("first", async () => clip, undefined, undefined, 1.5);
   const stopped = assert.rejects(first, { name: "AbortError" });
   await ready;
+  assert.equal(audio!.src, "/two.mp3");
+  audio!.onloadedmetadata!();
+  assert.equal(audio!.currentTime, 0.5);
+  assert.equal(voicePlayer.getSnapshot().currentTime, 1.5);
+  voicePlayer.pause();
+  voicePlayer.seek(0.25);
+  assert.equal(audio!.src, "/one.mp3");
+  assert.equal(audio!.paused, false);
+  audio!.onloadedmetadata!();
+  assert.equal(audio!.currentTime, 0.25);
+  voicePlayer.seek(0.75);
+  assert.equal(audio!.currentTime, 0.75);
+  assert.equal(voicePlayer.getSnapshot().currentTime, 0.75);
+  voicePlayer.seek(1.75);
+  audio!.onloadedmetadata!();
+  assert.equal(audio!.src, "/two.mp3");
+  assert.equal(audio!.currentTime, 0.75);
+  assert.equal(voicePlayer.getSnapshot().currentTime, 1.75);
   ready = new Promise<void>(resolve => { onPlay = resolve; });
   const controller = new AbortController();
   const second = api.testVoice(defaultVoicePreset, controller.signal, () => {});
@@ -69,6 +97,8 @@ test("one global player waits for playing, replaces older audio, pauses and play
   await assert.rejects(second, { name: "AbortError" });
   assert.equal(audio!.paused, true);
   assert.equal(audio!.onplaying, null);
+  assert.equal(audio!.ontimeupdate, null);
+  assert.equal(voicePlayer.getSnapshot().currentTime, 0);
 
   let release!: (value: typeof clip) => void;
   const waiting = voicePlayer.play("pending", async () => new Promise(resolve => { release = resolve; }));

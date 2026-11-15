@@ -377,7 +377,7 @@ export default memo(function ChatMessage({
               .map((bubble, index) => {
                 const id = message.preToolBubbleIds[index];
                 const clip = message.voices?.[id] ?? (!message.status && message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
-                return clip ? <VoiceTicket key={id} clip={clip} /> : <ReplyMarkdown
+                return clip ? <VoiceTicket key={id} clip={clip} time={message.time} /> : <ReplyMarkdown
                   key={message.preToolBubbleIds[index]}
                   bubble={{
                     className: `archive-bubble ${historicalAnimationIds.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`,
@@ -432,7 +432,7 @@ export default memo(function ChatMessage({
               .map((bubble, index) => {
                 const id = message.bubbleIds[index];
                 const clip = message.voices?.[id] ?? (!message.status && message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
-                return clip ? <VoiceTicket key={id} clip={clip} /> : <ReplyMarkdown
+                return clip ? <VoiceTicket key={id} clip={clip} time={message.time} /> : <ReplyMarkdown
                   key={message.bubbleIds[index]}
                   bubble={{
                     className: `archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`,

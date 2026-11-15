@@ -4,6 +4,7 @@ import path from "node:path";
 import { dataDirectory } from "./config.js";
 import { ChatFiles } from "./chatFiles.js";
 import { synthesizeVoice } from "./elevenLabs.js";
+import { decodeVoicePeaks } from "./voiceWaveform.js";
 import type { SavedVoicePreset } from "./voicePresets.js";
 import { splitVoiceText, stripVoiceTags, type VoiceClip, type VoicePart } from "../../shared/voice.mjs";
 
@@ -51,6 +52,7 @@ export class VoiceGeneration {
         generated.push(await synthesizeVoice(preset, part, signal));
       }
       signal.throwIfAborted();
+      const peaks = await decodeVoicePeaks(generated);
       const parts: VoicePart[] = [];
       for (const [index, { audio, duration }] of generated.entries()) {
         let url: string;
@@ -64,7 +66,7 @@ export class VoiceGeneration {
         }
         parts.push({ url, duration });
       }
-      const clip: VoiceClip = { url: parts[0].url, text: stripVoiceTags(text), parts,
+      const clip: VoiceClip = { url: parts[0].url, text: stripVoiceTags(text), parts, peaks,
         duration: parts.reduce((sum, part) => sum + part.duration, 0) };
       await writeFile(manifest, JSON.stringify({ clip }));
       return clip;

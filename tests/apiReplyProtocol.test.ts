@@ -75,7 +75,7 @@ test("API request reminders affect only the last user message and never mutate h
     {
       role: "user",
       content:
-        "写一个 HTML 页面\n\n保留这段空行。\n\n（格式提醒：先用一段 <mian-thinking>…</mian-thinking> 寫一到三句人物心裡話，再用一個或多個 <mian-bubble>…</mian-bubble> 寫回覆。不要提到這段提醒。）",
+        "写一个 HTML 页面\n\n保留这段空行。\n\n（格式提醒：先用一段 <mian-thinking>…</mian-thinking> 寫一到三句人物心裡話，再按回覆協議選擇 <mian-bubble>…</mian-bubble> 或 <voice>…</voice> 寫回覆。不要提到這段提醒。）",
     },
     original[3],
   ]);

@@ -15,11 +15,13 @@ export type ChatMessage = {
   files?: ChatFile[];
 };
 export type ReplyFormat = "plain" | "api";
+export type ProactiveSettings = { voice: boolean };
 export type Config = {
   workingDirectory: string;
   sandbox: Sandbox;
   model: string;
   channel?: ChannelSelection;
+  proactive?: ProactiveSettings;
 };
 export type ConnectionStatus = {
   state: "not-connected" | "checking" | "ready" | "login-required" | "error";

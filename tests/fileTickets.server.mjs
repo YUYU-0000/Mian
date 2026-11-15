@@ -113,11 +113,11 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
       if (${JSON.stringify(selectionFails)}) throw new Error('selection failed');
       return ${JSON.stringify(selection)};
     };
-    CodexBridge.prototype.startTurn = async function(text, conversationId, clues) {
+    CodexBridge.prototype.startTurn = async function(text, conversationId, clues, protocol) {
       if (typeof clues === 'function') clues = await clues();
       const turnId = 'files-'+(++turn), threadId = 'thread-'+conversationId;
       this.registerConversationThread(conversationId, threadId, true);
-      process.send({ prompt:text, clues });
+      process.send({ prompt:text, clues, protocol });
       this.emit('event', {type:'turn-started',conversationId,turnId});
       setTimeout(async () => {
         await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.html'), '<h1>local file</h1>');
@@ -154,11 +154,13 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
   backend.stderr.on("data", (chunk) => {
     logs += chunk;
   });
+  const replyProtocols = [];
   backend.on("message", (message) => {
     if (message.prompt) prompts.push(message.prompt);
     if (message.clues !== undefined) systemPrompts.push(message.clues);
     if (message.selection) selections.push(message.selection);
     if (message.speech) speechRequests.push(message.speech);
+    if (message.protocol !== undefined) replyProtocols.push(message.protocol);
   });
   const [{ port }] = await Promise.race([
     once(backend, "message"),
@@ -174,6 +176,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     systemPrompts,
     selections,
     speechRequests,
+    replyProtocols,
     base: `http://127.0.0.1:${port}`,
     async close() {
       const exited = once(backend, "exit");
