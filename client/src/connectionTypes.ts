@@ -17,9 +17,3 @@ export type ApiPreset = {
   format: "openai";
   toolsUnsupported?: boolean;
 };
-export type VoiceConfig = {
-  apiKey: string;
-  voiceId: string;
-  model: string;
-  text: string;
-};

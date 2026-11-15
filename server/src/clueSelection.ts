@@ -37,8 +37,15 @@ type ClueSelector = (
   messages: ChatMessage[],
 ) => Promise<string>;
 
-export function getActiveScenes(): Clue["scenes"] {
-  return [];
+export function getActiveScenes(generating?: "voice"): Clue["scenes"] {
+  return generating === "voice" ? ["voice"] : [];
+}
+
+// 模型可以在同一轮里自行选择语音，先给出台词专用条件段，不能等 TTS 时才读卡。
+export function voiceCluePrompt(clues: Clue[]) {
+  const scenes = getActiveScenes("voice");
+  const prompt = cluePrompt(clues.filter(clue => clue.mode === "trigger" && matchesScene(clue, scenes)), [], scenes);
+  return prompt ? `生成語音條時的線索：以下內容僅在撰寫 <voice> 台詞時使用，普通文字回覆不啟用。\n${prompt}` : "";
 }
 
 export function cluePrompt(

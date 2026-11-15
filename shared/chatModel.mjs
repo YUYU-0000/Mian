@@ -159,11 +159,15 @@ export function applyReplyEvent(groups, event, time) {
             bubbles: parsed.bubbles,
             bubbleIds: alignIds(group.bubbleIds, parsed.bubbles.length, `${event.turnId}:bubble`),
             bubbleComplete: parsed.bubbleComplete,
+            ...(parsed.voices ? { voiceBubbleIds: parsed.voices.map(voice => `${event.turnId}:${voice.section}:${voice.index}`) } : {}),
             tools: group.tools.map((tool, toolIndex) => ({
                 ...tool,
                 summary: parsed.toolSummaries[toolIndex] || tool.summary,
             })),
         };
+    }
+    else if (event.type === "voice") {
+        updated = { ...group, voices: { ...group.voices, [event.bubbleId]: event.clip } };
     }
     else if (event.type === "files") {
         updated = {

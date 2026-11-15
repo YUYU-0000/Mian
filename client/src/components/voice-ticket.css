@@ -1,0 +1,18 @@
+.voice-ticket {
+  width: min(228px, 100%);
+}
+.voice-ticket .ft-stub {
+  border: 0;
+  background: none;
+  color: var(--t-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.voice-ticket summary {
+  margin-top: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.voice-ticket audio {
+  display: none;
+}

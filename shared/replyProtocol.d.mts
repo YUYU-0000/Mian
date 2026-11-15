@@ -1,4 +1,5 @@
 import type { ReplyFormat } from "./types.mjs";
+export type ReplyVoice = { section: "pre-tool" | "bubble"; index: number; text: string; complete: boolean };
 export declare function parseReply(raw: string, format?: ReplyFormat, final?: boolean): {
     thinking: string;
     preToolBubbles: string[];
@@ -7,6 +8,7 @@ export declare function parseReply(raw: string, format?: ReplyFormat, final?: bo
     toolSummaries: string[];
     bubbles: string[];
     bubbleComplete: boolean[];
+    voices?: ReplyVoice[];
 };
 export declare function buildPublicReplyPrompt(userText: string): string;
 export declare function stripProtocolMarkers(value: string): string;
@@ -21,4 +23,5 @@ export declare function parsePublicReply(raw: string, options?: {
     toolSummaries: string[];
     bubbles: string[];
     bubbleComplete: boolean[];
+    voices?: ReplyVoice[];
 };

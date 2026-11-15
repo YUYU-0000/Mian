@@ -1,63 +1,77 @@
 import { pad2 } from "../format";
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
+import type { VoicePreset } from "../../../shared/voice.mjs";
 
-const mask = (value: string) =>
-  value.length > 4
-    ? "•".repeat(Math.min(12, value.length - 4)) + value.slice(-4)
-    : value;
 export default function VoicePage({
+  preset,
   index,
   total,
   current,
   onAdd,
   onDelete,
+  onSave,
 }: {
+  preset: VoicePreset;
   index: number;
   total: number;
   current: boolean;
   onAdd: () => void;
   onDelete: () => void;
+  onSave: (preset: VoicePreset) => Promise<VoicePreset>;
 }) {
   const ringId = useId();
-  const [key, setKey] = useState("");
-  const [keyFocused, setKeyFocused] = useState(false);
-  const [voiceId, setVoiceId] = useState("");
-  const [model, setModel] = useState("");
-  const [text, setText] = useState("");
+  const [draft, setDraft] = useState(preset);
   const [pulled, setPulled] = useState(false);
+  const [auditioning, setAuditioning] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const playback = useRef(0);
+  const playback = useRef<AbortController | null>(null);
+  const save = () => {
+    const sent = draft;
+    void onSave(sent).then(saved => setDraft(value => ({
+      ...value,
+      hasKey: saved.hasKey,
+      key: value.key === sent.key ? "" : value.key,
+    }))).catch(error => notify.fail("保存失敗", error));
+  };
+  const stop = () => {
+    playback.current?.abort();
+    playback.current = null;
+    setAuditioning(false);
+    setPlaying(false);
+    setPulled(false);
+  };
+  useEffect(() => {
+    if (!current) stop();
+    return () => playback.current?.abort();
+  }, [current]);
   const toggle = (event: React.MouseEvent) => {
-    if ((event.target as Element).closest("input")) return;
+    if ((event.target as Element).closest("input") || auditioning) return;
     event.stopPropagation();
     setPulled((value) => !value);
   };
   const play = async () => {
-    const current = ++playback.current;
-    if (playing) {
-      setPlaying(false);
+    if (playback.current) {
+      stop();
       return;
     }
-    setPlaying(true);
+    const controller = new AbortController();
+    playback.current = controller;
+    setAuditioning(true);
     try {
-      await api.testVoice({
-        apiKey: key.trim(),
-        voiceId: voiceId.trim(),
-        model: model.trim(),
-        text: text.trim() || "陪你等天亮。",
-      });
+      await api.testVoice(draft, controller.signal, () => setPlaying(true));
     } catch (error) {
-      notify.fail("試聽失敗", error);
+      if (!controller.signal.aborted) notify.fail("試聽失敗", error);
+    } finally {
+      if (playback.current === controller) stop();
     }
-    if (playback.current === current) setPlaying(false);
   };
   const number = pad2(index + 1);
   return (
     <div
-      className={`vc-page${current ? " current" : ""}${pulled || playing ? " out" : ""}${playing ? " playing" : ""}`}
+      className={`vc-page${current ? " current" : ""}${pulled || auditioning ? " out" : ""}${playing ? " playing" : ""}`}
     >
       <div className="paper-holes">
         <div className="hole" />
@@ -110,7 +124,7 @@ export default function VoicePage({
             </defs>
             <text>
               <textPath href={`#${ringId}`} className="vc-ring-id">
-                聲線 = {voiceId.trim() || "9vQe2LkTm4RzWp8NcYdA"}
+                聲線 = {draft.voice_id.trim() || "9vQe2LkTm4RzWp8NcYdA"}
               </textPath>
             </text>
           </svg>
@@ -137,7 +151,8 @@ export default function VoicePage({
             strokeLinecap="round"
           />
         </svg>
-        <ScrollInput className="vc-note-input" type="text" placeholder="備註" />
+        <ScrollInput className="vc-note-input" type="text" placeholder="備註"
+          value={draft.note} onChange={event => setDraft({ ...draft, note: event.target.value })} onBlur={save} />
         <div className="vc-sleeve-line" />
         <div className="vc-sleeve-bar">
           <span className="vc-bar-icon" />
@@ -168,18 +183,14 @@ export default function VoicePage({
           <div className="api-field-row">
             <div className="api-field-label">TOKEN</div>
             <ScrollInput
-              type="text"
+              type="password"
               className="api-field-input vc-key"
-              placeholder="sk_4f2a9c71e8b05d3a6f91c8"
+              placeholder={draft.hasKey ? "••••••••••••" : "sk_4f2a9c71e8b05d3a6f91c8"}
               autoComplete="off"
               spellCheck={false}
-              value={keyFocused ? key : mask(key)}
-              onFocus={() => setKeyFocused(true)}
-              onBlur={() => {
-                setKey((value) => value.trim());
-                setKeyFocused(false);
-              }}
-              onChange={(e) => setKey(e.target.value)}
+              value={draft.key ?? ""}
+              onBlur={save}
+              onChange={(e) => setDraft({ ...draft, key: e.target.value })}
             />
           </div>
           <div className="api-field-row">
@@ -189,8 +200,9 @@ export default function VoicePage({
               className="api-field-input vc-id"
               placeholder="9vQe2LkTm4RzWp8NcYdA"
               spellCheck={false}
-              value={voiceId}
-              onChange={(e) => setVoiceId(e.target.value)}
+              value={draft.voice_id}
+              onBlur={save}
+              onChange={(e) => setDraft({ ...draft, voice_id: e.target.value })}
             />
           </div>
           <div className="api-field-row">
@@ -200,8 +212,9 @@ export default function VoicePage({
               className="api-field-input vc-model"
               placeholder="eleven_v4"
               spellCheck={false}
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
+              value={draft.model}
+              onBlur={save}
+              onChange={(e) => setDraft({ ...draft, model: e.target.value })}
             />
           </div>
           <div className="api-field-row">
@@ -210,8 +223,9 @@ export default function VoicePage({
               type="text"
               className="api-field-input vc-line"
               placeholder="陪你等天亮。"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              value={draft.words}
+              onBlur={save}
+              onChange={(e) => setDraft({ ...draft, words: e.target.value })}
             />
           </div>
         </div>

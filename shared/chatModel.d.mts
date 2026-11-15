@@ -32,6 +32,8 @@ export type ReplyGroup = {
     approvals: Approval[];
     status?: string;
     files?: ChatFile[];
+    voices?: Record<string, import("./voice.mjs").VoiceClip>;
+    voiceBubbleIds?: string[];
 };
 export type ChatGroup = UserGroup | ReplyGroup;
 export declare function chatHistory(groups: ChatGroup[]): ChatMessage[];

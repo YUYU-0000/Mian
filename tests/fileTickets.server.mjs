@@ -13,7 +13,7 @@ export const imageBytes = Buffer.from(
 );
 
 // 真实本地后端配合假的服务商和 Codex，不发付费请求。
-export async function fileTicketServer({ selection = "", selectionFails = false, rejectTools = false } = {}) {
+export async function fileTicketServer({ selection = "", selectionFails = false, rejectTools = false, reply, voice = false } = {}) {
   const repository = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-file-tickets-"));
   const workspace = path.join(directory, "workspace");
@@ -21,6 +21,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
   const prompts = [];
   const systemPrompts = [];
   const selections = [];
+  const speechRequests = [];
   const provider = createServer(async (request, response) => {
     let body = "";
     for await (const chunk of request) body += chunk;
@@ -47,7 +48,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     }
     response.writeHead(200, { "Content-Type": "text/event-stream" });
     response.end(
-      `data: ${JSON.stringify({ choices: [{ delta: { content: "<mian-bubble>已收到文件。</mian-bubble>" } }] })}\n\ndata: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`,
+      `data: ${JSON.stringify({ choices: [{ delta: { content: reply ?? "<mian-bubble>已收到文件。</mian-bubble>" } }] })}\n\ndata: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`,
     );
   });
   provider.listen(0, "127.0.0.1");
@@ -86,6 +87,16 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     import { writeFile } from 'node:fs/promises';
     import path from 'node:path';
     import { CodexBridge } from ${JSON.stringify(source("codex"))};
+    if (${JSON.stringify(voice)}) {
+      const fetchOriginal = globalThis.fetch;
+      globalThis.fetch = async (url, init) => {
+        if (!String(url).startsWith('https://api.elevenlabs.io/')) return fetchOriginal(url, init);
+        process.send({ speech: { url, headers: init.headers, body: JSON.parse(init.body) } });
+        if (init.headers['xi-api-key'] === 'reject-key')
+          return Response.json({ detail: { status: 'invalid_api_key', message: 'ElevenLabs: invalid API key' } }, { status: 401 });
+        return new Response('test-mp3-bytes', { headers: { 'content-type': 'audio/mpeg' } });
+      };
+    }
     let turn = 0;
     CodexBridge.prototype.connect = async function(config) { this.config = config; return { state:'ready', message:'fake Codex' }; };
     CodexBridge.prototype.forkConversationThread = async function(id) { return { threadId:'fork-'+id+'-'+turn, metadata:{} }; };
@@ -103,7 +114,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
       setTimeout(async () => {
         await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.html'), '<h1>local file</h1>');
         await writeFile(path.join(this.config.workingDirectory, conversationId, 'generated.png'), Buffer.from(${JSON.stringify(imageBytes.toString("base64"))}, 'base64'));
-        this.emit('event', {type:'assistant-delta',conversationId,turnId,delta:'<mian-bubble>文件做好了。</mian-bubble>'});
+        this.emit('event', {type:'assistant-delta',conversationId,turnId,delta:${JSON.stringify(reply ?? "<mian-bubble>文件做好了。</mian-bubble>")}});
         this.emit('event', {type:'turn-completed',conversationId,turnId,status:'completed'});
       }, 80);
       return {conversationId,threadId,turnId};
@@ -139,6 +150,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     if (message.prompt) prompts.push(message.prompt);
     if (message.clues !== undefined) systemPrompts.push(message.clues);
     if (message.selection) selections.push(message.selection);
+    if (message.speech) speechRequests.push(message.speech);
   });
   const [{ port }] = await Promise.race([
     once(backend, "message"),
@@ -153,6 +165,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     prompts,
     systemPrompts,
     selections,
+    speechRequests,
     base: `http://127.0.0.1:${port}`,
     async close() {
       const exited = once(backend, "exit");

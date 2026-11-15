@@ -9,10 +9,12 @@ import type { CodexBridge } from "./codex.js";
 import type { ConversationRegistry } from "./conversations.js";
 import type { ConversationRecord } from "./types.js";
 import type { ConversationMessages } from "./messages.js";
+import type { VoiceReplies } from "./voiceReplies.js";
 
 export type ConversationServices = {
   bridge: CodexBridge;
   apiChat: ApiChat;
+  voiceReplies: VoiceReplies;
   conversations: ConversationRegistry;
   files: ChatFiles;
   messages: ConversationMessages;
@@ -23,6 +25,7 @@ export type ConversationServices = {
 export function conversationRoutes({
   bridge,
   apiChat,
+  voiceReplies,
   conversations,
   files,
   messages,
@@ -75,6 +78,8 @@ export function conversationRoutes({
   router.post("/conversations/:id/fork", async (request, response) => {
     try {
       conversations.require(request.params.id);
+      if (voiceReplies.isBusy(request.params.id))
+        throw new Error("当前会话仍在运行或等待权限处理");
       const config = await readConfig();
       const conversationId = randomUUID();
       await prepareConversationWorkspace(
@@ -185,7 +190,7 @@ export function conversationRoutes({
       const conversation = conversations.require(conversationId);
       if (
         bridge.isConversationBusy(conversationId) ||
-        apiChat.isBusy(conversationId)
+        apiChat.isBusy(conversationId) || voiceReplies.isBusy(conversationId)
       )
         throw new Error("当前会话仍在运行或等待权限处理");
       if (conversation.threadId) await bridge.connect(await readConfig());

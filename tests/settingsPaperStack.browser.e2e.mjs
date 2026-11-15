@@ -294,6 +294,11 @@ try {
   );
   await click(".vc-page.current .vc-record");
   await click(".vc-page.current .vc-stub");
+  assert.deepEqual(await evaluate(`(() => {
+    const page = document.querySelector('.vc-page.current');
+    return {out:page.classList.contains('out'),playing:page.classList.contains('playing'),record:getComputedStyle(page.querySelector('.vc-record-inner')).animationName,wave:getComputedStyle(page.querySelector('.vc-bar-wave i')).animationName};
+  })()`), { out: true, playing: false, record: "none", wave: "none" });
+  await evaluate("window.startVoice()");
   await waitFor(
     () =>
       evaluate(
@@ -307,12 +312,24 @@ try {
     ),
     { record: "vcSpin", wave: "vcWave" },
   );
+  await evaluate("window.finishVoice()");
+  await waitFor(() => evaluate("!document.querySelector('.vc-page.current').classList.contains('out')"), "Finished preview did not retract");
+  await click(".vc-page.current .vc-stub");
+  await evaluate("window.startVoice()");
+  await click(".vc-page.current .vc-stub");
+  assert.deepEqual(await evaluate(`(() => { const page = document.querySelector('.vc-page.current'); return {out:page.classList.contains('out'),playing:page.classList.contains('playing')}; })()`), { out: false, playing: false });
+  await click(".vc-page.current .vc-stub");
+  await evaluate("window.failVoice()");
+  await waitFor(() => evaluate("!document.querySelector('.vc-page.current').classList.contains('out')"), "Failed preview did not retract");
+  await click(".vc-page.current .vc-stub");
+  await evaluate("window.startVoice()");
   for (let count = 2; count <= 3; count++) {
     await click(".vc-page.current .vc-add");
     await waitFor(
       async () => (await selected("#voiceWrapper")) === count - 1,
       "Added voice page was not selected",
     );
+    await waitFor(() => evaluate(`window.voiceSettings.activeId === window.voiceSettings.presets[${count - 1}].id`), "Voice selection was not saved");
     assert.equal(
       await evaluate("document.querySelectorAll('.vc-page.current').length"),
       1,
@@ -339,15 +356,7 @@ try {
     await evaluate(
       "document.querySelector('.vc-page.current').classList.contains('playing')",
     ),
-    true,
-  );
-  await evaluate("window.finishVoice()");
-  await waitFor(
-    () =>
-      evaluate(
-        "!document.querySelector('.vc-page.current').classList.contains('playing')",
-      ),
-    "Voice playback did not finish",
+    false,
   );
   await click(".vc-page.current .vc-del");
   await waitFor(

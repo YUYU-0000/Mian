@@ -54,6 +54,10 @@ export function useSettingsPaperStack(count: number, open: boolean) {
   return {
     track,
     index,
+    show: (index: number) => {
+      stack.current!.index = index;
+      stack.current!.update();
+    },
     showAdded: () => {
       focus.current = { index: count, animate: true };
     },

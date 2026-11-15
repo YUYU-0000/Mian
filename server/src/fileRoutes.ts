@@ -46,7 +46,7 @@ export function fileRoutes(
       response.setHeader("Content-Security-Policy", "sandbox");
       if (
         request.query.inline === "1" &&
-        stored.file.mimeType.startsWith("image/")
+        (stored.file.mimeType.startsWith("image/") || stored.file.mimeType.startsWith("audio/"))
       ) {
         response
           .type(stored.file.mimeType)

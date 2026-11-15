@@ -8,6 +8,8 @@ import {
 } from "./clues.js";
 import { readConfig, saveConfig } from "./config.js";
 import { readPresets, writePresets, type ApiPreset } from "./apiPresets.js";
+import { readVoicePresets, writeVoicePresets } from "./voicePresets.js";
+import type { VoicePreset } from "../../shared/voice.mjs";
 import {
   deleteFontPreset,
   fontSettings,
@@ -30,6 +32,7 @@ type Backup = {
   version: 1;
   config: AppConfig;
   apiPresets: Omit<ApiPreset, "key">[];
+  voices?: { presets: Omit<VoicePreset, "key" | "hasKey">[]; activeId: string };
   fonts: FontSettings;
   clues: ClueWall;
   conversations: ConversationRecord[];
@@ -184,11 +187,12 @@ export function settingsRoutes(
     }
   });
   router.get("/backup", async (_request, response) => {
-    const [config, { presets }, fonts, clues] = await Promise.all([
+    const [config, { presets }, fonts, clues, voices] = await Promise.all([
       readConfig(),
       readPresets(),
       readFontSettings(),
       readClues(),
+      readVoicePresets(),
     ]);
     const ids = conversations.list().map(record => record.conversationId);
     const chats = await messages.export(ids);
@@ -198,6 +202,7 @@ export function settingsRoutes(
       config,
       fonts,
       clues,
+      voices: { activeId: voices.activeId, presets: voices.presets.map(({ key, ...preset }) => preset) },
       chats,
       files: await files.export(ids),
       // 金钥和提示前缀都不进入备份。
@@ -233,6 +238,16 @@ export function settingsRoutes(
         })),
       });
       await writeFontSettings(backup.fonts);
+      if (backup.voices) {
+        const existingVoices = await readVoicePresets();
+        await writeVoicePresets({
+          activeId: backup.voices.activeId,
+          presets: backup.voices.presets.map(({ id, note, voice_id, model, words }) => ({
+            id, note, voice_id, model, words,
+            key: existingVoices.presets.find(saved => saved.id === id)?.key ?? "",
+          })),
+        });
+      }
       await writeClues(backup.clues);
       await conversations.replace(backup.conversations);
       await files.restore(backup.files ?? []);
