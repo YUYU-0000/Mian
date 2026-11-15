@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 
-type AnimatedNode = HTMLElement & { _target?: string; _busy?: boolean };
+type AnimatedNode = Element & { _target?: string; _busy?: boolean };
 function setText(el: AnimatedNode, text: string) {
   el._target = text;
   if (el._busy || el.textContent === text) return;
@@ -37,11 +37,13 @@ function setText(el: AnimatedNode, text: string) {
 export default function AnimatedText({
   text,
   className = "",
+  as: Tag = "span",
 }: {
   text: string;
   className?: string;
+  as?: "span" | "tspan";
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
+  const ref = useRef<HTMLSpanElement | SVGTSpanElement>(null);
   const initial = useRef(text);
   useLayoutEffect(() => {
     setText(ref.current!, text);
@@ -53,8 +55,8 @@ export default function AnimatedText({
     [],
   );
   return (
-    <span ref={ref} className={className}>
+    <Tag ref={(node: HTMLSpanElement | SVGTSpanElement | null) => { ref.current = node; }} className={className}>
       {initial.current}
-    </span>
+    </Tag>
   );
 }

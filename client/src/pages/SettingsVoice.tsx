@@ -1,10 +1,12 @@
 import { pad2 } from "../format";
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
 import { notify } from "../components/Notify";
 import { ScrollInput } from "../components/ScrollText";
 import type { VoicePreset } from "../../../shared/voice.mjs";
 import type { TagConfig } from "../components/ChoiceTag";
+
+type VoiceField = "voice_id" | "model";
 
 export default function VoicePage({
   preset,
@@ -26,13 +28,18 @@ export default function VoicePage({
   onTag: (tag: TagConfig) => void;
 }) {
   const ringId = useId();
+  const page = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(preset);
   const [pulled, setPulled] = useState(false);
   const [auditioning, setAuditioning] = useState(false);
   const [playing, setPlaying] = useState(false);
   const playback = useRef<AbortController | null>(null);
-  const [manual, setManual] = useState({ voice_id: false, model: false });
-  const [loading, setLoading] = useState<"voice_id" | "model" | null>(null);
+  const [manual, setManual] = useState<Record<VoiceField, false | "fallback" | "title">>({ voice_id: false, model: false });
+  const [loading, setLoading] = useState<VoiceField | null>(null);
+  useLayoutEffect(() => {
+    const selector = manual.voice_id === "title" ? ".vc-id" : manual.model === "title" ? ".vc-model" : null;
+    if (selector) page.current!.querySelector<HTMLInputElement>(selector)!.focus();
+  }, [manual]);
   const persist = (sent: VoicePreset) => {
     void onSave(sent).then(saved => setDraft(value => ({
       ...value,
@@ -41,7 +48,11 @@ export default function VoicePage({
     }))).catch(error => notify.fail("保存失敗", error));
   };
   const save = () => persist(draft);
-  const choose = async (field: "voice_id" | "model") => {
+  const finishManual = (field: VoiceField) => {
+    save();
+    if (manual[field] === "title") setManual(value => ({ ...value, [field]: false }));
+  };
+  const choose = async (field: VoiceField) => {
     if (!draft.key?.trim() && !draft.hasKey) {
       notify.note("先把鑰匙給我");
       return;
@@ -50,12 +61,14 @@ export default function VoicePage({
     try {
       const options = field === "model" ? await api.voiceModels(draft) : await api.voiceList(draft);
       if (!options.length) {
-        setManual(value => ({ ...value, [field]: true }));
+        setManual(value => ({ ...value, [field]: "fallback" }));
         return;
       }
       onTag({
         giant: field === "model" ? "MODEL" : "VOICE", kicker: "SELECT",
         title: field === "model" ? "模型" : "聲音",
+        titleConfirm: "你寫",
+        titleAction: () => setManual(value => ({ ...value, [field]: "title" })),
         items: options.map(option => ({ label: field === "model" ? option.id : option.name, value: option.id,
           selected: option.id === (draft[field] || (field === "model" ? "eleven_v4" : "")) })),
         onPick: value => {
@@ -66,7 +79,7 @@ export default function VoicePage({
         },
       });
     } catch (error) {
-      setManual(value => ({ ...value, [field]: true }));
+      setManual(value => ({ ...value, [field]: "fallback" }));
       notify.fail(field === "model" ? "模型讀取失敗" : "聲音讀取失敗", error);
     } finally { setLoading(null); }
   };
@@ -105,6 +118,7 @@ export default function VoicePage({
   const number = pad2(index + 1);
   return (
     <div
+      ref={page}
       className={`vc-page${current ? " current" : ""}${pulled || auditioning ? " out" : ""}${playing ? " playing" : ""}`}
     >
       <div className="paper-holes">
@@ -237,7 +251,7 @@ export default function VoicePage({
               onClick={() => { if (!manual.voice_id && !loading) void choose("voice_id"); }}
               spellCheck={false}
               value={loading === "voice_id" ? "等我一下" : manual.voice_id ? draft.voice_id : draft.voice_name || draft.voice_id}
-              onBlur={save}
+              onBlur={() => finishManual("voice_id")}
               onChange={(e) => setDraft({ ...draft, voice_id: e.target.value, voice_name: "" })}
             />
           </div>
@@ -251,7 +265,7 @@ export default function VoicePage({
               onClick={() => { if (!manual.model && !loading) void choose("model"); }}
               spellCheck={false}
               value={loading === "model" ? "等我一下" : draft.model}
-              onBlur={save}
+              onBlur={() => finishManual("model")}
               onChange={(e) => setDraft({ ...draft, model: e.target.value })}
             />
           </div>
