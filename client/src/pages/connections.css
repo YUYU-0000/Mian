@@ -1,3 +1,5 @@
+@import "../components/hang-tag.css";
+
 /* ================= 基礎 ================= */
 
 .connections-page {
@@ -973,56 +975,13 @@
 }
 
 /* ================= 吊牌（小房子） ================= */
-.connections-page .tag-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 115;
-  background: rgba(40, 55, 66, 0.32);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  will-change: opacity;
-}
-.connections-page .tag-overlay.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
 .connections-page .hang-tag {
   --tag-string: 30svh;
-  position: fixed;
-  top: 0;
-  left: 50%;
-  z-index: 120;
   width: 188px;
   margin-left: -94px;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(-24px);
-  transition:
-    opacity 0.3s ease,
-    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s linear 0.45s;
-  filter: drop-shadow(0 22px 22px rgba(20, 30, 40, 0.38))
-    drop-shadow(0 4px 6px rgba(20, 30, 40, 0.22));
-}
-.connections-page .hang-tag.is-visible {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: none;
-  transition:
-    opacity 0.3s ease,
-    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s;
 }
 .connections-page .tag-string {
-  position: relative;
-  z-index: 3;
-  width: 1.5px;
-  height: var(--tag-string);
-  margin: 0 auto -16px;
-  background: #d6d0c3;
+  margin-bottom: -16px;
 }
 .connections-page .tag-card {
   position: relative;

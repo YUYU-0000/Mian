@@ -314,20 +314,37 @@ try {
       input.files=data.files; input.dispatchEvent(new Event('change',{bubbles:true}));
     })()`);
     await waitFor(
-      () => evaluate("!!document.querySelector('.avatar-cropper .is-ready')"),
+      () =>
+        evaluate(
+          "!!document.querySelector('.avatar-cropper .hang-tag.is-visible') && document.querySelector('.avatar-crop-frame img')?.naturalWidth > 0",
+        ),
       "打开头像裁切框",
     );
     await evaluate(
       "Promise.all(document.querySelector('.avatar-cropper').getAnimations({subtree:true}).map(animation=>animation.finished))",
     );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('.avatar-crop-heading text:last-child').textContent",
+      ),
+      role === "assistant" ? "彼方肖像" : "此方肖像",
+    );
   };
+  const cropAction = (name) =>
+    evaluate(
+      `document.querySelector('.avatar-crop-${name}').dispatchEvent(new MouseEvent('click', {bubbles:true}))`,
+    );
+  const cropZoom = () =>
+    evaluate(
+      "document.querySelector('.avatar-crop-frame img').getBoundingClientRect().height / document.querySelector('.avatar-crop-frame').getBoundingClientRect().height",
+    );
   const closeCrop = () =>
     waitFor(
       () => evaluate("!document.querySelector('.avatar-cropper')"),
       "关闭裁切框",
     );
   await openCrop("assistant");
-  await click(".avatar-crop-actions button:last-child");
+  await cropAction("cancel");
   await closeCrop();
   assert.equal(
     await evaluate(
@@ -336,6 +353,25 @@ try {
     "",
   );
   await openCrop("assistant");
+  const tag = await evaluate(`(() => {
+    const disc=document.querySelector('.avatar-crop-disc'), frame=document.querySelector('.avatar-crop-frame'), string=document.querySelector('.avatar-cropper .tag-string');
+    return {diameter:disc.offsetWidth,window:frame.offsetWidth,hole:string.getBoundingClientRect().bottom-disc.getBoundingClientRect().top,
+      shade:getComputedStyle(document.querySelector('.avatar-cropper .tag-overlay')).backgroundColor,
+      textStyles:Array.from(document.querySelectorAll('.avatar-crop-actions [role=button]'),node=>{const style=getComputedStyle(node);return [style.fontSize,style.fill,style.stroke,style.fontWeight]}),
+      oldControls:document.querySelectorAll('.avatar-cropper input[type=range],.avatar-cropper .pv-card,.avatar-cropper .pv-under').length};
+  })()`);
+  assert.deepEqual(tag, {
+    diameter: 260,
+    window: 208,
+    hole: 13,
+    shade: "rgba(40, 55, 66, 0.32)",
+    textStyles: [
+      ["10.5px", "rgb(59, 77, 90)", "none", "600"],
+      ["10.5px", "rgb(114, 130, 142)", "none", "400"],
+      ["10.5px", "rgb(114, 130, 142)", "none", "400"],
+    ],
+    oldControls: 0,
+  });
   const frame = await evaluate(
     `(() => { const rect=document.querySelector('.avatar-crop-frame').getBoundingClientRect();return {x:rect.x+rect.width/2,y:rect.y+rect.height/2}; })()`,
   );
@@ -360,11 +396,7 @@ try {
     [2, frame.x + 50, frame.y],
   ]);
   await touch("touchEnd", []);
-  assert.ok(
-    Number(
-      await evaluate("document.querySelector('.avatar-crop-zoom').value"),
-    ) > 1.5,
-  );
+  assert.ok((await cropZoom()) > 1.5);
   await call("Input.dispatchMouseEvent", {
     type: "mouseWheel",
     x: frame.x,
@@ -373,14 +405,33 @@ try {
     deltaY: 2000,
   });
   await waitFor(
-    () => evaluate("document.querySelector('.avatar-crop-zoom').value === '1'"),
+    async () => Math.abs((await cropZoom()) - 1) < 0.001,
     "滚轮最小缩放",
   );
   await call("Emulation.setTouchEmulationEnabled", { enabled: false });
-  await input(".avatar-crop-zoom", "2");
+  // 圆卡边缘不接收缩放，只有照片窗接收滚轮和拖动。
+  await call("Input.dispatchMouseEvent", {
+    type: "mouseWheel",
+    x: frame.x,
+    y: frame.y - 117,
+    deltaX: 0,
+    deltaY: -300,
+  });
+  assert.equal(await cropZoom(), 1);
+  await call("Input.dispatchMouseEvent", {
+    type: "mouseWheel",
+    x: frame.x,
+    y: frame.y,
+    deltaX: 0,
+    deltaY: -Math.log(2) / 0.002,
+  });
+  await waitFor(
+    async () => Math.abs((await cropZoom()) - 2) < 0.001,
+    "照片窗滚轮放大",
+  );
   await call("Input.dispatchMouseEvent", {
     type: "mousePressed",
-    x: frame.x - 110,
+    x: frame.x - 90,
     y: frame.y,
     button: "left",
     buttons: 1,
@@ -401,7 +452,7 @@ try {
     clickCount: 1,
   });
   const coverage = await evaluate(`(() => {
-    const circle=document.querySelector('.avatar-crop-circle').getBoundingClientRect(), image=document.querySelector('.avatar-crop-frame img').getBoundingClientRect();
+    const circle=document.querySelector('.avatar-crop-frame').getBoundingClientRect(), image=document.querySelector('.avatar-crop-frame img').getBoundingClientRect();
     return {covered:image.left<=circle.left+0.01 && image.top<=circle.top+0.01 && image.right>=circle.right-0.01 && image.bottom>=circle.bottom-0.01,ratio:image.width/image.height,left:image.left,circleLeft:circle.left};
   })()`);
   assert.equal(coverage.covered, true);
@@ -415,10 +466,10 @@ try {
     Math.abs(coverage.left - coverage.circleLeft) < 0.1,
     "拖动到图像边缘: " + JSON.stringify(coverage),
   );
-  await click(".avatar-crop-actions button:first-child");
+  await cropAction("confirm");
   await closeCrop();
   await openCrop("user");
-  await click(".avatar-crop-actions button:first-child");
+  await cropAction("confirm");
   await closeCrop();
   await waitFor(
     () =>
@@ -462,20 +513,36 @@ try {
   await folder("#folderWallpaperSettings");
   await click(".avatar-page[data-role=assistant] input[type=file]");
   await waitFor(
-    () => evaluate("!!document.querySelector('.avatar-cropper .is-ready')"),
+    () =>
+      evaluate(
+        "!!document.querySelector('.avatar-cropper .hang-tag.is-visible') && document.querySelector('.avatar-crop-frame img')?.naturalWidth > 0",
+      ),
     "重新调整已保存头像",
   );
-  assert.equal(
-    await evaluate("document.querySelector('.avatar-crop-zoom').value"),
-    "2",
-  );
+  assert.ok(Math.abs((await cropZoom()) - 2) < 0.001);
   assert.deepEqual(
     await evaluate(
       "[document.querySelector('.avatar-crop-frame img').naturalWidth,document.querySelector('.avatar-crop-frame img').naturalHeight]",
     ),
     [180, 100],
   );
-  await click(".avatar-crop-actions button:last-child");
+  // SVG 环形文字能触发换图；取消仍保留上次保存的头像。
+  await evaluate(
+    "window.replaceOpened=false;document.querySelector('.avatar-cropper input[type=file]').addEventListener('click',()=>window.replaceOpened=true)",
+  );
+  await cropAction("replace");
+  assert.equal(await evaluate("window.replaceOpened"), true);
+  await evaluate(`(async () => {
+    const input=document.querySelector('.avatar-cropper input[type=file]');
+    const blob=await (await fetch(document.querySelector('.avatar-crop-frame img').src)).blob();
+    const data=new DataTransfer();data.items.add(new File([blob],'replacement.png',{type:'image/png'}));
+    input.files=data.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  })()`);
+  await waitFor(
+    async () => Math.abs((await cropZoom()) - 1) < 0.001,
+    "换照片重置取景",
+  );
+  await cropAction("cancel");
   await closeCrop();
   await folder("#folderStorageSettings");
   await click("#stExportBtn");
@@ -560,7 +627,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS settings: 十条混合字体规则、整段气泡与等宽代码缩放、头像拖动/双指/滚轮/滑杆/取消/透明底色/重新调整、JSON 导出与导入。",
+    "PASS settings: 混合字体规则与整段缩放、圆形吊牌/角色文字/照片窗手势/环形操作/透明裁切/重新调整、JSON 导出与导入。",
   );
 } finally {
   const exited = once(browser, "exit");

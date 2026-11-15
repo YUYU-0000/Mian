@@ -177,6 +177,7 @@ export default function Media({
       {editor && avatar && (
         <AvatarCropper
           editor={editor}
+          role={avatar}
           onClose={() => setEditor(null)}
           onSave={async (next) => {
             show(await saveAvatar(avatar, next), true);

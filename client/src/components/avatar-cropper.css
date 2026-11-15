@@ -1,11 +1,46 @@
-.avatar-cropper .pv-card {
-  transform: none;
+.avatar-cropper {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.avatar-cropper::backdrop {
+  background: transparent;
+}
+.avatar-cropper .hang-tag {
+  --tag-string: calc(17svh + 13px);
+  width: 260px;
+  margin-left: -130px;
+}
+.avatar-cropper .tag-string {
+  margin-bottom: -13px;
+  pointer-events: none;
+}
+.avatar-crop-disc {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: #f5f2ec;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .avatar-crop-frame {
-  position: relative;
-  width: min(320px, calc(78vw - 32px), 50vh);
-  aspect-ratio: 1;
+  position: absolute;
+  inset: 26px;
   overflow: hidden;
+  border-radius: 50%;
   background: #fbfaf6;
   touch-action: none;
   cursor: grab;
@@ -18,75 +53,46 @@
   max-width: none;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  user-select: none;
 }
-.avatar-crop-circle {
+.avatar-crop-ring {
   position: absolute;
-  inset: 10%;
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 320px rgba(59, 77, 90, 0.42),
-    inset 0 0 0 1px rgba(251, 250, 246, 0.75);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: none;
   pointer-events: none;
 }
-.avatar-crop-controls {
-  padding: 12px 2px 18px;
-  color: var(--ink);
-  font-size: 12px;
-  letter-spacing: 1.5px;
-}
-.avatar-crop-replace {
-  display: block;
-  width: fit-content;
-  margin: 0 auto 14px;
-  font-size: 10px;
-  color: var(--muted);
-  cursor: pointer;
-}
-.avatar-crop-replace input {
-  display: none;
-}
-.avatar-crop-zoom {
-  display: block;
-  appearance: none;
-  width: 100%;
-  height: 1px;
-  margin: 0;
-  background: #93a7b5;
-  accent-color: #6b8396;
-  cursor: pointer;
-}
-.avatar-crop-zoom::-webkit-slider-thumb {
-  appearance: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #6b8396;
-}
-.avatar-crop-zoom::-moz-range-thumb {
-  width: 9px;
-  height: 9px;
-  border: 0;
-  border-radius: 50%;
-  background: #6b8396;
+.avatar-crop-heading {
+  font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
+  font-weight: 500;
+  font-size: 7.5px;
+  letter-spacing: 2.4px;
+  fill: var(--muted);
 }
 .avatar-crop-actions {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  margin-top: 22px;
+  font-family: "LXGW Heart Serif", serif;
+  font-size: 10.5px;
+  letter-spacing: 3px;
+  fill: var(--muted);
 }
-.avatar-crop-actions button {
-  padding: 0 0 2px;
-  border: 0;
-  border-bottom: 1px solid currentColor;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  letter-spacing: inherit;
-  color: inherit;
+.avatar-crop-actions [role="button"] {
   cursor: pointer;
+  pointer-events: all;
 }
-.avatar-crop-actions button:active {
+.avatar-crop-actions [role="button"]:active {
   opacity: 0.6;
+}
+.avatar-crop-actions [role="button"]:focus-visible {
+  outline: 1px solid var(--muted);
+  outline-offset: 3px;
+}
+.avatar-crop-actions [aria-disabled="true"] {
+  pointer-events: none;
+}
+.avatar-crop-confirm {
+  fill: var(--ink);
+  font-weight: 600;
+}
+.avatar-crop-divider {
+  font-size: 7.5px;
 }
