@@ -5,7 +5,7 @@
     背面是經典信封樣式：上封口是尖 V，尖角稍圓；下封口從兩個下角斜上來，在中間收成一個尖。所有封口邊緣描一道燕麥金細線（#c9b08a）。
     不加火漆。信封下半居中兩行米白小字：NEW CARD／新增卡片。
   - 點信封：背後蓋一層淡遮罩，信封移到底部正中、擺正，上封口往上翻開。
-    一疊空白紙片橫躺著插在信封裡：每張是豎版海報轉 90 度躺下（236×176），內容跟著一起轉，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
+    一疊空白紙片橫躺著插在信封裡：每張是檔案館那種 3.2:4.2 的豎版紙片轉 90 度躺下（250×187，跟信封差不多寬），內容跟著一起轉，海報原本的頂邊朝右、左邊朝上；後面的紙也是躺著疊，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
     上滑：前面這張插回去，下一張抽出來；下滑：換回上一張。到頭了就輕輕回彈。
     信封上方顯示目前的版式名（英文 + 頁碼 03 / 05 + 中文）和「上下滑換一張」。紙片露出信封底邊的部分裁掉。
     點抽出來的那張：整張抽出，打開卡片頁，頂上選常駐或觸發，寫完收起後貼到牆上。
@@ -37,8 +37,8 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 .open{left:60px;top:660px}
 
 .stack{position:absolute;inset:0;z-index:2;clip-path:inset(-400px -60px 2px -60px)}
-.card{position:absolute;left:17px;width:236px;height:264px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
-.card .in{position:absolute;left:0;top:0;width:100px;height:134px;transform-origin:0 0;transform:translate(0,176px) rotate(-90deg) scale(1.76)}
+.card{position:absolute;left:10px;width:250px;height:187px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
+.card .in{position:absolute;left:0;top:0;width:100px;height:134px;transform-origin:0 0;transform:translate(250px,0) rotate(90deg) scale(1.87)}
 .card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:6px;letter-spacing:1.6px}
 .card .t{position:absolute;font-weight:700;letter-spacing:2px;line-height:1.02}
 .card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:5px;letter-spacing:1.6px;color:var(--muted)}
@@ -108,8 +108,8 @@ const L={
    <div class="ln" style="left:8px;width:46px;top:96px"></div><div class="ln" style="left:8px;width:34px;top:101px"></div>`,
 };
 document.getElementById('stack').innerHTML=
-  `<div class="card" style="top:-110px;transform:translateX(10px) rotate(3.5deg)"><div class="in">${L.full}</div></div>`+
-  `<div class="card" style="top:-126px;transform:translateX(-9px) rotate(-3deg)"><div class="in">${L.vertical}</div></div>`+
-  `<div class="card" style="top:-168px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
+  `<div class="card" style="top:-78px;transform:translateX(7px) rotate(3deg)"><div class="in">${L.full}</div></div>`+
+  `<div class="card" style="top:-92px;transform:translateX(-7px) rotate(-2.5deg)"><div class="in">${L.vertical}</div></div>`+
+  `<div class="card" style="top:-112px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
 </script>
 </body></html>
