@@ -7,12 +7,20 @@ export const CLUE_SELECTION_INSTRUCTION =
 export const CLUE_READING_INSTRUCTION =
   "這些是你可以翻閱的卡片。覺得對話用得上時，調用 read_clue 讀取內容，可以一次讀幾張，也可以讀完再讀。讀卡的過程用戶看不到，不要在回覆裡提到你讀了卡。";
 
+function clueMetadata({ id, title, when }: Clue) {
+  return { id, title, when };
+}
+
+function matchesScene(clue: Clue, scenes: Clue["scenes"]) {
+  return clue.scenes.some((scene) => scenes.includes(scene));
+}
+
 export function clueDirectory(clues: Clue[], withTools = false) {
   const cards = clues
     .filter((clue) => clue.mode === "trigger")
     .sort((a, b) => a.order - b.order)
-    .map(({ id, title, when }) =>
-      withTools ? { id, title, when } : { title, when },
+    .map((clue) =>
+      withTools ? clueMetadata(clue) : { title: clue.title, when: clue.when },
     );
   if (!cards.length) return "";
   return [
@@ -43,7 +51,7 @@ export function cluePrompt(
       (clue) =>
         clue.mode === "pinned" ||
         selectedIds.includes(clue.id) ||
-        clue.scenes.some((scene) => scenes.includes(scene)),
+        matchesScene(clue, scenes),
     )
     .sort(
       (a, b) =>
@@ -61,13 +69,11 @@ export async function selectCluePrompt(
   scenes = getActiveScenes(),
 ) {
   const candidates = clues.filter(
-    (clue) =>
-      clue.mode === "trigger" &&
-      !clue.scenes.some((scene) => scenes.includes(scene)),
+    (clue) => clue.mode === "trigger" && !matchesScene(clue, scenes),
   );
   let selected: string[] = [];
   if (candidates.length) {
-    const system = `${CLUE_SELECTION_INSTRUCTION}\n\n${JSON.stringify(candidates.map(({ id, title, when }) => ({ id, title, when })))}`;
+    const system = `${CLUE_SELECTION_INSTRUCTION}\n\n${JSON.stringify(candidates.map(clueMetadata))}`;
     const recent = messages
       .filter(
         (message) => message.role === "user" || message.role === "assistant",

@@ -4,12 +4,7 @@
   --muted: #72828e;
   --wall: #f1efe9;
   --paper: #fbfaf6;
-  --warm: #f4eee3;
-  --blue: #6b8396;
   --blue2: #8fa6b5;
-  --blue3: #c9d5dd;
-  --oat: #c7ae8c;
-  --oat2: #e4d6bf;
   --thread: #a7745a;
   --env: #4f6475;
   --flap: #566d7f;
@@ -23,8 +18,6 @@
   --kc: 0.8;
   --k: 1;
   --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
-}
-.clues-page {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -34,6 +27,8 @@
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  font-family: var(--serif);
+  color: var(--ink);
 }
 
 /* 頂部 */
@@ -51,72 +46,16 @@
   --icon-bg-4: #5a7082;
   --icon-bg-4-rgb: 90, 112, 130;
 }
-/* 返回鍵和右側標題沿用檔案館（SettingsLayout 的 .back-btn / .right-decor） */
+/* 返回鍵和標題的共用樣式在 archive-header.css。 */
 .clues-page .head .back-btn {
-  display: inline-flex;
-  align-items: flex-start;
-  cursor: pointer;
-  position: relative;
   pointer-events: auto;
-  margin-top: -2px;
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
-}
-.clues-page .head .back-btn::after {
-  content: "";
-  position: absolute;
-  top: -10px;
-  right: -15px;
-  bottom: -10px;
-  left: -15px;
-}
-.clues-page .head .back-btn:active {
-  opacity: 0.6;
-  transform: translateX(-4px);
-}
-.clues-page .head .right-decor {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
 }
 .clues-page .head .archive-en {
-  writing-mode: vertical-rl;
-  font-size: 8px;
-  letter-spacing: 2.5px;
   color: var(--muted);
-  font-weight: 500;
-  opacity: 0.75;
-  text-transform: uppercase;
-  line-height: 1;
-  padding-top: 1px;
   font-family: var(--en);
 }
-.clues-page .head .decor-line {
-  width: 1px;
-  height: 65px;
-  background: linear-gradient(
-    180deg,
-    rgba(var(--icon-bg-4-rgb), 0.6) 0%,
-    rgba(var(--icon-bg-4-rgb), 0) 100%
-  );
-}
 .clues-page .head .archive-cn {
-  writing-mode: vertical-rl;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 12px;
-  line-height: 1;
-  color: transparent;
-  background: linear-gradient(
-    180deg,
-    var(--icon-bg-4) 0%,
-    rgba(var(--icon-bg-4-rgb), 0.15) 100%
-  );
-  -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* 牆 */
@@ -138,6 +77,11 @@
   position: absolute;
   touch-action: none;
   cursor: grab;
+}
+.clues-page .in {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 .clues-page .item.land {
   animation: clue-land 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
@@ -179,39 +123,29 @@
   border-right: 1.5px solid var(--ink);
   border-bottom: 1.5px solid var(--ink);
 }
-.clues-page .rotation-handle {
+.clues-page .rotate-handle {
   position: absolute;
-  left: 50%;
-  top: -36px;
-  width: 36px;
-  height: 36px;
-  margin-left: -18px;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
   display: none;
   touch-action: none;
   cursor: grab;
   z-index: 2;
 }
-.clues-page .rotation-handle:before {
+.clues-page .rotate-handle:before {
   content: "";
   position: absolute;
-  left: 17.5px;
-  bottom: 0;
-  width: 1px;
-  height: 13px;
-  background: var(--ink);
-}
-.clues-page .rotation-handle:after {
-  content: "";
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  width: 8px;
-  height: 8px;
-  border: 1px solid var(--ink);
-  transform: rotate(45deg);
+  right: 5px;
+  bottom: 5px;
+  width: 10px;
+  height: 10px;
+  border-left: 1.5px solid var(--ink);
+  border-top: 1.5px solid var(--ink);
 }
 .clues-page .item.edit .handle,
-.clues-page .item.edit .rotation-handle {
+.clues-page .item.edit .rotate-handle {
   display: block;
 }
 .clues-page .portrait {
@@ -227,7 +161,12 @@
   right: 7px;
   top: 7px;
   bottom: 26px;
-  background: linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396);
+  background-image: var(
+    --avatar-assistant,
+    linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396)
+  );
+  background-size: cover;
+  background-position: center;
 }
 .clues-page .portrait .portrait-caption {
   position: absolute;
@@ -361,6 +300,7 @@
 }
 /* 右下：照信封和郵票的外形鋪一塊牆色，再整塊模糊，四邊的霧一樣濃、一樣往外淡 */
 .clues-page .h-env {
+  z-index: 7;
   right: -14px;
   bottom: calc(var(--sb) - 30px);
   width: calc(270px * var(--kc) + 80px);

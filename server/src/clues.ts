@@ -1,47 +1,20 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { dataDirectory } from "./config.js";
+import {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  type Clue,
+  type ClueWall,
+} from "../../shared/clues.mjs";
 
-export type WallRect = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  r: number;
-};
-export type Clue = WallRect & {
-  id: string;
-  title: string;
-  content: string;
-  mode: "pinned" | "trigger";
-  when: string;
-  scenes: "voice"[];
-  layout: number;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-export type CluePin = {
-  id: string;
-  cardId: string | null;
-  x: number;
-  y: number;
-};
-export type ClueThread = { from: string; to: string };
-export type ClueWall = {
-  cards: Clue[];
-  pins: CluePin[];
-  threads: ClueThread[];
-  portrait: WallRect;
-};
+export { removeClue } from "../../shared/clues.mjs";
+export type { Clue, ClueWall } from "../../shared/clues.mjs";
 
 const file = path.join(dataDirectory, "clues.json");
 type LegacyClue = Partial<Clue> & { keywords?: string[] };
-type StoredWall = {
+type StoredWall = Partial<Omit<ClueWall, "cards">> & {
   cards: LegacyClue[];
-  pins?: CluePin[];
-  threads?: ClueThread[];
-  portrait?: WallRect;
 };
 
 export function migrateClues(value: StoredWall | LegacyClue[] = []): ClueWall {
@@ -56,12 +29,12 @@ export function migrateClues(value: StoredWall | LegacyClue[] = []): ClueWall {
   let bottom = Math.max(
     portrait.y + portrait.h,
     ...stored.cards.map((card) =>
-      card.y === undefined ? 0 : card.y + (card.h ?? 88),
+      card.y === undefined ? 0 : card.y + (card.h ?? CARD_HEIGHT),
     ),
   );
   const cards = stored.cards.map((card, index) => {
     const { keywords, ...fields } = card;
-    const rect = { x: 24, y: bottom + 24, w: 84, h: 88, r: 0 };
+    const rect = { x: 24, y: bottom + 24, w: CARD_WIDTH, h: CARD_HEIGHT, r: 0 };
     if (card.y === undefined) bottom = rect.y + rect.h;
     return {
       layout: index % 8,
@@ -153,15 +126,3 @@ export function parseClue(value: Clue): Clue {
   };
 }
 
-export function removeClue(wall: ClueWall, id: string): ClueWall {
-  const pins = wall.pins.filter((pin) => pin.cardId !== id);
-  const ids = new Set(pins.map((pin) => pin.id));
-  return {
-    ...wall,
-    cards: wall.cards.filter((card) => card.id !== id),
-    pins,
-    threads: wall.threads.filter(
-      (thread) => ids.has(thread.from) && ids.has(thread.to),
-    ),
-  };
-}

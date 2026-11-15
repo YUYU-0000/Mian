@@ -8,18 +8,9 @@
   background: var(--paper);
   background-image: var(--grain);
   overflow: hidden;
-  --a: var(--blue3);
-  --a2: var(--blue2);
-  --a3: var(--blue);
 }
 .clues-page .paper > * {
   position: absolute;
-}
-.clues-page .paper .n {
-  font-family: var(--en);
-  font-weight: 500;
-  font-size: 8px;
-  letter-spacing: 1.6px;
 }
 .clues-page .paper .en {
   font-family: var(--en);
@@ -30,9 +21,23 @@
   white-space: nowrap;
 }
 .clues-page .paper .tt {
+  max-width: calc(100% - 24px);
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
+}
+.clues-page .paper .tt.centered {
+  max-width: none;
+}
+.clues-page .paper[data-layout="1"] .tt {
+  max-width: 92px;
+}
+.clues-page .paper[data-layout="6"] .tt {
+  max-width: 70px;
+}
+.clues-page .paper .tt .scroll-text {
+  display: block;
+  max-width: 100%;
 }
 .clues-page .paper .tx {
   font-size: 6.5px;
@@ -50,11 +55,6 @@
 .clues-page .paper .ln {
   height: 1px;
   background: rgba(59, 77, 90, 0.16);
-}
-.clues-page .paper .ar {
-  font-family: var(--en);
-  font-size: 7px;
-  letter-spacing: 1.6px;
 }
 .clues-page .paper .sc {
   font-family: "ZSFT-l", cursive;
@@ -95,24 +95,6 @@
   background: var(--ink);
   transform: rotate(45deg);
 }
-.clues-page .dt {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.clues-page .dt s {
-  text-decoration: none;
-  font-family: var(--en);
-  font-size: 5px;
-  line-height: 1;
-  font-weight: 500;
-}
-.clues-page .dt b {
-  font-family: var(--en);
-  font-size: 14px;
-  font-style: italic;
-  font-weight: 500;
-}
 .clues-page .tape {
   left: 16px;
   right: 16px;
@@ -133,5 +115,8 @@
   width: 7px;
   height: 7px;
   overflow: visible;
+}
+.clues-page .tape .scroll-text {
+  min-width: 0;
 }
 

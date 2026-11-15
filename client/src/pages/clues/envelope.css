@@ -5,20 +5,7 @@
   right: 0;
   bottom: 0;
   height: calc(140px * var(--kc) + 64px + var(--sb));
-  z-index: 7;
-  pointer-events: none;
-}
-.clues-page .hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(140px * var(--kc) + 40px + var(--sb));
-  text-align: center;
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding-left: 2px;
-  color: var(--muted);
-  z-index: 7;
+  z-index: auto;
   pointer-events: none;
 }
 .clues-page .tray {
@@ -30,7 +17,7 @@
   transform-origin: 100% 100%;
   transform: rotate(3deg) scale(calc(var(--kc) * 0.84));
   pointer-events: auto;
-  z-index: 2;
+  z-index: 9;
   filter: drop-shadow(0 4px 8px rgba(30, 40, 50, 0.18))
     drop-shadow(0 1px 1px rgba(30, 40, 50, 0.1));
 }
@@ -116,7 +103,6 @@
   width: 13px;
   height: 13px;
   margin: -6.5px 0 0 -6.5px;
-  border-radius: 50%;
   border: 1px solid rgba(59, 77, 90, 0.5);
   border-radius: 0;
   transform: rotate(45deg);
@@ -164,7 +150,7 @@
 }
 .clues-page .envc {
   position: absolute;
-  z-index: 1;
+  z-index: 8;
   right: 20px;
   bottom: calc(var(--sb) + 26px);
   width: 270px;
@@ -173,12 +159,13 @@
   transform: scale(var(--kc)) rotate(-3deg);
   pointer-events: auto;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition:
+    right 0.28s cubic-bezier(0.22, 0.8, 0.3, 1),
+    transform 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
   filter: drop-shadow(0 10px 16px rgba(30, 40, 50, 0.2))
     drop-shadow(0 2px 3px rgba(30, 40, 50, 0.12));
 }
-.clues-page .envc > svg,
-.clues-page .envo .body > svg {
+.clues-page .envc > svg {
   position: absolute;
   left: 0;
   top: 0;
@@ -263,6 +250,12 @@
 }
 .clues-page .envc .fc {
   transition: opacity 0.12s;
+}
+.clues-page .envc.open {
+  z-index: 21;
+  right: calc(50% - 135px);
+  transform-origin: 50% 100%;
+  transform: scale(var(--kc));
 }
 .clues-page .envc.open .fc {
   opacity: 0;

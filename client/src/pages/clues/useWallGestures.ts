@@ -7,14 +7,13 @@ import {
 } from "react";
 import { createId } from "../../id";
 import type { Clue, CluePin, ClueWall, WallRect } from "../../clueTypes";
+import { PORTRAIT_ID, removePin } from "../../../../shared/clues.mjs";
 import {
   attachPin,
   clamp,
   fitItem,
-  PORTRAIT_ID,
   rotate,
   wallItem,
-  withoutPin,
 } from "./clueGeometry";
 
 type Gesture = {
@@ -56,6 +55,7 @@ export function useWallGestures({
   open,
 }: Props) {
   const gesture = useRef<Gesture | null>(null);
+  const tapped = useRef<string | null>(null);
   const removalTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -101,6 +101,7 @@ export function useWallGestures({
     id: string,
   ) => {
     event.stopPropagation();
+    tapped.current = null;
     event.currentTarget.setPointerCapture(event.pointerId);
     const wall = current.current!;
     const active: Gesture = {
@@ -132,7 +133,7 @@ export function useWallGestures({
         setPressed(null);
         setRemoving(id);
         removalTimer.current = setTimeout(() => {
-          update((data) => withoutPin(data, id));
+          update((data) => removePin(data, id));
           setSelected((value) => (value === id ? null : value));
           setRemoving(null);
           save();
@@ -150,7 +151,8 @@ export function useWallGestures({
     if (!active || active.gone) return;
     const dx = event.clientX - active.x,
       dy = event.clientY - active.y;
-    if (!active.moved && Math.hypot(dx, dy) < (active.kind === "pin" ? 6 : 4))
+    const threshold = active.kind === "pin" ? 6 : active.kind === "item" ? 10 : 4;
+    if (!active.moved && Math.hypot(dx, dy) < threshold)
       return;
     active.moved = true;
     clearTimeout(active.timer);
@@ -287,6 +289,14 @@ export function useWallGestures({
     start,
     move,
     finish,
+    prepareClick: (id: string) => {
+      tapped.current = id;
+    },
+    activate: (id: string) => {
+      if (tapped.current !== id || editing || id === PORTRAIT_ID) return;
+      tapped.current = null;
+      open(current.current!.cards.find((card) => card.id === id)!);
+    },
     newPin: (event: PointerEvent<HTMLElement>) =>
       start(event, "new-pin", createId()),
   };

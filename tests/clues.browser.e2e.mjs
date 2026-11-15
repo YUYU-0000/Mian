@@ -227,6 +227,11 @@ try {
   );
   await sleep(320);
   await tap('.pp[data-layout="0"]');
+  await visible(".item.card.land");
+  const addedId = await evaluate("document.querySelector('.item.card.land').dataset.id");
+  assert.equal(await evaluate("!!document.querySelector('.sw')"), false);
+  await waitFor(() => evaluate("!document.querySelector('.item.land')"), "新卡片收起落在墙上");
+  await tap(`.item[data-id="${addedId}"]`);
   await visible(".sw.show");
   const longTitle = "這是一張能左右滑動閱讀完整標題的線索卡片";
   await fill("title", longTitle);
@@ -436,6 +441,10 @@ try {
     true,
   );
   await tap('.pp[data-layout="0"]');
+  await visible(".item.card.land");
+  const smallCardId = await evaluate("document.querySelector('.item.card.land').dataset.id");
+  await waitFor(() => evaluate("!document.querySelector('.item.land')"), "小屏卡片收起");
+  await tap(`.item[data-id="${smallCardId}"]`);
   await visible(".sw.show");
   await sleep(280);
   assert.equal(

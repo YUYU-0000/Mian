@@ -4,9 +4,8 @@ import {
   attachPin,
   fitItem,
   pinPosition,
-  withoutCard,
-  withoutPin,
 } from "../client/src/pages/clues/clueGeometry.ts";
+import { removeClue, removePin } from "../shared/clues.mjs";
 import type { ClueWall } from "../client/src/clueTypes.ts";
 
 const wall: ClueWall = {
@@ -88,8 +87,8 @@ test("rotated card bounds stay inside the screen and removal drops connected thr
     ],
     threads: [{ from: "a", to: "b" }],
   };
-  assert.deepEqual(withoutPin(linked, "a").threads, []);
-  const removed = withoutCard(linked, "card");
+  assert.deepEqual(removePin(linked, "a").threads, []);
+  const removed = removeClue(linked, "card");
   assert.deepEqual(removed.cards, []);
   assert.deepEqual(
     removed.pins.map((pin) => pin.id),

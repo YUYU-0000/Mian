@@ -24,7 +24,6 @@ export default function FontPage({
   index: number;
   total: number;
   active: boolean;
-  inUse: boolean;
   onChange: (preset: FontPreset) => void;
   onSave: (preset: FontPreset) => Promise<FontPreset>;
   onAdd: () => void;

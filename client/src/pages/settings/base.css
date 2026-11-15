@@ -52,72 +52,13 @@
   position: relative;
   z-index: 10;
 }
-.settings-page .back-btn {
-  display: inline-flex;
-  align-items: flex-start;
-  cursor: pointer;
-  position: relative;
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
-  margin-top: -2px;
-}
-.settings-page .back-btn::after {
-  content: "";
-  position: absolute;
-  top: -10px;
-  right: -15px;
-  bottom: -10px;
-  left: -15px;
-}
-.settings-page .back-btn:active {
-  opacity: 0.6;
-  transform: translateX(-4px);
-}
-
-.settings-page .right-decor {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
-}
 .settings-page .archive-en {
-  writing-mode: vertical-rl;
-  font-size: 8px;
-  letter-spacing: 2.5px;
   color: var(--color-text-muted);
-  font-weight: 500;
-  opacity: 0.75;
-  text-transform: uppercase;
-  line-height: 1;
   margin: 0;
-  padding-top: 1px;
 }
-.settings-page .decor-line {
-  width: 1px;
-  height: 65px;
-  margin: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(var(--icon-bg-4-rgb), 0.6) 0%,
-    rgba(var(--icon-bg-4-rgb), 0) 100%
-  );
-}
+.settings-page .decor-line,
 .settings-page .archive-cn {
-  writing-mode: vertical-rl;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 12px;
-  line-height: 1;
   margin: 0;
-  color: transparent;
-  background: linear-gradient(
-    180deg,
-    var(--icon-bg-4) 0%,
-    rgba(var(--icon-bg-4-rgb), 0.15) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* 档案袋容器 */
@@ -153,7 +94,8 @@
 .settings-page .f1 .folder-body {
   background-color: var(--icon-bg-4);
 }
-.settings-page .f1 .tab-wrapper {
+.settings-page .f1 .tab-wrapper,
+.settings-page .f3 .tab-wrapper {
   left: 0;
   width: 115px;
 }
@@ -161,7 +103,8 @@
   background-color: var(--icon-bg-4);
   clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
 }
-.settings-page .f1 .tab-text {
+.settings-page .f1 .tab-text,
+.settings-page .f3 .tab-text {
   padding-right: 6px;
 }
 .settings-page .f2 {
@@ -171,7 +114,8 @@
 .settings-page .f2 .folder-body {
   background-color: var(--icon-bg-1);
 }
-.settings-page .f2 .tab-wrapper {
+.settings-page .f2 .tab-wrapper,
+.settings-page .f4 .tab-wrapper {
   right: 0;
   left: auto;
   width: 115px;
@@ -180,7 +124,8 @@
   background-color: var(--icon-bg-1);
   clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
 }
-.settings-page .f2 .tab-text {
+.settings-page .f2 .tab-text,
+.settings-page .f4 .tab-text {
   padding-left: 10px;
 }
 .settings-page .f3 {
@@ -190,16 +135,9 @@
 .settings-page .f3 .folder-body {
   background-color: var(--icon-bg-3);
 }
-.settings-page .f3 .tab-wrapper {
-  left: 0;
-  width: 115px;
-}
 .settings-page .f3 .tab-bg {
   background-color: var(--icon-bg-3);
   clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
-}
-.settings-page .f3 .tab-text {
-  padding-right: 6px;
 }
 .settings-page .f4 {
   height: 20vh;
@@ -208,17 +146,9 @@
 .settings-page .f4 .folder-body {
   background-color: var(--icon-bg-2);
 }
-.settings-page .f4 .tab-wrapper {
-  right: 0;
-  left: auto;
-  width: 115px;
-}
 .settings-page .f4 .tab-bg {
   background-color: var(--icon-bg-2);
   clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
-}
-.settings-page .f4 .tab-text {
-  padding-left: 10px;
 }
 @media (max-height: 640px) {
   .settings-page .f1 {
@@ -397,6 +327,27 @@
   justify-content: space-between;
   z-index: 5;
   pointer-events: none;
+}
+.settings-page .api-wrapper,
+.settings-page .wallpaper-wrapper,
+.settings-page .voice-wrapper,
+.settings-page .storage-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: none;
+}
+.settings-page .api-page,
+.settings-page .avatar-page,
+.settings-page .vc-page {
+  width: 100%;
+  height: 100%;
+  background-color: var(--paper-layer-top);
+  border-radius: 2px;
+  box-shadow: inset 0 0 40px rgba(160, 150, 130, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
+  opacity: 0;
 }
 .settings-page .hole {
   width: 12px;

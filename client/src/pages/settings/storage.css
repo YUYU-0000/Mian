@@ -1,10 +1,4 @@
 /* ===== 存储设置：两半心脏 ===== */
-.settings-page .storage-wrapper {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: none;
-}
 .settings-page .st-layout {
   position: absolute;
   inset: 0;

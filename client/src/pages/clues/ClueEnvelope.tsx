@@ -10,43 +10,61 @@ import CluePaper, { PAPER_LAYOUTS } from "./CluePaper";
 
 function EnvelopeDrawing() {
   const shadow = useId();
+  const clip = useId();
   return (
     <svg viewBox="0 0 270 140" aria-hidden="true">
       <defs>
         <filter id={shadow} x="-10%" y="-10%" width="120%" height="140%">
           <feGaussianBlur stdDeviation="2" />
         </filter>
+        <clipPath id={clip}>
+          <path d="M0 0 H270 V137 Q270 140 267 140 H3 Q0 140 0 137 Z" />
+        </clipPath>
       </defs>
-      <rect width="270" height="140" rx="3" fill="var(--env)" />
-      <path d="M3 0 H267 L141 80 Q135 84 129 80 Z" fill="var(--inside)" />
-      <path d="M2 139 L129 66 Q135 62 141 66 L268 139 Z" fill="var(--low)" />
-      <path
-        d="M2 139 L129 66 Q135 62 141 66 L268 139"
-        fill="none"
-        stroke="var(--gold)"
-        strokeWidth=".9"
-        strokeOpacity=".85"
-      />
-      <g className="fc">
+      <g clipPath={`url(#${clip})`}>
+        <rect width="270" height="140" fill="var(--env)" />
         <path
-          d="M3 0 H267 L141 80 Q135 84 129 80 Z"
-          fill="rgba(20,30,40,.4)"
-          filter={`url(#${shadow})`}
-          transform="translate(0 2.5)"
+          d="M0 0 H270 L141.5 80.5 Q135 84.5 128.5 80.5 Z"
+          fill="var(--inside)"
         />
-        <path d="M3 0 H267 L141 80 Q135 84 129 80 Z" fill="var(--flap)" />
         <path
-          d="M3 1 L129 80 Q135 84 141 80 L267 1"
+          d="M0 140 L128.5 65.5 Q135 61.7 141.5 65.5 L270 140 Z"
+          fill="var(--low)"
+        />
+        <path
+          d="M0 140 L128.5 65.5 Q135 61.7 141.5 65.5 L270 140"
           fill="none"
           stroke="var(--gold)"
           strokeWidth=".9"
           strokeOpacity=".85"
         />
+        <g className="fc">
+          <path
+            d="M0 0 H270 L141.5 80.5 Q135 84.5 128.5 80.5 Z"
+            fill="rgba(20,30,40,.4)"
+            filter={`url(#${shadow})`}
+            transform="translate(0 2.5)"
+          />
+          <path
+            d="M0 0 H270 L141.5 80.5 Q135 84.5 128.5 80.5 Z"
+            fill="var(--flap)"
+          />
+          <path
+            d="M0 0 L128.5 80.5 Q135 84.5 141.5 80.5 L270 0"
+            fill="none"
+            stroke="var(--gold)"
+            strokeWidth=".9"
+            strokeOpacity=".85"
+          />
+        </g>
       </g>
       <g className="fo">
-        <path d="M3 1 L129 -78 Q135 -82 141 -78 L267 1 Z" fill="var(--flap)" />
         <path
-          d="M3 1 L129 -78 Q135 -82 141 -78 L267 1"
+          d="M0 0 L128.5 -80.5 Q135 -84.5 141.5 -80.5 L270 0 Z"
+          fill="var(--flap)"
+        />
+        <path
+          d="M0 0 L128.5 -80.5 Q135 -84.5 141.5 -80.5 L270 0"
           fill="none"
           stroke="var(--gold)"
           strokeWidth=".9"
@@ -87,7 +105,7 @@ export default function ClueEnvelope({
     y: number;
     dx: number;
     dy: number;
-    front: boolean;
+    paper: boolean;
   } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const frame = useRef(0);
@@ -106,11 +124,8 @@ export default function ClueEnvelope({
       if (chosen !== undefined) onChoose(chosen);
     }, 260);
   };
-  const toggle = () => {
-    if (open) {
-      close();
-      return;
-    }
+  const openEnvelope = () => {
+    if (open) return;
     onOpen();
     setOrder(PAPER_LAYOUTS.map((_, index) => index));
     setDrag(null);
@@ -138,39 +153,54 @@ export default function ClueEnvelope({
       });
     }
   };
-  const down = (event: PointerEvent<HTMLDivElement>) => {
-    if (fly) return;
+  const down = (event: PointerEvent<HTMLDivElement>, paper: boolean) => {
     event.stopPropagation();
+    if (fly) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    const paper = (event.target as Element).closest<HTMLElement>(".pp");
     pointer.current = {
       x: event.clientX,
       y: event.clientY,
       dx: 0,
       dy: 0,
-      front: paper?.dataset.layout === String(order[0]),
+      paper,
     };
   };
   const move = (event: PointerEvent) => {
+    event.stopPropagation();
     const start = pointer.current;
     if (!start) return;
     start.dx = event.clientX - start.x;
     start.dy = event.clientY - start.y;
-    if (Math.abs(start.dx) > 4 && Math.abs(start.dx) > Math.abs(start.dy))
+    if (
+      start.paper &&
+      Math.abs(start.dx) > 10 &&
+      Math.abs(start.dx) > Math.abs(start.dy)
+    )
       setDrag(start.dx / scale);
   };
-  const up = (cancelled = false) => {
+  const up = (event: PointerEvent, cancelled = false) => {
+    event.stopPropagation();
     const start = pointer.current;
     pointer.current = null;
     if (!start) return;
     setDrag(null);
     if (cancelled) return;
-    if (Math.abs(start.dx) > 40 && Math.abs(start.dx) > Math.abs(start.dy)) {
+    start.dx = event.clientX - start.x;
+    start.dy = event.clientY - start.y;
+    if (
+      start.paper &&
+      Math.abs(start.dx) > 40 &&
+      Math.abs(start.dx) > Math.abs(start.dy)
+    ) {
       swipe(start.dx < 0 ? 1 : -1);
       return;
     }
-    if (Math.hypot(start.dx, start.dy) < 6)
-      close(start.front ? order[0] : undefined);
+    if (Math.hypot(start.dx, start.dy) > 10) return;
+    if (start.paper) close(order[0]);
+    else if (
+      document.elementFromPoint(event.clientX, event.clientY) === event.currentTarget
+    )
+      close();
   };
 
   return (
@@ -181,11 +211,14 @@ export default function ClueEnvelope({
         tabIndex={ready ? 0 : -1}
         aria-label="新增卡片"
         aria-disabled={!ready}
-        onClick={() => ready && toggle()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (ready) openEnvelope();
+        }}
         onKeyDown={(event) => {
           if (ready && (event.key === "Enter" || event.key === " ")) {
             event.preventDefault();
-            toggle();
+            openEnvelope();
           }
         }}
       >
@@ -200,12 +233,15 @@ export default function ClueEnvelope({
           className={`ov on${show ? " show" : ""}`}
           role="dialog"
           aria-label="選擇紙片"
-          onPointerDown={down}
-          onPointerMove={move}
-          onPointerUp={() => up()}
-          onPointerCancel={() => up(true)}
+          onClick={(event) => event.stopPropagation()}
         >
-          <div className="dim" />
+          <div
+            className="dim"
+            onPointerDown={(event) => down(event, false)}
+            onPointerMove={move}
+            onPointerUp={(event) => up(event)}
+            onPointerCancel={(event) => up(event, true)}
+          />
           <div className="stage">
             {PAPER_LAYOUTS.map((layout, index) => {
               const position = order.indexOf(index);
@@ -233,16 +269,22 @@ export default function ClueEnvelope({
                   aria-label={layout.cn}
                   role="button"
                   tabIndex={position === 0 ? 0 : -1}
+                  onPointerDown={(event) => down(event, true)}
+                  onPointerMove={move}
+                  onPointerUp={(event) => up(event)}
+                  onPointerCancel={(event) => up(event, true)}
+                  onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => {
                     if (event.key === "ArrowLeft") swipe(1);
                     else if (event.key === "ArrowRight") swipe(-1);
-                    else if (event.key === "Enter") close(index);
+                    else if (event.key === "Enter") close(order[0]);
                   }}
                   style={{
                     ...style,
                     transform: transform(slot),
                     opacity,
                     zIndex,
+                    pointerEvents: opacity === 0 ? "none" : undefined,
                   }}
                 >
                   <CluePaper

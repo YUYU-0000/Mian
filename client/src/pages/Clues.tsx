@@ -1,22 +1,21 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Clue } from "../clueTypes";
+import {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  PORTRAIT_ID,
+  removeClue,
+} from "../../../shared/clues.mjs";
 import { createId } from "../id";
 import { notify } from "../components/Notify";
+import { ArchiveTitle, BackFish } from "../components/ArchiveHeader";
 import CluePaper from "./clues/CluePaper";
 import PortraitCaption from "./clues/PortraitCaption";
 import ClueEnvelope from "./clues/ClueEnvelope";
 import ClueSheet from "./clues/ClueSheet";
 import { useClueWall } from "./clues/useClueWall";
 import { useWallGestures } from "./clues/useWallGestures";
-import {
-  CARD_HEIGHT,
-  CARD_WIDTH,
-  fitItem,
-  pinPosition,
-  PORTRAIT_ID,
-  wallItem,
-  withoutCard,
-} from "./clues/clueGeometry";
+import { fitItem, pinPosition, wallItem } from "./clues/clueGeometry";
 import "./clues.css";
 
 export default function Clues({ onBack }: { onBack: () => void }) {
@@ -27,7 +26,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
   const [raised, setRaised] = useState<string[]>([]);
   const [card, setCard] = useState<Clue | null>(null);
   const [landed, setLanded] = useState<string | null>(null);
-  const { wall, current, update, persist } = useClueWall();
+  const { wall, current, update, persist, commit } = useClueWall();
   const { width, height } = size;
   const closedScale = Math.min(0.8, (width - 128) / 270);
   const openScale = Math.min(1, (width - 40) / 214, (height - 80) / 262);
@@ -101,25 +100,16 @@ export default function Clues({ onBack }: { onBack: () => void }) {
     update((value) => ({ ...value, cards: [...value.cards, next] }));
     raise(next.id);
     setLanded(next.id);
-    setCard(next);
     void persist().catch(() => {});
   };
   const saveCard = async (draft: Clue) => {
-    const next = {
-      ...current.current!,
-      cards: current.current!.cards.map((item) =>
-        item.id === draft.id ? draft : item,
-      ),
-    };
-    await persist(next);
-    update(() => next);
+    await commit((data) => ({
+      ...data,
+      cards: data.cards.map((item) => (item.id === draft.id ? draft : item)),
+    }));
     notify.ok("線索已保存");
   };
-  const tearCard = async (id: string) => {
-    const next = withoutCard(current.current!, id);
-    await persist(next);
-    update(() => next);
-  };
+  const tearCard = (id: string) => commit((data) => removeClue(data, id));
   const positions = wall
     ? new Map(wall.pins.map((pin) => [pin.id, pinPosition(wall, pin)]))
     : new Map<string, number[]>();
@@ -181,7 +171,12 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                         "--r": `${item.r}deg`,
                       } as CSSProperties
                     }
+                    onPointerDownCapture={() => gestures.prepareClick(id)}
                     onPointerDown={(event) => gestures.start(event, "item", id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      gestures.activate(id);
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !portrait)
                         setCard(item as Clue);
@@ -204,16 +199,14 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                         />
                       )}
                     </div>
-                    {portrait && (
-                      <div
-                        className="rotation-handle"
-                        role="button"
-                        aria-label="旋轉肖像"
-                        onPointerDown={(event) =>
-                          gestures.start(event, "rotate", id)
-                        }
-                      />
-                    )}
+                    <div
+                      className="rotate-handle"
+                      role="button"
+                      aria-label="旋轉"
+                      onPointerDown={(event) =>
+                        gestures.start(event, "rotate", id)
+                      }
+                    />
                     <div
                       className="handle"
                       aria-label="調整大小"
@@ -290,35 +283,9 @@ export default function Clues({ onBack }: { onBack: () => void }) {
             }
           }}
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M10 4L2 12L10 20"
-              stroke="var(--icon-bg-4)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="9" cy="12" r="1.4" fill="var(--icon-bg-4)" />
-            <path
-              d="M18 8.5L13.5 12L18 15.5"
-              stroke="var(--icon-bg-4)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <BackFish />
         </div>
-        <div className="right-decor">
-          <div className="archive-en">CLUE WALL</div>
-          <div className="decor-line" />
-          <div className="archive-cn">線索</div>
-        </div>
+        <ArchiveTitle en="CLUE WALL" cn="線索" />
       </div>
       <div className="halo h-back" />
       <div className="halo h-title" />

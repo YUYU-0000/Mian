@@ -157,6 +157,7 @@
   gap: 10px;
 }
 .clues-page .fld .lab {
+  display: block;
   font-family: var(--en);
   font-weight: 500;
   font-size: 6.5px;
@@ -211,6 +212,7 @@
   background: var(--ink);
 }
 .clues-page .content {
+  min-height: 0;
   flex: 1;
   display: block;
   width: 100%;
@@ -268,4 +270,15 @@
   height: 5px;
   background: var(--ink);
   transform: rotate(45deg);
+}
+.clues-page .sheet button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+.clues-page .sheet button:disabled {
+  pointer-events: none;
 }

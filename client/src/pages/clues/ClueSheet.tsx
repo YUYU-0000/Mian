@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Clue } from "../../clueTypes";
+import AnimatedText from "../../components/AnimatedText";
 import { ScrollInput } from "../../components/ScrollText";
 import { PAPER_LAYOUTS } from "./CluePaper";
 
@@ -19,6 +20,7 @@ export default function ClueSheet({
   const [tearArmed, setTearArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const backdropPress = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => setShow(true));
@@ -57,16 +59,34 @@ export default function ClueSheet({
     >
       <div
         className="dim"
-        onClick={() => {
-          if (!saving) void close();
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          backdropPress.current = { x: event.clientX, y: event.clientY };
+        }}
+        onPointerCancel={() => {
+          backdropPress.current = null;
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          const start = backdropPress.current;
+          backdropPress.current = null;
+          if (
+            start && !saving &&
+            Math.hypot(event.clientX - start.x, event.clientY - start.y) <= 10
+          ) void close();
         }}
       />
-      <div className="sheet" aria-busy={saving}>
+      <div
+        className="sheet"
+        aria-busy={saving}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="s-top">
-          <span className="no">
-            {PAPER_LAYOUTS[draft.layout].en.toLowerCase()}{" "}
-            {String(draft.order + 1).padStart(2, "0")}
-          </span>
+          <AnimatedText
+            className="no"
+            text={`${PAPER_LAYOUTS[draft.layout].en.toLowerCase()} ${String(draft.order + 1).padStart(2, "0")}`}
+          />
           <div className="mode">
             {(["pinned", "trigger"] as const).map((mode) => (
               <button
@@ -85,7 +105,9 @@ export default function ClueSheet({
         </div>
         <div className="s-head">
           <div className="sc">
-            {draft.mode === "trigger" ? "when it matters" : "always"}
+            <AnimatedText
+              text={draft.mode === "trigger" ? "when it matters" : "always"}
+            />
           </div>
           <ScrollInput
             className="s-title"
@@ -170,7 +192,7 @@ export default function ClueSheet({
               else setTearArmed(true);
             }}
           >
-            {tearArmed ? "再點一次撕掉" : "撕掉"}
+            <AnimatedText text={tearArmed ? "再點一次撕掉" : "撕掉"} />
           </button>
           <span className="meta">{draft.content.length} 字</span>
           <button

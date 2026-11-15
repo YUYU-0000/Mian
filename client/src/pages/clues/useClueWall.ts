@@ -7,21 +7,19 @@ export function useClueWall() {
   const [wall, setWall] = useState<ClueWall | null>(null);
   const current = useRef<ClueWall | null>(null);
   const writes = useRef(Promise.resolve());
-  useEffect(() => {
-    void api
-      .clues()
-      .then((data) => {
-        current.current = data;
-        setWall(data);
-      })
-      .catch((error) => notify.fail("線索讀取失敗", error));
-  }, []);
-  const update = (change: (wall: ClueWall) => ClueWall) => {
-    const next = change(current.current!);
+  const replace = (next: ClueWall) => {
     current.current = next;
     setWall(next);
     return next;
   };
+  useEffect(() => {
+    void api
+      .clues()
+      .then(replace)
+      .catch((error) => notify.fail("線索讀取失敗", error));
+  }, []);
+  const update = (change: (wall: ClueWall) => ClueWall) =>
+    replace(change(current.current!));
   const persist = (next = current.current!) => {
     const request = writes.current.then(() => api.saveClueWall(next));
     writes.current = request.then(
@@ -30,5 +28,10 @@ export function useClueWall() {
     );
     return request;
   };
-  return { wall, current, update, persist };
+  const commit = async (change: (wall: ClueWall) => ClueWall) => {
+    const next = change(current.current!);
+    await persist(next);
+    replace(next);
+  };
+  return { wall, current, update, persist, commit };
 }
