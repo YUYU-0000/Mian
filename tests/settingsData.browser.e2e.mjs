@@ -355,20 +355,25 @@ try {
   await openCrop("assistant");
   const tag = await evaluate(`(() => {
     const disc=document.querySelector('.avatar-crop-disc'), frame=document.querySelector('.avatar-crop-frame'), string=document.querySelector('.avatar-cropper .tag-string');
+    const rect=disc.getBoundingClientRect();
     return {diameter:disc.offsetWidth,window:frame.offsetWidth,hole:string.getBoundingClientRect().bottom-disc.getBoundingClientRect().top,
+      center:[rect.x+rect.width/2-innerWidth/2,rect.y+rect.height/2-innerHeight/2],
+      headingSize:getComputedStyle(document.querySelector('.avatar-crop-heading')).fontSize,
       shade:getComputedStyle(document.querySelector('.avatar-cropper .tag-overlay')).backgroundColor,
       textStyles:Array.from(document.querySelectorAll('.avatar-crop-actions [role=button]'),node=>{const style=getComputedStyle(node);return [style.fontSize,style.fill,style.stroke,style.fontWeight]}),
       oldControls:document.querySelectorAll('.avatar-cropper input[type=range],.avatar-cropper .pv-card,.avatar-cropper .pv-under').length};
   })()`);
   assert.deepEqual(tag, {
-    diameter: 260,
-    window: 208,
-    hole: 13,
+    diameter: 200,
+    window: 160,
+    hole: 10,
+    center: [0, 0],
+    headingSize: "6.5px",
     shade: "rgba(40, 55, 66, 0.32)",
     textStyles: [
-      ["10.5px", "rgb(59, 77, 90)", "none", "600"],
-      ["10.5px", "rgb(114, 130, 142)", "none", "400"],
-      ["10.5px", "rgb(114, 130, 142)", "none", "400"],
+      ["9px", "rgb(59, 77, 90)", "none", "600"],
+      ["9px", "rgb(114, 130, 142)", "none", "400"],
+      ["9px", "rgb(114, 130, 142)", "none", "400"],
     ],
     oldControls: 0,
   });
@@ -413,7 +418,7 @@ try {
   await call("Input.dispatchMouseEvent", {
     type: "mouseWheel",
     x: frame.x,
-    y: frame.y - 117,
+    y: frame.y - 90,
     deltaX: 0,
     deltaY: -300,
   });
@@ -431,7 +436,7 @@ try {
   );
   await call("Input.dispatchMouseEvent", {
     type: "mousePressed",
-    x: frame.x - 90,
+    x: frame.x - 65,
     y: frame.y,
     button: "left",
     buttons: 1,

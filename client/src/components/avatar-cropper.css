@@ -18,18 +18,19 @@
   background: transparent;
 }
 .avatar-cropper .hang-tag {
-  --tag-string: calc(17svh + 13px);
-  width: 260px;
-  margin-left: -130px;
+  /* 圆心居中，绳子再伸入距顶边 10px 的孔心。 */
+  --tag-string: calc(50svh - 100px + 10px);
+  width: 200px;
+  margin-left: -100px;
 }
 .avatar-cropper .tag-string {
-  margin-bottom: -13px;
+  margin-bottom: -10px;
   pointer-events: none;
 }
 .avatar-crop-disc {
   position: relative;
-  width: 260px;
-  height: 260px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
   background: #f5f2ec;
   background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
@@ -38,7 +39,7 @@
 }
 .avatar-crop-frame {
   position: absolute;
-  inset: 26px;
+  inset: 20px;
   overflow: hidden;
   border-radius: 50%;
   background: #fbfaf6;
@@ -65,14 +66,14 @@
 .avatar-crop-heading {
   font-family: "ZSFT-br", "LXGW Heart Serif", sans-serif;
   font-weight: 500;
-  font-size: 7.5px;
-  letter-spacing: 2.4px;
+  font-size: 6.5px;
+  letter-spacing: 1.85px;
   fill: var(--muted);
 }
 .avatar-crop-actions {
   font-family: "LXGW Heart Serif", serif;
-  font-size: 10.5px;
-  letter-spacing: 3px;
+  font-size: 9px;
+  letter-spacing: 2.3px;
   fill: var(--muted);
 }
 .avatar-crop-actions [role="button"] {
@@ -94,5 +95,5 @@
   font-weight: 600;
 }
 .avatar-crop-divider {
-  font-size: 7.5px;
+  font-size: 5.75px;
 }

@@ -225,27 +225,30 @@ export default function AvatarCropper({
               />
             )}
           </div>
-          <svg className="avatar-crop-ring" viewBox="0 0 260 260">
+          <svg className="avatar-crop-ring" viewBox="0 0 200 200">
             <defs>
-              <path id={`${pathId}-top`} d="M 17 130 A 113 113 0 0 1 243 130" />
+              <path
+                id={`${pathId}-top`}
+                d="M 13.08 100 A 86.92 86.92 0 0 1 186.92 100"
+              />
               <path
                 id={`${pathId}-bottom`}
-                d="M 10 130 A 120 120 0 0 0 250 130"
+                d="M 7.69 100 A 92.31 92.31 0 0 0 192.31 100"
               />
             </defs>
-            <g fill="none" stroke="rgba(59,77,90,.3)" strokeWidth=".8">
-              <circle cx="130" cy="130" r="125" />
-              <circle cx="130" cy="130" r="104.5" />
+            <g fill="none" stroke="rgba(59,77,90,.3)" strokeWidth=".615">
+              <circle cx="100" cy="100" r="96.15" />
+              <circle cx="100" cy="100" r="80.38" />
             </g>
             <circle
-              cx="130"
-              cy="13"
-              r="6"
+              cx="100"
+              cy="10"
+              r="4.62"
               fill="none"
               stroke="rgba(59,77,90,.25)"
-              strokeWidth="1.1"
+              strokeWidth=".846"
             />
-            <circle cx="130" cy="13" r="4" fill="#5d6b75" />
+            <circle cx="100" cy="10" r="3.08" fill="#5d6b75" />
             <g className="avatar-crop-heading" textAnchor="middle">
               <text>
                 <textPath href={`#${pathId}-top`} startOffset="27%">
