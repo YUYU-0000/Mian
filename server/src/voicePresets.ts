@@ -36,6 +36,7 @@ export async function resolveVoicePreset(input: VoicePreset): Promise<SavedVoice
     note: input.note.trim(),
     key: input.key?.trim() || saved?.key || "",
     voice_id: input.voice_id.trim(),
+    voice_name: input.voice_name ?? "",
     model: input.model.trim(),
     words: input.words,
   };

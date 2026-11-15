@@ -15,6 +15,7 @@ type Props = {
   fontPages: ReactNode;
   avatarPages: ReactNode;
   voicePages: ReactNode;
+  overlay?: ReactNode;
   storageRef: RefObject<HTMLDivElement | null>;
   importRef: RefObject<HTMLInputElement | null>;
   onExport: () => void;
@@ -33,6 +34,7 @@ export default function SettingsLayout({
   fontPages,
   avatarPages,
   voicePages,
+  overlay,
   storageRef,
   importRef,
   onExport,
@@ -216,6 +218,7 @@ export default function SettingsLayout({
           </div>
         </div>
       </div>
+      {overlay}
     </main>
   );
 }

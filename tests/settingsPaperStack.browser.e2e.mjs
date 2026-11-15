@@ -288,6 +288,32 @@ try {
 
   await click("#paperOverlay");
   await folder("#folderVoiceSettings");
+  assert.deepEqual(await evaluate(`(() => { const page = document.querySelector('.vc-page.current'); return {
+    token:page.querySelector('.vc-key').placeholder, voice:page.querySelector('.vc-id').placeholder,
+    model:page.querySelector('.vc-model').placeholder, fields:page.querySelectorAll('.api-field-row').length,
+    play:!!page.querySelector('.vc-stub') }; })()`), { token: "sk_", voice: "選一個給我", model: "選一個給我", fields: 4, play: true });
+  await click(".vc-page.current .vc-model");
+  assert.equal(await evaluate("document.body.textContent.includes('先把鑰匙給我')"), true);
+  await click(".vc-page.current .vc-key");
+  await evaluate(`(() => { const input = document.querySelector('.vc-page.current .vc-key'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'fixture-secret'); input.dispatchEvent(new Event('input', {bubbles:true})); })()`);
+  await click(".vc-page.current .vc-id");
+  await waitFor(() => evaluate("document.querySelector('.vc-page.current .vc-id').value === '等我一下'"), "Voice list waiting text missing");
+  await evaluate("window.resolveVoiceList([{id:'speaker-fixture',name:'夜晚聲音'}])");
+  await waitFor(() => evaluate("document.querySelector('.choice-tag .hang-tag').classList.contains('is-visible')"), "Shared voice tag did not open");
+  await click(".choice-tag .tag-option");
+  await waitFor(() => evaluate("document.querySelector('.vc-page.current .vc-id').value === '夜晚聲音'"), "Voice name not displayed");
+  assert.equal(await evaluate("window.voiceSettings.presets[0].voice_id"), "speaker-fixture");
+  assert.equal(await evaluate("window.voiceSettings.presets[0].voice_name"), "夜晚聲音");
+  assert.equal(await evaluate("document.querySelector('.vc-ring-id').textContent.includes('夜晚聲音')"), true);
+  await click(".vc-page.current .vc-id");
+  await evaluate("window.resolveVoiceList([{id:'speaker-fixture',name:'夜晚聲音'}])");
+  await waitFor(() => evaluate("!!document.querySelector('.choice-tag .tag-option.is-selected')"), "Voice selected mark missing");
+  await click(".choice-tag .tag-overlay");
+  await click(".vc-page.current .vc-model");
+  await waitFor(() => evaluate("document.querySelector('.vc-page.current .vc-model').value === '等我一下'"), "Model waiting text missing");
+  await evaluate("window.resolveVoiceModels([])");
+  await waitFor(() => evaluate("!document.querySelector('.vc-page.current .vc-model').readOnly"), "Empty model list did not allow manual entry");
+  assert.equal(await evaluate("document.querySelector('.vc-page.current .vc-model').placeholder"), "那你寫給我");
   assert.equal(
     await evaluate("document.querySelectorAll('.vc-page.current').length"),
     1,

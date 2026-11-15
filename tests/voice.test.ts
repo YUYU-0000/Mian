@@ -9,6 +9,7 @@ import { parseReply } from "../shared/replyProtocol.mjs";
 import { chatHistory, type ReplyGroup } from "../shared/chatModel.mjs";
 import { getActiveScenes } from "../server/src/clueSelection.ts";
 import { completeBackup } from "../client/src/settingsBackup.ts";
+import { mp3 } from "./voiceFixtures.mjs";
 
 const reply = "<mian-thinking>陪她坐一會兒。</mian-thinking><mian-bubble>在。</mian-bubble><voice>陪你等天亮。</voice><mian-bubble>聽見了嗎。</mian-bubble>";
 const preset = { id: "voice-test", note: "夜晚", key: "test-secret", voice_id: "speaker-one", model: "eleven_v3", words: "" };
@@ -50,12 +51,15 @@ test("voice pages save all fields, mask keys, choose a preset and preview the re
     const stored = JSON.parse(await readFile(path.join(server.directory, "server/data/voice-presets.json"), "utf8"));
     assert.equal(stored.presets[1].key, preset.key);
     assert.equal(stored.presets[1].note, edited.note);
-    const audio = await request("/api/voice-test", "POST", { ...edited, voice_id: "preview-only" });
+    assert.deepEqual(await (await request("/api/voice-models", "POST", edited)).json(), [{ id: "eleven_v4", name: "Eleven v4" }]);
+    assert.deepEqual(await (await request("/api/voice-list", "POST", edited)).json(), [{ id: "speaker-one", name: "夜晚" }, { id: "speaker-two", name: "另一個聲音" }]);
+    const preview = await (await request("/api/voice-test", "POST", { ...edited, voice_id: "preview-only", model: "" })).json();
+    const audio = await request(preview.url);
     assert.equal(audio.headers.get("content-type"), "audio/mpeg");
-    assert.equal(await audio.text(), "test-mp3-bytes");
+    assert.deepEqual(Buffer.from(await audio.arrayBuffer()), mp3());
     assert.match(server.speechRequests[0].url, /text-to-speech\/preview-only\?output_format=mp3_44100_128$/);
     assert.equal(server.speechRequests[0].headers["xi-api-key"], preset.key);
-    assert.deepEqual(server.speechRequests[0].body, { text: edited.words, model_id: preset.model });
+    assert.deepEqual(server.speechRequests[0].body, { text: edited.words, model_id: "eleven_v4" });
     await request("/api/voice-test", "POST", { ...edited, words: "  " });
     assert.equal(server.speechRequests[1].body.text, "陪你等天亮。");
     const failed = await request("/api/voice-test", "POST", { ...edited, key: "reject-key" });
@@ -108,17 +112,17 @@ for (const channel of ["api", "codex"])
       const clip = group.voices![group.bubbleIds[1]];
       assert.equal(clip.text, "陪你等天亮。");
       assert.match(clip.url, /^\/api\/conversations\/c1\/files\/.+\?inline=1$/);
-      assert.equal(await (await request(clip.url)).text(), "test-mp3-bytes");
-      assert.equal(JSON.stringify(snapshot).includes("test-mp3-bytes"), false);
+      assert.deepEqual(Buffer.from(await (await request(clip.url)).arrayBuffer()), mp3());
+      assert.equal(JSON.stringify(snapshot).includes(mp3().toString("base64")), false);
       assert.equal(chatHistory(snapshot.groups).at(-1)!.content, "在。\n\n陪你等天亮。\n\n聽見了嗎。");
       const exported = completeBackup(await (await request("/api/backup")).json(), { getItem: () => null });
       assert.equal(JSON.stringify(exported).includes(preset.key), false);
       assert.equal(exported.voices!.activeId, preset.id);
       const audioFile = exported.files!.find(item => item.file.mimeType === "audio/mpeg")!;
-      assert.equal(Buffer.from(audioFile.content, "base64").toString(), "test-mp3-bytes");
+      assert.deepEqual(Buffer.from(audioFile.content, "base64"), mp3());
       await writeFile(path.join(server.directory, "server/data/files/c1", audioFile.file.id, "content"), "replace-me");
       assert.equal((await request("/api/backup", "POST", exported)).status, 200);
-      assert.equal(await (await request(clip.url)).text(), "test-mp3-bytes");
+      assert.deepEqual(Buffer.from(await (await request(clip.url)).arrayBuffer()), mp3());
       assert.equal((await (await request("/api/voice-presets")).json()).presets[1].hasKey, true);
 
       await request("/api/voice-presets", "POST", { ...preset, key: "reject-key" });

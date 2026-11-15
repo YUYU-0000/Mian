@@ -1,3 +1,5 @@
+import { stripVoiceTags } from "./voice.mjs";
+
 export function parseReply(raw, format, final = false) {
     if (format !== "plain")
         return parsePublicReply(raw, { final, plainStreaming: format === "api" });
@@ -151,11 +153,12 @@ export function parsePublicReply(raw, options = {}) {
         const nested = replySegments(container.content, final);
         if (nested.length > 0) {
             for (const segment of nested) {
-                const content = normalizeBubbleBody(segment.content);
+                const original = normalizeBubbleBody(segment.content);
+                const content = segment.voice ? stripVoiceTags(original) : original;
                 if (!content)
                     continue;
                 if (segment.voice)
-                    voices.push({ section: "pre-tool", index: preToolBubbles.length, text: content, complete: segment.complete });
+                    voices.push({ section: "pre-tool", index: preToolBubbles.length, text: original, complete: segment.complete });
                 preToolBubbles.push(content);
                 preToolBubbleComplete.push(segment.complete);
             }
@@ -173,11 +176,12 @@ export function parsePublicReply(raw, options = {}) {
     const bubbles = [];
     const bubbleComplete = [];
     for (const segment of postSegments) {
-        const content = normalizeBubbleBody(segment.content);
+        const original = normalizeBubbleBody(segment.content);
+        const content = segment.voice ? stripVoiceTags(original) : original;
         if (!content)
             continue;
         if (segment.voice)
-            voices.push({ section: "bubble", index: bubbles.length, text: content, complete: segment.complete });
+            voices.push({ section: "bubble", index: bubbles.length, text: original, complete: segment.complete });
         bubbles.push(content);
         bubbleComplete.push(segment.complete);
     }

@@ -14,6 +14,7 @@ import { settingsRoutes } from "./settingsRoutes.js";
 import { clueRoutes } from "./clueRoutes.js";
 import { voiceRoutes } from "./voiceRoutes.js";
 import { VoiceReplies } from "./voiceReplies.js";
+import { VoiceGeneration } from "./voiceGeneration.js";
 import { WorkspaceFiles } from "./workspaceFiles.js";
 import { readChannel } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
@@ -42,6 +43,7 @@ const wss = new WebSocketServer({ server, path: "/ws" });
 const bridge = new CodexBridge();
 const conversations = await ConversationRegistry.load();
 const files = new ChatFiles();
+const voiceGeneration = new VoiceGeneration(files);
 const messages = new ConversationMessages(files);
 const workspaceFiles = new Map<string, WorkspaceFiles>();
 let channel = await readChannel();
@@ -61,7 +63,7 @@ app.use("/api/backup", express.json({ limit: "64mb" }));
 app.use("/api/conversations/:id/messages", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
 app.use("/api/clues", clueRoutes());
-app.use("/api", voiceRoutes());
+app.use("/api", voiceRoutes(voiceGeneration));
 app.use(
   "/api",
   settingsRoutes(
@@ -133,7 +135,7 @@ const latestConnectionStatus = () => {
   }
   return undefined;
 };
-const voiceReplies = new VoiceReplies(files, broadcast);
+const voiceReplies = new VoiceReplies(voiceGeneration, broadcast);
 
 wss.on("connection", (ws, request) => {
   const url = new URL(request.url ?? "/ws", "http://127.0.0.1");

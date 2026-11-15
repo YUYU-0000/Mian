@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
+import { mp3 } from "./voiceFixtures.mjs";
 
 export const imageBytes = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1EAAAAASUVORK5CYII=",
@@ -91,10 +92,17 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
       const fetchOriginal = globalThis.fetch;
       globalThis.fetch = async (url, init) => {
         if (!String(url).startsWith('https://api.elevenlabs.io/')) return fetchOriginal(url, init);
-        process.send({ speech: { url, headers: init.headers, body: JSON.parse(init.body) } });
         if (init.headers['xi-api-key'] === 'reject-key')
           return Response.json({ detail: { status: 'invalid_api_key', message: 'ElevenLabs: invalid API key' } }, { status: 401 });
-        return new Response('test-mp3-bytes', { headers: { 'content-type': 'audio/mpeg' } });
+        if (String(url).includes('/v1/models')) return Response.json([
+          {model_id:'eleven_v4',name:'Eleven v4',can_do_text_to_speech:true},
+          {model_id:'conversion',name:'Voice conversion',can_do_text_to_speech:false},
+        ]);
+        if (String(url).includes('/v2/voices')) return Response.json(String(url).includes('next_page_token')
+          ? { voices:[{voice_id:'speaker-two',name:'另一個聲音'}],has_more:false }
+          : { voices:[{voice_id:'speaker-one',name:'夜晚'}],has_more:true,next_page_token:'next' });
+        process.send({ speech: { url, headers: init.headers, body: JSON.parse(init.body) } });
+        return new Response(Buffer.from(${JSON.stringify(mp3().toString("base64"))}, 'base64'), { headers: { 'content-type': 'audio/mpeg' } });
       };
     }
     let turn = 0;

@@ -35,7 +35,15 @@ api.deleteFontPreset = async (id) => {
 };
 let voices: VoiceSettings = { presets: [{ ...defaultVoicePreset }], activeId: defaultVoicePreset.id };
 fixture.voiceSettings = voices;
-api.voicePresets = async () => structuredClone(voices);
+api.voicePresets = async () => { throw new Error("fixture preset read failure"); };
+api.voiceModels = async preset => {
+  fixture.requestedVoicePreset = preset;
+  return new Promise(resolve => { fixture.resolveVoiceModels = resolve; });
+};
+api.voiceList = async preset => {
+  fixture.requestedVoicePreset = preset;
+  return new Promise(resolve => { fixture.resolveVoiceList = resolve; });
+};
 api.saveVoicePreset = async input => {
   const { key, ...preset } = input;
   const index = voices.presets.findIndex(item => item.id === input.id);

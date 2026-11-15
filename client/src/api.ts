@@ -13,7 +13,9 @@ import {
   type ServerBackup,
 } from "./settingsBackup";
 import type { FontPreset, FontSettings } from "./settingsTypes";
-import type { VoicePreset, VoiceSettings } from "../../shared/voice.mjs";
+import type { VoiceClip, VoiceOption, VoicePreset, VoiceSettings } from "../../shared/voice.mjs";
+import { voicePlayer } from "./voicePlayer";
+import { createId } from "./id";
 import type {
   ChatFile,
   Config,
@@ -192,7 +194,6 @@ export const api = {
     request<FontSettings>(`/api/font-presets/${encodeURIComponent(id)}`, {
       method: "DELETE",
     }),
-  // 待接后端：语音试听保留设计稿的预留实现。
   voicePresets: () => request<VoiceSettings>("/api/voice-presets"),
   saveVoicePreset: (preset: VoicePreset) =>
     request<VoiceSettings>("/api/voice-presets", { method: "POST", body: JSON.stringify(preset) }),
@@ -200,34 +201,15 @@ export const api = {
     request<VoiceSettings>(`/api/voice-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
   deleteVoicePreset: (id: string) =>
     request<VoiceSettings>(`/api/voice-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
-  testVoice: async (preset: VoicePreset, signal: AbortSignal, onPlaying: () => void) => {
-    const response = await fetch("/api/voice-test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(preset),
-      signal,
-    });
-    if (!response.ok) await readResponse(response);
-    const blob = await response.blob();
-    signal.throwIfAborted();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    let stop: () => void;
-    try {
-      await new Promise<void>((resolve, reject) => {
-        stop = () => reject(signal.reason);
-        signal.addEventListener("abort", stop, { once: true });
-        audio.onplaying = onPlaying;
-        audio.onended = () => resolve();
-        audio.onerror = () => reject(new Error("音頻播放失敗。"));
-        void audio.play().catch(reject);
-      });
-    } finally {
-      signal.removeEventListener("abort", stop!);
-      audio.onplaying = audio.onended = audio.onerror = null;
-      audio.pause();
-      URL.revokeObjectURL(url);
-    }
+  voiceModels: (preset: VoicePreset) =>
+    request<VoiceOption[]>("/api/voice-models", { method: "POST", body: JSON.stringify(preset) }),
+  voiceList: (preset: VoicePreset) =>
+    request<VoiceOption[]>("/api/voice-list", { method: "POST", body: JSON.stringify(preset) }),
+  testVoice: (preset: VoicePreset, signal: AbortSignal, onPlaying: () => void) => {
+    const requestId = createId();
+    return voicePlayer.play(requestId, requestSignal => request<VoiceClip>("/api/voice-test", {
+      method: "POST", body: JSON.stringify({ ...preset, requestId }), signal: requestSignal,
+    }), signal, onPlaying);
   },
   importData: async (backup: Backup) => {
     const { homePhotos, ...data } = backup;

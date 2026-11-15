@@ -1,5 +1,5 @@
 /* 连接中心和头像裁切共用吊牌的遮罩、绳子、阴影与进出动画。 */
-:is(.connections-page, .avatar-cropper) .tag-overlay {
+:is(.choice-tag, .avatar-cropper) .tag-overlay {
   position: fixed;
   inset: 0;
   z-index: 115;
@@ -9,11 +9,11 @@
   transition: opacity 0.3s ease;
   will-change: opacity;
 }
-:is(.connections-page, .avatar-cropper) .tag-overlay.is-visible {
+:is(.choice-tag, .avatar-cropper) .tag-overlay.is-visible {
   opacity: 1;
   pointer-events: auto;
 }
-:is(.connections-page, .avatar-cropper) .hang-tag {
+:is(.choice-tag, .avatar-cropper) .hang-tag {
   position: fixed;
   top: 0;
   left: 50%;
@@ -29,7 +29,7 @@
   filter: drop-shadow(0 22px 22px rgba(20, 30, 40, 0.38))
     drop-shadow(0 4px 6px rgba(20, 30, 40, 0.22));
 }
-:is(.connections-page, .avatar-cropper) .hang-tag.is-visible {
+:is(.choice-tag, .avatar-cropper) .hang-tag.is-visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -39,7 +39,7 @@
     transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
     visibility 0s;
 }
-:is(.connections-page, .avatar-cropper) .tag-string {
+:is(.choice-tag, .avatar-cropper) .tag-string {
   position: relative;
   z-index: 3;
   width: 1.5px;
