@@ -5,6 +5,7 @@
   - 屋身中間開一個圓窗，照片從圓窗裡露出來；圓窗外面的照片被灰藍屋身蓋住，只隱約透出一點（.86 不透明），方便看構圖。
   - 手勢只在屋身範圍內生效：單指拖動、兩指縮放、滾輪縮放。
   - 屋頂沿線文字：彼方肖像／此方肖像 + 英文 PORTRAIT。
+  - 外框是一整塊（屋頂到底部圓角一筆畫完），下半截米白牆不另外拼接，避免接縫。
   - 下半截米白牆：一條細線滑塊縮放，右上角「換照片」，底下「確定」「取消」兩個下劃線文字。
   - 遮罩、繩子、陰影、進出動畫都沿用 .hang-tag。整體寬 220px，不再用拍立得大相紙。
 -->
@@ -23,13 +24,13 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
 .tag{position:absolute;left:50%;top:0;width:220px;margin-left:-110px;
   filter:drop-shadow(0 22px 22px rgba(20,30,40,.38)) drop-shadow(0 4px 6px rgba(20,30,40,.22))}
 .string{width:1.5px;height:17svh;margin:0 auto -16px;background:#d6d0c3;position:relative;z-index:3}
-.house{position:relative;width:220px;height:236px}
+.house{position:relative;width:220px;height:322px}
 .house svg{position:absolute;inset:0;width:100%;height:100%}
 .photo{position:absolute;inset:0;clip-path:path("M 110 44 L 192 96 L 186 100 L 186 230 L 34 230 L 34 100 L 28 96 Z")}
 .photo div{position:absolute;left:-20px;top:30px;width:270px;height:230px;
   background:radial-gradient(circle at 52% 52%,#e9d8c8 0 18%,transparent 19%),radial-gradient(ellipse at 52% 80%,#4f6475 0 30%,transparent 31%),linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3)}
-.walls{position:relative;z-index:1;margin:-6px 10px 0;box-sizing:border-box;padding:9px 16px 13px;background:var(--sheet);border-radius:0 0 10px 10px}
-.walls:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:multiply;
+.walls{position:absolute;left:14px;right:14px;top:236px;box-sizing:border-box;padding:9px 16px 0}
+.walls-off:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:multiply;
   background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .kick{font-family:ZSFT-br;font-weight:500;font-size:7.5px;letter-spacing:1.5px;color:var(--muted)}
@@ -48,15 +49,15 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
     <div class="string"></div>
     <div class="house">
       <div class="photo"><div></div></div>
-      <svg viewBox="0 0 220 236">
+      <svg viewBox="0 0 220 322">
         <defs>
           <path id="roofLine" d="M 38 104 L 100 64 Q 110 58 120 64 L 182 104"/>
-          <mask id="win"><rect width="220" height="236" fill="#fff"/><circle cx="110" cy="158" r="56" fill="#000"/></mask>
+          <mask id="win"><rect width="220" height="322" fill="#fff"/><circle cx="110" cy="158" r="56" fill="#000"/></mask>
         </defs>
         <!-- 米白外框：屋頂 + 牆頂，下緣接米白牆 -->
         <g fill="#f5f2ec" stroke="#f5f2ec" stroke-width="8" stroke-linejoin="round" mask="url(#win)">
           <circle cx="110" cy="15" r="5" stroke-width="5"/>
-          <path d="M 110 22 L 216 90 L 207 96 L 207 242 L 13 242 L 13 96 L 4 90 Z" fill-opacity="1"/>
+          <path d="M 110 22 L 216 90 L 207 96 L 207 308 Q 207 314 201 314 L 19 314 Q 13 314 13 308 L 13 96 L 4 90 Z"/>
         </g>
         <circle cx="110" cy="15" r="2" fill="#5d6b75"/>
         <!-- 灰藍屋身，圓窗挖空，窗外照片隱約透出 -->
@@ -66,11 +67,11 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
           <textPath href="#roofLine" startOffset="50%" text-anchor="middle">PORTRAIT   彼方肖像</textPath>
         </text>
       </svg>
-    </div>
     <div class="walls">
       <div class="top"><span class="kick">DRAG  PINCH  ZOOM</span><span class="swap">換照片</span></div>
       <div class="slider"><i></i></div>
             <div class="act"><span>確定</span><span>取消</span></div>
+    </div>
     </div>
   </div>
 </div>
