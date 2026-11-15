@@ -59,16 +59,6 @@
     -1px 3px 10px rgba(0, 0, 0, 0.05),
     inset 0 0 40px rgba(160, 150, 130, 0.04);
 }
-.settings-page .font-status {
-  position: absolute;
-  left: 32px;
-  bottom: 12px;
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  color: var(--btn, #6b8396);
-  font-weight: 600;
-}
-
 .settings-page .api-polaroid-container {
   position: absolute;
   top: 14px;
@@ -82,10 +72,10 @@
 }
 .settings-page .api-polaroid-container .polaroid-img-placeholder {
   aspect-ratio: 1 / 1;
-  background-color: #8a9ca8;
+  background: linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396);
 }
 .settings-page .api-polaroid-container .polaroid-img-placeholder:hover {
-  background-color: #798b97;
+  filter: brightness(.95);
 }
 .settings-page .api-polaroid-input-main {
   position: absolute;
@@ -112,18 +102,6 @@
 .settings-page .api-polaroid-input-main::placeholder {
   color: rgba(107, 98, 86, 0.6);
   font-weight: 400;
-}
-
-.settings-page .api-paperclip {
-  position: absolute;
-  top: -16px;
-  left: 44px;
-  width: 24px;
-  height: 70px;
-  z-index: 12;
-  transform: rotate(1deg);
-  filter: drop-shadow(1.5px 3px 2px rgba(0, 0, 0, 0.3));
-  pointer-events: none;
 }
 
 .settings-page .api-typography {

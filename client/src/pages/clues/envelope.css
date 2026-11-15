@@ -116,8 +116,6 @@
   width: 13px;
   height: 13px;
   margin: -6.5px 0 0 -6.5px;
-  touch-action: none;
-  cursor: grab;
   border-radius: 50%;
   border: 1px solid rgba(59, 77, 90, 0.5);
   border-radius: 0;
@@ -152,6 +150,17 @@
       transparent 2px
     ),
     var(--ink);
+}
+.clues-page .pin-source-hit {
+  position: absolute;
+  left: 50%;
+  top: 39px;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  transform: rotate(-3deg) scale(calc(1 / (var(--kc) * 0.84)));
+  touch-action: none;
+  cursor: grab;
 }
 .clues-page .envc {
   position: absolute;

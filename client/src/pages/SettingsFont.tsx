@@ -15,7 +15,6 @@ export default function FontPage({
   index,
   total,
   active,
-  inUse,
   onChange,
   onSave,
   onAdd,
@@ -62,16 +61,6 @@ export default function FontPage({
         <div className="hole" />
         <div className="hole" />
       </div>
-      <svg className="api-paperclip" viewBox="0 0 24 70">
-        <path
-          d="M 16,14 L 16,6 A 4,4 0 0,0 8,6 L 8,50 A 3.5,3.5 0 0,0 15,50 L 15,22 A 2,2 0 0,0 11,22 L 11,40"
-          stroke="#8ba5b8"
-          strokeWidth="2.2"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
       <div className="api-polaroid-container">
         <div className="polaroid">
           <div className="polaroid-img-placeholder">
@@ -202,7 +191,6 @@ export default function FontPage({
           </div>
         </div>
       </div>
-      {inUse && <span className="font-status">IN USE</span>}
       <div className="api-actions">
         <div
           className="action-btn btnSaveStyle"

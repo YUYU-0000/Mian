@@ -204,6 +204,16 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                         />
                       )}
                     </div>
+                    {portrait && (
+                      <div
+                        className="rotation-handle"
+                        role="button"
+                        aria-label="旋轉肖像"
+                        onPointerDown={(event) =>
+                          gestures.start(event, "rotate", id)
+                        }
+                      />
+                    )}
                     <div
                       className="handle"
                       aria-label="調整大小"
@@ -321,18 +331,19 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                 Pins<small>圖釘</small>
               </div>
               <div className="st-l">by yuyu</div>
-              <div
-                className="tp"
-                role="button"
-                aria-label="拖出圖釘"
-                onPointerDown={(event) => {
-                  if (wall) gestures.newPin(event);
-                }}
-              />
+              <div className="tp" aria-hidden="true" />
               <div className="st-r">for mian</div>
               <div className="st-b">tie them with thread</div>
             </div>
           </div>
+          <div
+            className="pin-source-hit"
+            role="button"
+            aria-label="拖出圖釘"
+            onPointerDown={(event) => {
+              if (wall) gestures.newPin(event);
+            }}
+          />
         </div>
       </div>
       <ClueEnvelope

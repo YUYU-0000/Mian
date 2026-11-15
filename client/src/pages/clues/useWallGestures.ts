@@ -18,7 +18,7 @@ import {
 } from "./clueGeometry";
 
 type Gesture = {
-  kind: "item" | "resize" | "pin" | "new-pin";
+  kind: "item" | "resize" | "rotate" | "pin" | "new-pin";
   id: string;
   x: number;
   y: number;
@@ -119,7 +119,7 @@ export function useWallGestures({
       gone: false,
     };
     gesture.current = active;
-    if (kind === "item" || kind === "resize") raise(id);
+    if (kind === "item" || kind === "resize" || kind === "rotate") raise(id);
     if (kind === "item")
       active.timer = setTimeout(() => {
         active.long = true;
@@ -175,6 +175,18 @@ export function useWallGestures({
           width,
         ),
       );
+    } else if (active.kind === "rotate") {
+      const rect = active.original as WallRect;
+      const boardRect = board.current!.getBoundingClientRect();
+      const cx = boardRect.left + rect.x + rect.w / 2;
+      const cy = boardRect.top + rect.y + rect.h / 2;
+      const startAngle = Math.atan2(active.y - cy, active.x - cx);
+      const angle =
+        (rect.r * Math.PI) / 180 +
+        Math.atan2(event.clientY - cy, event.clientX - cx) -
+        startAngle;
+      const r = (Math.atan2(Math.sin(angle), Math.cos(angle)) * 180) / Math.PI;
+      changeItem(active.id, { ...rect, r: Math.abs(r) <= 3 ? 0 : r });
     } else if (active.kind === "pin") {
       const [x, y] = point(event);
       update((wall) => ({
@@ -205,7 +217,11 @@ export function useWallGestures({
             pin.id === active.id ? (active.original as CluePin) : pin,
           ),
         }));
-      if (active.kind === "item" || active.kind === "resize")
+      if (
+        active.kind === "item" ||
+        active.kind === "resize" ||
+        active.kind === "rotate"
+      )
         changeItem(active.id, active.original as WallRect);
       return;
     }

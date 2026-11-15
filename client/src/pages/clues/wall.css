@@ -179,7 +179,39 @@
   border-right: 1.5px solid var(--ink);
   border-bottom: 1.5px solid var(--ink);
 }
-.clues-page .item.edit .handle {
+.clues-page .rotation-handle {
+  position: absolute;
+  left: 50%;
+  top: -36px;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  display: none;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
+}
+.clues-page .rotation-handle:before {
+  content: "";
+  position: absolute;
+  left: 17.5px;
+  bottom: 0;
+  width: 1px;
+  height: 13px;
+  background: var(--ink);
+}
+.clues-page .rotation-handle:after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--ink);
+  transform: rotate(45deg);
+}
+.clues-page .item.edit .handle,
+.clues-page .item.edit .rotation-handle {
   display: block;
 }
 .clues-page .portrait {
@@ -252,17 +284,17 @@
 }
 .clues-page .pin {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
   pointer-events: auto;
   touch-action: none;
 }
 .clues-page .pin:before {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 9.2px;
+  left: 14px;
+  top: 15.2px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -272,8 +304,8 @@
 .clues-page .pin:after {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 8px;
+  left: 14px;
+  top: 14px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -287,7 +319,7 @@
 }
 .clues-page .pin svg {
   position: absolute;
-  inset: 0;
+  inset: 6px;
   width: 24px;
   height: 24px;
   overflow: visible;
