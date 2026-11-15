@@ -5,10 +5,12 @@
     背面是經典信封樣式：上封口是尖 V，尖角稍圓；下封口從兩個下角斜上來，在中間收成一個尖。所有封口邊緣描一道燕麥金細線（#c9b08a）。
     不加火漆。信封下半居中兩行米白小字：NEW CARD／新增卡片。
   - 點信封：背後蓋一層淡遮罩，信封移到底部正中、擺正，上封口往上翻開。
-    一疊空白紙片橫躺著插在信封裡：每張是檔案館那種 3.2:4.2 的豎版紙片轉 90 度躺下（250×187，跟信封差不多寬），內容跟著一起轉，海報原本的頂邊朝右、左邊朝上；後面的紙也是躺著疊，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
-    上滑：前面這張插回去，下一張抽出來；下滑：換回上一張。到頭了就輕輕回彈。
-    信封上方顯示目前的版式名（英文 + 頁碼 03 / 05 + 中文）和「上下滑換一張」。紙片露出信封底邊的部分裁掉。
-    點抽出來的那張：整張抽出，打開卡片頁，頂上選常駐或觸發，寫完收起後貼到牆上。
+    信封裡是一疊橫放的空白紙片，尺寸 248×189（檔案館紙片 3.2:4.2 橫過來），每張一種版式：滿版 FULL、豎排 VERTICAL、斜帶 OBLIQUE、色塊 BLOCK、圓心 CENTER。
+    版式都在這個長寬比裡排好，邊距統一 16px，文字都是正著讀的。
+    當前這張整張抽出信封，底邊停在信封口，能看到完整版式；後面兩張還插在信封裡，只露出上半截，左右錯開、各歪一點。
+    上滑：當前這張插回去，下一張抽出來；下滑：換回上一張。到頭了輕輕回彈。
+    信封上方顯示版式名（英文 + 頁碼 + 中文）和「上下滑換一張  點一下貼到牆上」。
+    點抽出來的那張：它飛到牆上的空位，然後打開卡片頁，頂上選常駐或觸發，寫完收起。
   - 點遮罩空白處：紙片插回、封口蓋上、信封回到原位。
   - 動畫：封口翻開 240ms；換紙時舊紙下沉 180ms，新紙上升 280ms，緩動 cubic-bezier(.22,.8,.3,1)。
 -->
@@ -36,15 +38,16 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 .dim{position:absolute;inset:0;background:rgba(40,55,66,.32)}
 .open{left:60px;top:660px}
 
-.stack{position:absolute;inset:0;z-index:2;clip-path:inset(-400px -60px 2px -60px)}
-.card{position:absolute;left:10px;width:250px;height:187px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
-.card .in{position:absolute;left:0;top:0;width:100px;height:134px;transform-origin:0 0;transform:translate(250px,0) rotate(90deg) scale(1.87)}
-.card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:6px;letter-spacing:1.6px}
+.stack{position:absolute;inset:0;z-index:2}
+.back{position:absolute;inset:0;clip-path:inset(-400px -60px 2px -60px)}
+.card{position:absolute;left:11px;width:248px;height:189px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
+.card .in{position:absolute;inset:0}
+.card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:9px;letter-spacing:2px}
 .card .t{position:absolute;font-weight:700;letter-spacing:2px;line-height:1.02}
-.card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:5px;letter-spacing:1.6px;color:var(--muted)}
-.card .ln{position:absolute;height:1px;background:rgba(59,77,90,.14)}
+.card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.6px;color:var(--muted)}
+.card .ln{position:absolute;height:1px;background:rgba(59,77,90,.16)}
 
-.pick{position:absolute;left:0;right:0;top:296px;text-align:center;color:#f5f2ec}
+.pick{position:absolute;left:0;right:0;top:300px;text-align:center;color:#f5f2ec}
 .pick i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.8px;padding-left:2.8px;opacity:.8}
 .pick b{display:block;margin-top:4px;font-weight:400;font-size:15px;letter-spacing:5px;padding-left:5px}
 .pick em{display:block;margin-top:8px;font-style:normal;font-size:10px;letter-spacing:3px;padding-left:3px;opacity:.75}
@@ -75,7 +78,7 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
   <div class="head"><div class="k">CLUE WALL</div><h1>線索</h1></div>
   <div class="wallhint">WALL  牆面由人來排</div>
   <div class="dim"></div>
-  <div class="pick"><i>OBLIQUE  03 / 05</i><b>斜帶</b><em>上下滑換一張</em></div>
+  <div class="pick"><i>FULL  01 / 05</i><b>滿版</b><em>上下滑換一張  點一下貼到牆上</em></div>
   <div class="env open">
     <svg viewBox="0 0 270 140">
       <path d="M3 1 L129 -78 Q135 -82 141 -78 L267 1 Z" fill="var(--flap)"/>
@@ -94,22 +97,35 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 </div>
 
 <script>
+// 版式都按 248×189（檔案館紙片 3.2:4.2 橫過來）畫，邊距統一 16px
 const L={
- full:`<div class="n" style="left:8px;top:8px">01</div><div class="s" style="left:8px;top:17px">TITLE</div>
-   <div class="t" style="left:7px;top:28px;font-size:24px;width:30px">標題</div>
-   <div style="position:absolute;right:-22px;bottom:4px;width:70px;height:70px;border-radius:50%;background:var(--blue3)"></div>`,
- vertical:`<div class="s" style="left:6px;top:10px;writing-mode:vertical-rl">TITLE</div>
-   <div style="position:absolute;left:19px;top:10px;width:1px;height:58px;background:var(--blue)"></div>
-   <div class="t" style="right:10px;top:12px;font-size:19px;writing-mode:vertical-rl;letter-spacing:4px">標題</div>
-   <div class="n" style="left:24px;top:10px">02</div>`,
- oblique:`<div style="position:absolute;left:-20px;top:42px;width:150px;height:30px;background:var(--blue3);transform:rotate(-22deg)"></div>
-   <div class="t" style="left:16px;top:44px;font-size:19px;transform:rotate(-22deg);letter-spacing:5px">標題</div>
-   <div class="n" style="right:8px;top:8px">03</div><div class="s" style="left:8px;top:9px">TITLE</div>
-   <div class="ln" style="left:8px;width:46px;top:96px"></div><div class="ln" style="left:8px;width:34px;top:101px"></div>`,
+ full:`<div class="n" style="left:16px;top:14px">01</div><div class="s" style="left:40px;top:15px">TITLE</div>
+   <div style="position:absolute;right:-34px;top:-34px;width:124px;height:124px;border-radius:50%;background:var(--blue3)"></div>
+   <div class="t" style="left:14px;bottom:44px;font-size:50px;letter-spacing:8px">標題</div>
+   <div class="ln" style="left:16px;width:96px;bottom:30px"></div><div class="ln" style="left:16px;width:64px;bottom:22px"></div>`,
+ vertical:`<div class="s" style="left:14px;top:16px;writing-mode:vertical-rl">TITLE</div>
+   <div style="position:absolute;left:34px;top:16px;width:1px;height:157px;background:var(--blue)"></div>
+   <div class="n" style="left:46px;top:14px">02</div>
+   <div class="ln" style="left:46px;width:100px;top:40px"></div><div class="ln" style="left:46px;width:80px;top:48px"></div><div class="ln" style="left:46px;width:90px;top:56px"></div>
+   <div class="t" style="right:18px;top:16px;font-size:38px;writing-mode:vertical-rl;letter-spacing:10px">標題</div>`,
+ oblique:`<div style="position:absolute;left:-40px;top:64px;width:330px;height:54px;background:var(--blue3);transform:rotate(-12deg)"></div>
+   <div class="t" style="left:0;right:0;top:69px;text-align:center;font-size:36px;letter-spacing:14px;padding-left:14px;transform:rotate(-12deg)">標題</div>
+   <div class="s" style="left:16px;top:15px">TITLE</div><div class="n" style="right:16px;top:14px">03</div>
+   <div class="ln" style="right:16px;width:80px;bottom:28px"></div><div class="ln" style="right:16px;width:56px;bottom:20px"></div>`,
+ block:`<div style="position:absolute;left:0;top:0;bottom:0;width:104px;background:var(--blue2)"></div>
+   <div class="n" style="left:16px;top:14px;color:var(--paper)">04</div>
+   <div style="position:absolute;left:62px;top:58px;background:var(--paper);padding:10px 14px 8px">
+     <div class="t" style="position:static;font-size:32px;letter-spacing:8px">標題</div><div class="s" style="position:static;margin-top:4px">TITLE</div></div>
+   <div class="ln" style="left:62px;width:100px;top:146px"></div><div class="ln" style="left:62px;width:70px;top:154px"></div>`,
+ center:`<div style="position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;border:1px solid var(--blue)"></div>
+   <div class="t" style="left:0;right:0;top:66px;text-align:center;font-size:32px;letter-spacing:8px;padding-left:8px">標題</div>
+   <div class="s" style="left:0;right:0;top:110px;text-align:center;padding-left:2.6px">TITLE</div>
+   <div class="n" style="left:16px;top:14px">05</div>`,
 };
+// 正中這張已經整張抽出來（底邊停在信封口，不插在裡面）；後面兩張還插在信封裡，只露出上半截
 document.getElementById('stack').innerHTML=
-  `<div class="card" style="top:-78px;transform:translateX(7px) rotate(3deg)"><div class="in">${L.full}</div></div>`+
-  `<div class="card" style="top:-92px;transform:translateX(-7px) rotate(-2.5deg)"><div class="in">${L.vertical}</div></div>`+
-  `<div class="card" style="top:-112px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
+  `<div class="back"><div class="card" style="top:-58px;transform:translateX(9px) rotate(3deg)"><div class="in">${L.block}</div></div>`+
+  `<div class="card" style="top:-72px;transform:translateX(-8px) rotate(-2.5deg)"><div class="in">${L.vertical}</div></div></div>`+
+  `<div class="card" style="top:-196px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 12px 24px rgba(30,40,50,.28)"><div class="in">${L.full}</div></div>`;
 </script>
 </body></html>
