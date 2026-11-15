@@ -220,8 +220,9 @@ export default function Clues({ onBack }: { onBack: () => void }) {
           </div>
           <svg className="threads" aria-hidden="true">
             {wall?.threads.map((thread) => {
-              const a = positions.get(thread.from)!,
-                b = positions.get(thread.to)!;
+              const a = positions.get(thread.from),
+                b = positions.get(thread.to);
+              if (!a || !b) return null;
               const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
               const mx = (a[0] + b[0]) / 2,
                 my = (a[1] + b[1]) / 2 + Math.min(12, length * 0.035);
