@@ -12,6 +12,8 @@ import { ChatFiles } from "./chatFiles.js";
 import { fileRoutes } from "./fileRoutes.js";
 import { settingsRoutes } from "./settingsRoutes.js";
 import { clueRoutes } from "./clueRoutes.js";
+import { voiceRoutes } from "./voiceRoutes.js";
+import { VoiceReplies } from "./voiceReplies.js";
 import { WorkspaceFiles } from "./workspaceFiles.js";
 import { readChannel } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
@@ -59,13 +61,14 @@ app.use("/api/backup", express.json({ limit: "64mb" }));
 app.use("/api/conversations/:id/messages", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
 app.use("/api/clues", clueRoutes());
+app.use("/api", voiceRoutes());
 app.use(
   "/api",
   settingsRoutes(
     conversations,
     async () => {
       if (
-        Object.keys({ ...bridge.getActiveTurns(), ...apiChat.getActiveTurns() })
+        Object.keys({ ...bridge.getActiveTurns(), ...apiChat.getActiveTurns(), ...voiceReplies.getActiveTurns() })
           .length
       )
         throw new Error("請先停止正在進行的回覆，再導入。");
@@ -130,6 +133,7 @@ const latestConnectionStatus = () => {
   }
   return undefined;
 };
+const voiceReplies = new VoiceReplies(files, broadcast);
 
 wss.on("connection", (ws, request) => {
   const url = new URL(request.url ?? "/ws", "http://127.0.0.1");
@@ -156,9 +160,10 @@ wss.on("connection", (ws, request) => {
       activeTurnId:
         apiChat.getActiveTurns()[defaultConversationId] ??
         bridge.getActiveTurnId(defaultConversationId) ??
+        voiceReplies.getActiveTurns()[defaultConversationId] ??
         null,
       defaultConversationId,
-      activeTurns: { ...bridge.getActiveTurns(), ...apiChat.getActiveTurns() },
+      activeTurns: { ...bridge.getActiveTurns(), ...apiChat.getActiveTurns(), ...voiceReplies.getActiveTurns() },
       conversations: conversations.list(),
       connectionStatus: latestConnectionStatus(),
       channel,
@@ -206,7 +211,7 @@ const scheduleConversationActivity = (conversationId: string) => {
 
 const apiChat = new ApiChat(
   (event) => {
-    broadcast(event);
+    voiceReplies.receive(event);
     if (event.type === "assistant-delta" || event.type === "turn-completed")
       scheduleConversationActivity(event.conversationId);
   },
@@ -243,8 +248,8 @@ bridge.on("event", (event: any) => {
           message: (error as Error).message,
         }),
       )
-      .finally(() => broadcast(event));
-  } else broadcast(event);
+      .finally(() => voiceReplies.receive(event));
+  } else voiceReplies.receive(event);
   if (
     typeof event?.conversationId === "string" &&
     (event.type === "assistant-delta" || event.type === "turn-completed")
@@ -317,6 +322,7 @@ app.post("/api/connection/test", async (_request, response) => {
 const chatServices = {
   bridge,
   apiChat,
+  voiceReplies,
   conversations,
   files,
   messages,
@@ -353,6 +359,7 @@ server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
 const shutdown = async () => {
   apiChat.close();
   bridge.close();
+  await voiceReplies.close();
   await messages.close();
   server.close();
 };

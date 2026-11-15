@@ -89,7 +89,7 @@
   transform: translateX(64px);
   box-shadow: 4px 8px 18px rgba(0, 0, 0, 0.22);
 }
-.settings-page .vc-page.out .vc-record-inner {
+.settings-page .vc-page.playing .vc-record-inner {
   animation: vcSpin 5s linear infinite;
 }
 @keyframes vcSpin {

@@ -23,6 +23,8 @@ const protocolMarkers = [
     "</mian-tool-summary>",
     "<mian-bubble>",
     "</mian-bubble>",
+    "<voice>",
+    "</voice>",
 ];
 function normalizeBubbleBody(value) {
     let fence = "";
@@ -97,6 +99,26 @@ function withoutRanges(raw, ranges) {
         masked = masked.slice(0, range.start) + masked.slice(range.end);
     return masked;
 }
+function replySegments(raw, final) {
+    const bubbles = taggedSegments(raw, "mian-bubble", final);
+    const voices = taggedSegments(raw, "voice", final);
+    const segments = voices.map(segment => ({ ...segment, voice: true }));
+    for (const bubble of bubbles) {
+        const contentStart = bubble.start + "<mian-bubble>".length;
+        const nested = voices.filter(voice => voice.start >= contentStart && voice.start < bubble.end);
+        if (!nested.length) {
+            segments.push(bubble);
+            continue;
+        }
+        let cursor = contentStart;
+        for (const voice of nested) {
+            segments.push({ content: raw.slice(cursor, voice.start), start: cursor, complete: true });
+            cursor = voice.end;
+        }
+        segments.push({ content: raw.slice(cursor, contentStart + bubble.content.length), start: cursor, complete: bubble.complete });
+    }
+    return segments.sort((left, right) => left.start - right.start);
+}
 export function stripProtocolMarkers(value) {
     let stripped = value;
     for (const marker of protocolMarkers)
@@ -122,15 +144,18 @@ export function parsePublicReply(raw, options = {}) {
     const preToolContainers = taggedSegments(raw, "mian-pre-tool", final);
     const preToolBubbles = [];
     const preToolBubbleComplete = [];
+    const voices = [];
     let everyPreToolContainerComplete = preToolContainers.length > 0;
     for (const container of preToolContainers) {
         everyPreToolContainerComplete &&= container.complete;
-        const nested = taggedSegments(container.content, "mian-bubble", final);
+        const nested = replySegments(container.content, final);
         if (nested.length > 0) {
             for (const segment of nested) {
                 const content = normalizeBubbleBody(segment.content);
                 if (!content)
                     continue;
+                if (segment.voice)
+                    voices.push({ section: "pre-tool", index: preToolBubbles.length, text: content, complete: segment.complete });
                 preToolBubbles.push(content);
                 preToolBubbleComplete.push(segment.complete);
             }
@@ -144,13 +169,15 @@ export function parsePublicReply(raw, options = {}) {
         }
     }
     const postRaw = withoutRanges(raw, preToolContainers);
-    const postSegments = taggedSegments(postRaw, "mian-bubble", final);
+    const postSegments = replySegments(postRaw, final);
     const bubbles = [];
     const bubbleComplete = [];
     for (const segment of postSegments) {
         const content = normalizeBubbleBody(segment.content);
         if (!content)
             continue;
+        if (segment.voice)
+            voices.push({ section: "bubble", index: bubbles.length, text: content, complete: segment.complete });
         bubbles.push(content);
         bubbleComplete.push(segment.complete);
     }
@@ -176,5 +203,6 @@ export function parsePublicReply(raw, options = {}) {
         toolSummaries,
         bubbles,
         bubbleComplete,
+        ...(voices.length ? { voices } : {}),
     };
 }

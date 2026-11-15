@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { readConfig } from "./config.js";
 import { readClues } from "./clues.js";
-import { selectCluePrompt } from "./clueSelection.js";
+import { selectCluePrompt, voiceCluePrompt } from "./clueSelection.js";
 import { markToolsUnsupported, requirePreset } from "./apiPresets.js";
 import {
   prepareConversationWorkspace,
@@ -16,6 +16,7 @@ import { createId } from "../../shared/id.mjs";
 export function turnRoutes({
   bridge,
   apiChat,
+  voiceReplies,
   conversations,
   files,
   messages: savedMessages,
@@ -40,7 +41,7 @@ export function turnRoutes({
       const config = await readConfig();
       if (
         bridge.isConversationBusy(conversationId) ||
-        apiChat.isBusy(conversationId)
+        apiChat.isBusy(conversationId) || voiceReplies.isBusy(conversationId)
       )
         throw new Error("当前会话已有正在运行的 turn");
       const wall = await readClues();
@@ -97,8 +98,8 @@ export function turnRoutes({
       workspaceFiles.set(conversationId, capture);
       let result;
       try {
-        result = await bridge.startTurn(prompt, conversationId, () =>
-          selectCluePrompt(wall.cards, recent, bridge.selectClues.bind(bridge)),
+        result = await bridge.startTurn(prompt, conversationId, async () =>
+          [await selectCluePrompt(wall.cards, recent, bridge.selectClues.bind(bridge)), voiceCluePrompt(wall.cards)].filter(Boolean).join("\n\n"),
         );
       } catch (error) {
         workspaceFiles.delete(conversationId);
@@ -125,6 +126,10 @@ export function turnRoutes({
         conversations.defaultConversationId(),
       );
       conversations.require(conversationId);
+      if (voiceReplies.interrupt(request.params.id, conversationId)) {
+        response.json({ ok: true });
+        return;
+      }
       if (apiChat.isBusy(conversationId))
         apiChat.interrupt(request.params.id, conversationId);
       else await bridge.interrupt(request.params.id, conversationId);

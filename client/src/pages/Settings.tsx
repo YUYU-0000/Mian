@@ -15,6 +15,7 @@ import {
   type FontPreset,
 } from "../settingsTypes";
 import type { Backup } from "../settingsBackup";
+import { defaultVoicePreset, type VoicePreset, type VoiceSettings } from "../../../shared/voice.mjs";
 
 export default function Settings({ onBack }: { onBack: () => void }) {
   const root = useRef<HTMLElement>(null);
@@ -23,11 +24,13 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   const [active, setActive] = useState<number | null>(null);
   const [fonts, setFonts] = useState(defaultFontSettings);
   const fontPages = fonts.presets;
-  const [voicePages, setVoicePages] = useState([1]);
+  const [voices, setVoices] = useState<VoiceSettings | null>(null);
+  const voicePages = voices?.presets ?? [];
   const fontWrites = useRef<Promise<unknown>>(Promise.resolve());
-  const nextVoice = useRef(2);
+  const voiceWrites = useRef<Promise<unknown>>(Promise.resolve());
+  const voiceSelection = useRef("");
   const font = useSettingsPaperStack(fontPages.length, active === 1);
-  const voice = useSettingsPaperStack(voicePages.length, active === 3);
+  const voice = useSettingsPaperStack(Math.max(1, voicePages.length), active === 3);
   const avatars = useSettingsPaperStack(2, active === 2);
   const [exporting, setExporting] = useState(false);
   const [pendingImport, setPendingImport] = useState<Backup | null>(null);
@@ -37,6 +40,16 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     fontWrites.current = result;
     return result;
   };
+  const writeVoice = <T,>(operation: () => Promise<T>) => {
+    const result = voiceWrites.current.then(operation, operation);
+    voiceWrites.current = result;
+    return result;
+  };
+  const saveVoice = (preset: VoicePreset) => writeVoice(async () => {
+    const saved = await api.saveVoicePreset(preset);
+    setVoices(saved);
+    return saved.presets.find(item => item.id === preset.id)!;
+  });
   const editFont = (preset: FontPreset) => {
     void writeFont(() => api.saveFontPreset(preset)).catch((error) =>
       notify.fail("保存失敗", error),
@@ -59,6 +72,11 @@ export default function Settings({ onBack }: { onBack: () => void }) {
       .fontPresets()
       .then(setFonts)
       .catch((error) => notify.fail("字體讀取失敗", error));
+    void api.voicePresets().then(saved => {
+      voiceSelection.current = saved.activeId;
+      voice.show(saved.presets.findIndex(preset => preset.id === saved.activeId));
+      setVoices(saved);
+    }).catch(error => notify.fail("語音讀取失敗", error));
     const saved = JSON.parse(
       localStorage.getItem("launcher_settings") || "null",
     );
@@ -66,6 +84,14 @@ export default function Settings({ onBack }: { onBack: () => void }) {
       for (const [key, value] of Object.entries(saved.cssVars))
         root.current!.style.setProperty(key, String(value));
   }, []);
+  useEffect(() => {
+    const preset = voicePages[voice.index];
+    if (active !== 3 || !preset || voiceSelection.current === preset.id) return;
+    voiceSelection.current = preset.id;
+    void writeVoice(() => api.useVoicePreset(preset.id))
+      .then(setVoices)
+      .catch(error => notify.fail("語音選擇失敗", error));
+  }, [active, voice.index, voicePages]);
   useLayoutEffect(() => {
     const align = () => {
       const sub = storage.current!.querySelector<HTMLElement>(".st-sub")!;
@@ -84,7 +110,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     storage.current!.classList.add("lit");
     setExporting(true);
     try {
-      await fontWrites.current;
+      await Promise.all([fontWrites.current, voiceWrites.current]);
       await Promise.all([
         api.exportData(),
         new Promise((resolve) => window.setTimeout(resolve, 3400)),
@@ -106,7 +132,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     try {
       if (pendingImport.fonts.style.face)
         parseFontFace(pendingImport.fonts.style.face, "import");
-      await fontWrites.current;
+      await Promise.all([fontWrites.current, voiceWrites.current]);
       await api.importData(pendingImport);
       sessionStorage.setItem("mian.imported", "1");
       window.location.reload();
@@ -203,23 +229,28 @@ export default function Settings({ onBack }: { onBack: () => void }) {
       voicePages={
         <div className="settings-stack-viewport">
           <div className="settings-stack-track" ref={voice.track}>
-            {voicePages.map((id, index) => (
+            {voicePages.map((preset, index) => (
               <VoicePage
-                key={id}
+                key={preset.id}
+                preset={preset}
                 index={index}
                 total={voicePages.length}
-                current={index === voice.index}
+                current={active === 3 && index === voice.index}
+                onSave={saveVoice}
                 onAdd={() => {
-                  voice.showAdded();
-                  setVoicePages((pages) => [...pages, nextVoice.current++]);
+                  void writeVoice(async () => {
+                    const saved = await api.saveVoicePreset({ ...defaultVoicePreset, id: createId() });
+                    voice.showAdded();
+                    setVoices(saved);
+                  }).catch(error => notify.fail("保存失敗", error));
                 }}
                 onDelete={() => {
                   if (voicePages.length <= 1) return;
-                  voice.remove(() =>
-                    setVoicePages((pages) =>
-                      pages.filter((page) => page !== id),
-                    ),
-                  );
+                  void writeVoice(async () => {
+                    const saved = await api.deleteVoicePreset(preset.id);
+                    voiceSelection.current = saved.activeId;
+                    voice.remove(() => setVoices(saved));
+                  }).catch(error => notify.fail("保存失敗", error));
                 }}
               />
             ))}

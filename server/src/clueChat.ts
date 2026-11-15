@@ -5,6 +5,7 @@ import {
   cluePrompt,
   getActiveScenes,
   selectCluePrompt,
+  voiceCluePrompt,
 } from "./clueSelection.js";
 import {
   completeChat,
@@ -89,7 +90,8 @@ export async function* completeClueChat(
     : hasTriggers
       ? await select()
       : cluePrompt(cards, [], scenes);
-  let history = apiRequestMessages(messages, localTime, instructions);
+  const withVoice = (prompt: string) => [prompt, voiceCluePrompt(cards)].filter(Boolean).join("\n\n");
+  let history = apiRequestMessages(messages, localTime, withVoice(instructions));
   let total: TokenUsage | undefined;
   let round = 0;
   while (true) {
@@ -112,7 +114,7 @@ export async function* completeClueChat(
         throw error;
       await clues!.markToolsUnsupported();
       useTools = false;
-      history = apiRequestMessages(messages, localTime, await select());
+      history = apiRequestMessages(messages, localTime, withVoice(await select()));
       continue;
     }
     if (usage) {

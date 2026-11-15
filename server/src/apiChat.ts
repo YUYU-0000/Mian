@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ChatEvent } from "../../shared/types.mjs";
 import { completeClueChat, type ApiClues } from "./clueChat.js";
 import {
   providerMessage,
@@ -8,15 +9,9 @@ import {
 } from "./providers/openai.js";
 
 type ActiveTurn = { turnId: string; controller: AbortController };
-type ApiChatEvent = {
-  type: "turn-started" | "assistant-delta" | "turn-completed";
+type ApiChatEvent = Extract<ChatEvent, { type: "turn-started" | "assistant-delta" | "turn-completed" }> & {
   conversationId: string;
-  turnId: string;
   format: "api";
-  delta?: string;
-  immediate?: boolean;
-  status?: string;
-  error?: string;
 };
 
 // API 通道沿用会话事件，不产生工具或审批事件。
@@ -103,7 +98,7 @@ export class ApiChat {
             ...base,
             type: "assistant-delta",
             delta: event.text,
-            immediate: event.immediate && !event.text.includes("<mian-"),
+            immediate: event.immediate && !event.text.includes("<mian-") && !event.text.includes("<voice"),
           });
       }
     } catch (cause) {

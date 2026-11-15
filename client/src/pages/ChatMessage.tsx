@@ -21,6 +21,7 @@ import { shouldShowThinkingHourglass } from "../thinkingStatus";
 import ToolOutput from "../components/ToolOutput";
 import ReplyMarkdown from "../components/DeferredReplyMarkdown";
 import FileTicket from "../components/FileTicket";
+import VoiceTicket from "../components/VoiceTicket";
 
 const Hourglass = () => (
   <svg
@@ -373,8 +374,10 @@ export default memo(function ChatMessage({
           <div className="archive-msg-content archive-reply-body">
             {message.preToolBubbles
               .slice(0, visual?.visiblePreToolBubbleCount ?? 0)
-              .map((_bubble, index) => (
-                <ReplyMarkdown
+              .map((bubble, index) => {
+                const id = message.preToolBubbleIds[index];
+                const clip = message.voices?.[id] ?? (!message.status && message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
+                return clip ? <VoiceTicket key={id} clip={clip} /> : <ReplyMarkdown
                   key={message.preToolBubbleIds[index]}
                   bubble={{
                     className: `archive-bubble ${historicalAnimationIds.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`,
@@ -386,8 +389,8 @@ export default memo(function ChatMessage({
                     kind: "preToolBubble",
                     index,
                   })}
-                />
-              ))}
+                />;
+              })}
             {message.tools.length > 0 && preToolReady && (
               <ArchiveModule
                 className="tool-calls-module"
@@ -426,8 +429,10 @@ export default memo(function ChatMessage({
             )}
             {message.bubbles
               .slice(0, visual?.visibleBubbleCount ?? 0)
-              .map((_bubble, index) => (
-                <ReplyMarkdown
+              .map((bubble, index) => {
+                const id = message.bubbleIds[index];
+                const clip = message.voices?.[id] ?? (!message.status && message.voiceBubbleIds?.includes(id) ? { url: "", text: bubble } : undefined);
+                return clip ? <VoiceTicket key={id} clip={clip} /> : <ReplyMarkdown
                   key={message.bubbleIds[index]}
                   bubble={{
                     className: `archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`,
@@ -439,8 +444,8 @@ export default memo(function ChatMessage({
                     kind: "bubble",
                     index,
                   })}
-                />
-              ))}
+                />;
+              })}
             {message.status &&
               activeTurnId !== message.replyGroupId &&
               message.files?.map((file, index) => (

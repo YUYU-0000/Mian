@@ -10,6 +10,10 @@ export type ServerBackup = {
   version: 1;
   config: Config;
   apiPresets: Omit<ApiPreset, "key" | "hasKey" | "keyHint">[];
+  voices?: {
+    presets: Omit<import("../../shared/voice.mjs").VoicePreset, "key" | "hasKey">[];
+    activeId: string;
+  };
   fonts: FontSettings;
   clues?: ClueWall;
   conversations: ConversationRecord[];

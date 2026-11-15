@@ -100,6 +100,7 @@ export type ChatEvent = (
   | { type: "thinking-completed"; turnId: string; itemId: string }
   | { type: "tool"; turnId: string; tool: ToolEvent }
   | { type: "files"; turnId: string; files: ChatFile[] }
+  | { type: "voice"; turnId: string; bubbleId: string; clip: import("./voice.mjs").VoiceClip }
   | { type: "files-error"; message: string }
   | { type: "approval"; turnId: string; approval: Approval }
   | {

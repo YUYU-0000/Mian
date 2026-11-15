@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import Settings from "../client/src/pages/Settings";
 import Notify from "../client/src/components/Notify";
 import { api } from "../client/src/api";
+import { defaultVoicePreset, type VoiceSettings } from "../shared/voice.mjs";
 import {
   defaultFontSettings,
   defaultFont,
@@ -32,9 +33,33 @@ api.deleteFontPreset = async (id) => {
   fonts.presets = fonts.presets.filter((item) => item.id !== id);
   return structuredClone(fonts);
 };
-api.testVoice = () =>
-  new Promise<void>((resolve) => {
+let voices: VoiceSettings = { presets: [{ ...defaultVoicePreset }], activeId: defaultVoicePreset.id };
+fixture.voiceSettings = voices;
+api.voicePresets = async () => structuredClone(voices);
+api.saveVoicePreset = async input => {
+  const { key, ...preset } = input;
+  const index = voices.presets.findIndex(item => item.id === input.id);
+  const saved = { ...preset, hasKey: Boolean(key) || voices.presets[index]?.hasKey };
+  if (index < 0) voices.presets.push(saved);
+  else voices.presets[index] = saved;
+  return structuredClone(voices);
+};
+api.useVoicePreset = async id => {
+  voices.activeId = id;
+  return structuredClone(voices);
+};
+api.deleteVoicePreset = async id => {
+  const index = voices.presets.findIndex(item => item.id === id);
+  voices.presets = voices.presets.filter(item => item.id !== id);
+  if (voices.activeId === id) voices.activeId = voices.presets[Math.max(0, index - 1)].id;
+  return structuredClone(voices);
+};
+api.testVoice = (_preset, signal, onPlaying) =>
+  new Promise<void>((resolve, reject) => {
+    fixture.startVoice = onPlaying;
     fixture.finishVoice = resolve;
+    fixture.failVoice = () => reject(new Error("ElevenLabs: test failure"));
+    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
   });
 
 createRoot(document.getElementById("root")!).render(
