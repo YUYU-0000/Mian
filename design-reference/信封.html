@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <!--
   線索牆的「信封」：新增卡片的入口
-  - 收起：一個橫放的長信封（270×140），深灰藍 #4f6475 帶紙紋，壓在底部偏右、距底 34px，微轉 -3deg。
-    封口是淺 V 形、尖角圓潤，比信封身淺一號，底下一道柔和陰影；封口邊緣一道米白細線（像燙金邊，不透明度 .35）。
-    封口尖上一枚米白圓章，內圈細線，中間花體 M。信封下方居中兩行米白小字：NEW CARD／新增卡片。
-  - 點信封：背後蓋一層淡遮罩，信封移到底部正中、擺正，封口往上翻開，露出米白內襯（淡淡的點陣紋）。
-    五張空白紙片從信封裡往上抽出，扇形展開（-24、-12、0、12、24deg，圓心在信封下方），紙片下半截插在信封口袋裡；口袋上緣是一道往下彎的弧線，也描米白細線。
-    每張紙片是一種版式：滿版 FULL、豎排 VERTICAL、斜帶 OBLIQUE、色塊 BLOCK、圓心 CENTER，標題先寫「標題」佔位。
-  - 左右滑動扇子會轉，正中那張微微抬起，紙片底部露出版式名稱；點正中那張就抽出來，打開卡片頁，頂上選常駐或觸發，寫完收起後貼到牆上。
-  - 點遮罩空白處：紙片收回、封口蓋上、信封回到原位。
-  - 動畫：封口翻開 240ms，紙片 60ms 依次升起，320ms，緩動 cubic-bezier(.22,.8,.3,1)。
+  - 收起：橫放的信封（270×140），深灰藍 #4f6475 帶紙紋，壓在底部偏右、距底 34px，微轉 -3deg。
+    背面是經典信封樣式：上封口是尖 V，尖角稍圓；下封口從兩個下角斜上來，在中間收成一個尖。所有封口邊緣描一道燕麥金細線（#c9b08a）。
+    不加火漆。信封下半居中兩行米白小字：NEW CARD／新增卡片。
+  - 點信封：背後蓋一層淡遮罩，信封移到底部正中、擺正，上封口往上翻開。
+    一疊橫放的空白紙片（236 寬，露出部分約 150 高）插在信封裡，最前面那張往上抽出一大截（每張紙是一種版式：滿版、豎排、斜帶、色塊、圓心），後面兩張只露出頂邊，略微錯開、各歪一點，看得出是一疊。
+    上滑：前面這張插回去，下一張抽出來；下滑：換回上一張。到頭了就輕輕回彈。
+    信封上方顯示目前的版式名（英文 + 頁碼 03 / 05 + 中文）和「上下滑換一張」。紙片露出信封底邊的部分裁掉。
+    點抽出來的那張：整張抽出，打開卡片頁，頂上選常駐或觸發，寫完收起後貼到牆上。
+  - 點遮罩空白處：紙片插回、封口蓋上、信封回到原位。
+  - 動畫：封口翻開 240ms；換紙時舊紙下沉 180ms，新紙上升 280ms，緩動 cubic-bezier(.22,.8,.3,1)。
 -->
 <html><head><meta charset="utf-8"><style>
 @import url("../client/public/fonts/lxgw/result.css");
-@font-face{font-family:"ZSFT-l";src:url("../client/public/fonts/zsft-l/Qwigley-Regular.ttf") format("truetype")}
 @font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/main.woff2") format("woff2");font-weight:400}
 @font-face{font-family:ZSFT-br;src:url("../client/public/fonts/zsft/medium.woff2") format("woff2");font-weight:500}
 :root{--ink:#3b4d5a;--muted:#72828e;--paper:#fbfaf6;--blue:#6b8396;--blue2:#8fa6b5;--blue3:#c9d5dd;
---env:#4f6475;--flap:#587083;--inside:#405463;--lining:#efe9dc;--edge:rgba(245,242,236,.38);
+--env:#4f6475;--flap:#566d7f;--low:#5a7183;--inside:#3f5261;--gold:#c9b08a;
 --grain:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>')}
 html,body{margin:0}
 body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);display:flex;gap:28px;padding:28px}
@@ -27,34 +27,29 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
 .head .k{font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.6px;color:var(--muted)}
 .head h1{margin:4px 0 0;font-size:34px;font-weight:700;letter-spacing:6px;line-height:1}
 
-/* ===== 信封 ===== */
 .env{position:absolute;width:270px;height:140px;filter:drop-shadow(0 10px 16px rgba(30,40,50,.2)) drop-shadow(0 2px 3px rgba(30,40,50,.12))}
 .env svg{position:absolute;left:0;top:0;width:270px;height:140px;overflow:visible}
-.env .label{position:absolute;left:0;right:0;top:100px;text-align:center;white-space:nowrap;color:rgba(245,242,236,.82)}
-.env .label i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:6.5px;letter-spacing:2.8px;padding-left:2.8px}
-.env .label b{display:block;font-weight:400;font-size:10px;letter-spacing:4px;padding-left:4px;margin-top:3px}
-.body{position:absolute;inset:0;border-radius:4px;background:var(--env);background-image:var(--grain)}
-
+.label{position:absolute;left:0;right:0;top:104px;text-align:center;white-space:nowrap;color:rgba(245,242,236,.85);z-index:5}
+.label i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:6.5px;letter-spacing:2.8px;padding-left:2.8px}
+.label b{display:block;font-weight:400;font-size:10px;letter-spacing:4px;padding-left:4px;margin-top:3px}
 .closed{left:96px;bottom:34px;transform:rotate(-3deg)}
 .dim{position:absolute;inset:0;background:rgba(40,55,66,.32)}
-.open{left:60px;top:672px}
+.open{left:60px;top:660px}
 
-/* 紙片：扇形，從信封裡抽出來 */
-.fan{position:absolute;left:0;top:0;width:270px;height:140px;z-index:2}
-.sheet{position:absolute;left:85px;top:-112px;width:100px;height:196px;background:var(--paper);background-image:var(--grain);overflow:hidden;
-  transform-origin:50px 262px;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 10px rgba(30,40,50,.14)}
-.sheet.on .nm{opacity:1}
-.sheet.on{box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 20px rgba(30,40,50,.24)}
-.sheet .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:6px;letter-spacing:1.6px}
-.sheet .t{position:absolute;font-weight:700;letter-spacing:2px;line-height:1.02}
-.sheet .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:5px;letter-spacing:1.6px;color:var(--muted)}
-.sheet .ln{position:absolute;height:1.5px;background:rgba(59,77,90,.14)}
-.sheet .nm{position:absolute;left:0;right:0;top:120px;opacity:0;text-align:center;font-family:ZSFT-br;font-weight:500;font-size:6.5px;letter-spacing:2.4px;padding-left:2.4px}
+.stack{position:absolute;inset:0;z-index:2;clip-path:inset(-400px -60px 2px -60px)}
+.card{position:absolute;left:17px;width:236px;height:200px;background:var(--paper);background-image:var(--grain);overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.05),0 4px 12px rgba(30,40,50,.18)}
+.card .in{position:absolute;left:0;top:0;width:236px;height:150px}
+.card .n{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:9px;letter-spacing:2px}
+.card .t{position:absolute;font-weight:700;letter-spacing:2px;line-height:1.02}
+.card .s{position:absolute;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.4px;color:var(--muted)}
+.card .ln{position:absolute;height:1px;background:rgba(59,77,90,.14)}
 
-.pick{position:absolute;left:0;right:0;top:470px;text-align:center}
-.pick i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.6px;padding-left:2.6px;color:rgba(245,242,236,.8)}
-.pick b{display:block;margin-top:4px;font-weight:400;font-size:13px;letter-spacing:4px;padding-left:4px;color:#f5f2ec}
-.cap{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-family:ZSFT-br;font-size:7px;letter-spacing:2px;color:var(--muted)}
+.pick{position:absolute;left:0;right:0;top:420px;text-align:center;color:#f5f2ec}
+.pick i{display:block;font-style:normal;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.8px;padding-left:2.8px;opacity:.8}
+.pick b{display:block;margin-top:4px;font-weight:400;font-size:15px;letter-spacing:5px;padding-left:5px}
+.pick em{display:block;margin-top:8px;font-style:normal;font-size:10px;letter-spacing:3px;padding-left:3px;opacity:.75}
+.count{position:absolute;right:-26px;top:22px;writing-mode:vertical-rl;font-family:ZSFT-br;font-weight:500;font-size:7px;letter-spacing:2.4px;color:rgba(245,242,236,.85)}
+.count b{font-weight:500;color:#f5f2ec;font-size:9px}
 </style></head><body>
 
 <!-- 1. 收起 -->
@@ -62,15 +57,14 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
   <div class="head"><div class="k">CLUE WALL</div><h1>線索</h1></div>
   <div class="wallhint">WALL  牆面由人來排</div>
   <div class="env closed">
-    <div class="body"></div>
     <svg viewBox="0 0 270 140">
-      <defs><filter id="fs" x="-10%" y="-10%" width="120%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
-      <path d="M5 0 H265 Q271 0 267 5 L147 68 Q135 74 123 68 L3 5 Q-1 0 5 0 Z" fill="rgba(20,30,40,.45)" filter="url(#fs)" transform="translate(0 3)"/>
-      <path d="M5 0 H265 Q271 0 267 5 L147 68 Q135 74 123 68 L3 5 Q-1 0 5 0 Z" fill="var(--flap)"/>
-      <path d="M4 3 L123 66 Q135 72 147 66 L266 3" fill="none" stroke="var(--edge)" stroke-width=".8"/>
-      <circle cx="135" cy="64" r="12.5" fill="#f2eee6"/>
-      <circle cx="135" cy="64" r="9.5" fill="none" stroke="rgba(79,100,117,.5)" stroke-width=".6"/>
-      <text x="135" y="70" text-anchor="middle" font-family="ZSFT-l" font-size="17" fill="#4f6475">M</text>
+      <defs><filter id="fs" x="-10%" y="-10%" width="120%" height="140%"><feGaussianBlur stdDeviation="2"/></filter></defs>
+      <rect width="270" height="140" rx="3" fill="var(--env)"/>
+      <path d="M2 139 L129 66 Q135 62 141 66 L268 139 Z" fill="var(--low)"/>
+      <path d="M2 139 L129 66 Q135 62 141 66 L268 139" fill="none" stroke="var(--gold)" stroke-width=".9" stroke-opacity=".85"/>
+      <path d="M3 0 H267 L141 80 Q135 84 129 80 Z" fill="rgba(20,30,40,.4)" filter="url(#fs)" transform="translate(0 2.5)"/>
+      <path d="M3 0 H267 L141 80 Q135 84 129 80 Z" fill="var(--flap)"/>
+      <path d="M3 1 L129 80 Q135 84 141 80 L267 1" fill="none" stroke="var(--gold)" stroke-width=".9" stroke-opacity=".85"/>
     </svg>
     <div class="label"><i>NEW CARD</i><b>新增卡片</b></div>
   </div>
@@ -81,52 +75,40 @@ body{background:#d9d6cf;font-family:"LXGW Heart Serif",serif;color:var(--ink);di
   <div class="head"><div class="k">CLUE WALL</div><h1>線索</h1></div>
   <div class="wallhint">WALL  牆面由人來排</div>
   <div class="dim"></div>
-  <div class="pick"><i>CHOOSE A LAYOUT</i><b>抽一張</b></div>
+  <div class="pick"><i>OBLIQUE  03 / 05</i><b>斜帶</b><em>上下滑換一張</em></div>
   <div class="env open">
     <svg viewBox="0 0 270 140">
-      <defs><pattern id="dots" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r=".7" fill="rgba(79,100,117,.28)"/></pattern></defs>
-      <!-- 翻開的封口：米白內襯 -->
-      <path d="M3 1 L123 -66 Q135 -72 147 -66 L267 1 Z" fill="var(--lining)"/>
-      <path d="M3 1 L123 -66 Q135 -72 147 -66 L267 1 Z" fill="url(#dots)"/>
-      <path d="M3 1 L123 -66 Q135 -72 147 -66 L267 1" fill="none" stroke="rgba(79,100,117,.35)" stroke-width=".8"/>
-      <rect width="270" height="140" rx="4" fill="var(--inside)"/>
+      <path d="M3 1 L129 -78 Q135 -82 141 -78 L267 1 Z" fill="var(--flap)"/>
+      <path d="M3 1 L129 -78 Q135 -82 141 -78 L267 1" fill="none" stroke="var(--gold)" stroke-width=".9" stroke-opacity=".85"/>
+      <rect width="270" height="140" rx="3" fill="var(--inside)"/>
     </svg>
-    <div class="fan" id="fan"></div>
+    <div class="stack" id="stack"></div>
     <svg viewBox="0 0 270 140" style="z-index:3">
-      <path d="M0 26 Q135 70 270 26 V136 Q270 140 266 140 H4 Q0 140 0 136 Z" fill="var(--env)"/>
-      <path d="M0 26 Q135 70 270 26" fill="none" stroke="var(--edge)" stroke-width=".8"/>
+      <path d="M0 3 Q0 0 3 1 L132 76 Q135 78 138 76 L267 1 Q270 0 270 3 V137 Q270 140 267 140 H3 Q0 140 0 137 Z" fill="var(--env)"/>
+      <path d="M2 2 L132 76 Q135 78 138 76 L268 2" fill="none" stroke="var(--gold)" stroke-width=".9" stroke-opacity=".6"/>
+      <path d="M2 139 L129 66 Q135 62 141 66 L268 139 Z" fill="var(--low)"/>
+      <path d="M2 139 L129 66 Q135 62 141 66 L268 139" fill="none" stroke="var(--gold)" stroke-width=".9" stroke-opacity=".85"/>
     </svg>
-    <div class="label" style="z-index:4"><i>NEW CARD</i><b>新增卡片</b></div>
+    <div class="label"><i>NEW CARD</i><b>新增卡片</b></div>
   </div>
 </div>
 
 <script>
-const L=[
- {nm:"FULL",h:`<div class="n" style="left:8px;top:8px">01</div><div class="s" style="left:8px;top:17px">TITLE</div>
-   <div class="t" style="left:7px;top:28px;font-size:24px;width:30px">標題</div>
-   <div style="position:absolute;right:-22px;bottom:4px;width:70px;height:70px;border-radius:50%;background:var(--blue3)"></div>
-   <div class="ln" style="left:8px;width:40px;bottom:34px"></div><div class="ln" style="left:8px;width:30px;bottom:28px"></div>`},
- {nm:"VERTICAL",h:`<div class="s" style="left:6px;top:10px;writing-mode:vertical-rl">TITLE</div>
-   <div style="position:absolute;left:19px;top:10px;width:1px;height:58px;background:var(--blue)"></div>
-   <div class="t" style="right:10px;top:12px;font-size:19px;writing-mode:vertical-rl;letter-spacing:4px">標題</div>
-   <div class="n" style="left:24px;top:10px">02</div>
-   <div class="ln" style="left:24px;width:34px;top:24px"></div><div class="ln" style="left:24px;width:26px;top:30px"></div>`},
- {nm:"OBLIQUE",h:`<div style="position:absolute;left:-20px;top:42px;width:150px;height:30px;background:var(--blue3);transform:rotate(-22deg)"></div>
-   <div class="t" style="left:16px;top:44px;font-size:19px;transform:rotate(-22deg);letter-spacing:5px">標題</div>
-   <div class="n" style="right:8px;top:8px">03</div><div class="s" style="left:8px;top:9px">TITLE</div>
-   <div class="ln" style="left:8px;width:50px;bottom:28px"></div>`},
- {nm:"BLOCK",h:`<div style="position:absolute;left:0;top:0;right:0;height:62px;background:var(--blue2)"></div>
-   <div style="position:absolute;left:12px;top:38px;background:var(--paper);padding:5px 8px 4px">
-     <div class="t" style="position:static;font-size:17px">標題</div><div class="s" style="position:static;margin-top:2px">TITLE</div></div>
-   <div class="n" style="right:8px;top:8px;color:var(--paper)">04</div>
-   <div class="ln" style="left:12px;width:44px;top:90px"></div>`},
- {nm:"CENTER",h:`<div style="position:absolute;left:50%;top:18px;width:68px;height:68px;margin-left:-34px;border-radius:50%;border:1px solid var(--blue)"></div>
-   <div class="t" style="left:0;right:0;top:42px;text-align:center;font-size:18px;padding-left:2px">標題</div>
-   <div class="s" style="left:0;right:0;top:64px;text-align:center;padding-left:1.6px">TITLE</div>
-   <div class="n" style="left:8px;top:8px">05</div>`},
-];
-const R=[-24,-12,0,12,24];
-document.getElementById('fan').innerHTML=L.map((l,i)=>
-  `<div class="sheet${i===2?' on':''}" style="transform:rotate(${R[i]}deg) translateY(${i===2?-14:0}px);z-index:${i===2?5:i<2?i:4-i}">${l.h}<div class="nm">${l.nm}</div></div>`).join('');
+const L={
+ full:`<div class="n" style="left:14px;top:12px">01</div><div class="s" style="left:14px;top:26px">TITLE</div>
+   <div class="t" style="left:12px;top:42px;font-size:44px;letter-spacing:6px">標題</div>
+   <div style="position:absolute;right:-30px;top:-20px;width:120px;height:120px;border-radius:50%;background:var(--blue3)"></div>`,
+ vertical:`<div class="s" style="left:12px;top:14px;writing-mode:vertical-rl">TITLE</div>
+   <div style="position:absolute;left:32px;top:14px;width:1px;height:96px;background:var(--blue)"></div>
+   <div class="t" style="right:18px;top:16px;font-size:34px;writing-mode:vertical-rl;letter-spacing:8px">標題</div>
+   <div class="n" style="left:42px;top:14px">02</div>`,
+ oblique:`<div style="position:absolute;left:-30px;top:58px;width:320px;height:44px;background:var(--blue3);transform:rotate(-12deg)"></div>
+   <div class="t" style="left:40px;top:58px;font-size:34px;transform:rotate(-12deg);letter-spacing:10px">標題</div>
+   <div class="n" style="right:14px;top:12px">03</div><div class="s" style="left:14px;top:14px">TITLE</div>`,
+};
+document.getElementById('stack').innerHTML=
+  `<div class="card" style="top:-84px;transform:translateX(10px) rotate(3.5deg)"><div class="in">${L.full}</div></div>`+
+  `<div class="card" style="top:-98px;transform:translateX(-9px) rotate(-3deg)"><div class="in">${L.vertical}</div></div>`+
+  `<div class="card" style="top:-118px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 22px rgba(30,40,50,.26)"><div class="in">${L.oblique}</div></div>`;
 </script>
 </body></html>
