@@ -72,13 +72,21 @@ try {
   await call("Emulation.setTouchEmulationEnabled", { enabled: true });
   await call("Page.navigate", { url: `http://127.0.0.1:${server.address().port}` });
   await waitFor(() => evaluate("document.querySelectorAll('.file-draft').length===4"), "fixture ready");
+  await evaluate('document.fonts.ready');
   const rect = selector => evaluate(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return {x:r.x+30,y:r.y+r.height/2,h:r.height}})()`);
   const mouse = async (selector, dx, dy, ms=30) => {
     await call("Emulation.setTouchEmulationEnabled", { enabled: false });
     const p = await rect(selector);
+    await evaluate(`window.dragMotion=document.querySelector(${JSON.stringify(selector)}).firstElementChild;
+      window.dragTicket=dragMotion.querySelector('.ft');window.dragThumb=dragMotion.querySelector('.ft-thumb');void 0;`);
     await call("Input.dispatchMouseEvent", { type:"mousePressed", x:p.x,y:p.y,button:"left",clickCount:1 });
     for(let i=1;i<=8;i++) { await call("Input.dispatchMouseEvent", {type:"mouseMoved", x:p.x+dx*i/8,y:p.y+dy*i/8,button:"left",buttons:1}); await sleep(ms); }
-    const moving = await evaluate(`(()=>{const el=${selector === ".file-draft" ? "document.querySelector('.file-draft-floating > div') || " : ""}document.querySelector(${JSON.stringify(selector)}).firstElementChild;return {transform:el.style.transform,opacity:Number(el.style.opacity),blur:el.style.filter}})()`);
+    const moving = await evaluate(`(()=>{
+      const el=document.querySelector(${JSON.stringify(selector)}).firstElementChild,style=getComputedStyle(el);
+      return {transform:el.style.transform,opacity:Number(style.opacity),filter:style.filter,willChange:style.willChange,
+        sameNodes:el===dragMotion&&el.querySelector('.ft')===dragTicket&&el.querySelector('.ft-thumb')===dragThumb,
+        tickets:document.querySelectorAll('.file-draft .ft').length};
+    })()`);
     await call("Input.dispatchMouseEvent", {type:"mouseReleased",x:p.x+dx,y:p.y+dy,button:"left",clickCount:1});
     return moving;
   };
@@ -99,7 +107,14 @@ try {
   const rebound = await mouse('.file-draft',0,25);
   assert.match(rebound.transform,/translate3d\(0(?:px)?,/);
   assert.ok(rebound.opacity >= .72 && rebound.opacity < 1);
+  assert.equal(rebound.filter,'none');
+  assert.equal(rebound.willChange,'transform, opacity');
+  assert.equal(rebound.sameNodes,true);
+  assert.equal(rebound.tickets,4);
   await waitFor(()=>evaluate("!document.querySelector('.file-draft-floating')"),'draft rebounds into its original slot');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.file-draft > div')).willChange"),'auto');
+  assert.equal(await evaluate("document.querySelector('.file-draft > div')===dragMotion && document.querySelector('.file-draft .ft-thumb')===dragThumb"),true);
+  assert.equal(await evaluate("document.querySelector('.file-draft').style.height"),'');
   assert.equal(await evaluate('result.removed'),0);
   await mouse('.file-draft',0,-60);
   assert.equal(await evaluate('result.removed'),0);
@@ -117,19 +132,30 @@ try {
   await evaluate("document.querySelector('.file-drafts').scrollLeft=0");
   const exiting = await mouse('.file-draft',0,45);
   assert.ok(await evaluate(`new DOMMatrix(${JSON.stringify(exiting.transform || "none")}).m42>37`), JSON.stringify(exiting));
+  assert.equal(exiting.sameNodes,true);
+  assert.equal(exiting.tickets,4);
   const exit = await evaluate(`(()=>{
-    const floating=document.querySelector('.file-draft-floating'),motion=floating.firstElementChild;
+    const motion=document.querySelector('.file-draft-floating');
     const animation=motion.getAnimations()[0];animation.pause();animation.currentTime=130;window.draftExit=animation;
     const style=getComputedStyle(motion),rect=motion.getBoundingClientRect();
+    motion.style.pointerEvents='auto';
+    const visible=motion.contains(document.elementFromPoint(rect.left+rect.width/2,rect.bottom-9));
+    motion.style.removeProperty('pointer-events');
     return {duration:animation.effect.getTiming().duration,easing:animation.effect.getTiming().easing,
-      body:floating.parentElement===document.body,outside:rect.bottom>document.querySelector('.file-drafts').getBoundingClientRect().bottom,
-      opacity:Number(style.opacity),blur:parseFloat(style.filter.slice(5)),scale:new DOMMatrix(style.transform).a,removed:result.removed};
+      fixed:style.position==='fixed',outside:rect.bottom>document.querySelector('.file-drafts').getBoundingClientRect().bottom,visible,
+      sameNode:motion===dragMotion,slotHeight:motion.parentElement.offsetHeight,
+      opacity:Number(style.opacity),filter:style.filter,willChange:style.willChange,frames:animation.effect.getKeyframes(),
+      scale:new DOMMatrix(style.transform).a,removed:result.removed};
   })()`);
   assert.equal(exit.duration,260);
   assert.equal(exit.easing,"ease-out");
-  assert.ok(exit.body && exit.outside);
+  assert.ok(exit.fixed && exit.outside && exit.visible);
+  assert.equal(exit.sameNode,true);
+  assert.equal(exit.slotHeight,74);
   assert.ok(exit.opacity>0 && exit.opacity<.72);
-  assert.ok(exit.blur>.45 && exit.blur<2);
+  assert.equal(exit.filter,'none');
+  assert.equal(exit.willChange,'transform, opacity');
+  assert.ok(exit.frames.every(frame=>!('filter' in frame)));
   assert.ok(exit.scale>.94 && exit.scale<1);
   assert.equal(exit.removed,0);
   await evaluate("draftExit.currentTime=259");
@@ -137,21 +163,27 @@ try {
   await evaluate("draftExit.finish()");
   await waitFor(()=>evaluate('result.removed===1'),'mouse downward exit');
   assert.equal(await evaluate('result.exitOpacity'),0);
+  assert.equal(await evaluate('result.exitWillChange'),'');
   assert.equal(await evaluate("document.querySelector('.file-draft').getAnimations()[0].effect.getTiming().duration"),200);
   await evaluate("document.querySelectorAll('.file-draft').forEach(item=>item.getAnimations().forEach(animation=>animation.finish()))");
   assert.equal(await evaluate("!!document.querySelector('.pv-viewer')"),false);
   await touch(0,45);
   await waitFor(()=>evaluate('result.removed===2'),'touch downward exit');
   assert.equal(await evaluate("!!document.querySelector('.pv-viewer')"),false);
-  await mouse('.mini-ticket-container',-30,0,80);
+  const miniRebound = await mouse('.mini-ticket-container',-30,0,80);
+  assert.equal(miniRebound.filter,'none');
+  assert.equal(miniRebound.willChange,'transform, opacity');
   await waitFor(()=>evaluate("document.querySelector('.mini-ticket-motion').style.transform===' ' .trim()"),'mini rebounds');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.mini-ticket-motion')).willChange"),'auto');
   assert.equal(await evaluate('result.archived'),0);
-  await mouse('.mini-ticket-container',-100,0);
+  const miniExit = await mouse('.mini-ticket-container',-100,0);
+  assert.equal(miniExit.filter,'none');
   await waitFor(()=>evaluate('result.exited===1'),'mini archives after left exit');
   assert.equal(await evaluate('result.archived'),1);
   assert.equal(await evaluate('result.activated'),0);
+  assert.equal(await evaluate('result.miniExitWillChange'),'');
   assert.deepEqual(errors,[]);
-  console.log('PASS original draft spacing, unclipped overlay, 260ms full fade/blur/shrink, 200ms neighbor movement, mouse/touch delete, rebound, native horizontal scrolling and unchanged MiniTicket archive.');
+  console.log('PASS original ticket/image nodes, fixed unclipped drag, no blur, released will-change, 260ms fade/shrink, 200ms neighbor movement, mouse/touch delete, rebound, native horizontal scrolling and MiniTicket archive.');
 } finally {
   const exited = once(browser, "exit");
   if (call) await call("Browser.close");
