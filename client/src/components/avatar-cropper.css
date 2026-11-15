@@ -76,16 +76,17 @@
   letter-spacing: 2.3px;
   fill: var(--muted);
 }
+.avatar-crop-actions,
+.avatar-crop-actions * {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
 .avatar-crop-actions [role="button"] {
   cursor: pointer;
   pointer-events: all;
 }
 .avatar-crop-actions [role="button"]:active {
   opacity: 0.6;
-}
-.avatar-crop-actions [role="button"]:focus-visible {
-  outline: 1px solid var(--muted);
-  outline-offset: 3px;
 }
 .avatar-crop-actions [aria-disabled="true"] {
   pointer-events: none;
