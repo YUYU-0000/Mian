@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   頭像裁切設計稿：圓形吊牌（照片做吊牌的臉）
-  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張直徑 260px 的圓卡；後面墊一張同樣大小的灰藍圓卡，往右下錯開、轉 8deg。吊牌本身不旋轉。
+  - 頂上垂一根繩，穿過吊牌頂部的打孔，吊著一張直徑 260px 的圓卡；後面墊兩張同樣大小的灰藍圓卡（深 #5f7789、淺 #93a7b5），都以頂部打孔為軸，深的轉 11deg（底部往左擺）、淺的轉 -7deg（底部往右擺），像同一根繩上掛著一疊吊牌，底部兩側各露出一彎。吊牌本身不旋轉。
   - 圓卡外圈是一道 26px 寬的米白邊，裡面整塊都是照片窗（直徑 208px），照片在窗裡拖動、兩指縮放、滾輪縮放，手勢只在照片窗內生效。
   - 米白邊上兩道細線夾住，沿著邊繞一圈小字，像吊牌上的環形字：
       上半圈：左 PORTRAIT，頂部打孔，右「彼方肖像」或「此方肖像」，跟著當前換哪一邊。
@@ -30,7 +30,9 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
 .string{width:1.5px;height:calc(17svh + 13px);margin:0 auto;background:#d6d0c3;position:relative;z-index:4}
 .disc{position:relative;width:260px;height:260px;margin-top:-13px}
 .back,.front{position:absolute;inset:0;border-radius:50%}
-.back{background:#7590a3;background-image:var(--grain);transform:translate(14px,10px) rotate(8deg)}
+.back{background-image:var(--grain);transform-origin:130px 13px}
+.back.a{background-color:#5f7789;transform:rotate(11deg)}
+.back.b{background-color:#93a7b5;transform:rotate(-7deg)}
 .front{background:var(--sheet);background-image:var(--grain)}
 .win{position:absolute;inset:26px;border-radius:50%;overflow:hidden;background:var(--photo,linear-gradient(160deg,#dfe6ea,#a9bbc7 55%,#7590a3)) center/cover}
 .front svg{position:absolute;inset:0;width:100%;height:100%}
@@ -41,7 +43,7 @@ body{background:#d9d6cf;padding:28px;font-family:"LXGW Heart Serif",serif}
   <div class="tag">
     <div class="string"></div>
     <div class="disc">
-      <div class="back"></div>
+      <div class="back a"></div><div class="back b"></div>
       <div class="front">
         <div class="win"></div>
         <svg viewBox="0 0 260 260">
