@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 import express from "express";
 import { ChatFiles, MAX_FILE_SIZE } from "../server/src/chatFiles.ts";
 import { fileRoutes } from "../server/src/fileRoutes.ts";
-import { WorkspaceFiles } from "../server/src/workspaceFiles.ts";
+import { prepareConversationWorkspace, WorkspaceFiles } from "../server/src/workspaceFiles.ts";
 import {
   apiRequestMessages,
   API_FORMAT_REMINDER,
@@ -284,7 +284,7 @@ test("不支持图片时保留服务商原因，不重发或丢弃图片", async
   assert.equal(requests.length, 1);
 });
 
-test("Codex 输入复制到工作目录，命令写入和补丁修改都保存独立快照", async (t) => {
+test("每轮快照只收集新建和修改的文件，排除旧文件与上传原件", async (t) => {
   const { files, workspace, directory } = await fixture(t);
   const input = await files.save(
     "c1",
@@ -305,22 +305,26 @@ test("Codex 输入复制到工作目录，命令写入和补丁修改都保存�
   assert.equal(await readFile(inputPath, "utf8"), "original input");
   const existing = path.join(workspace, "existing.txt");
   await writeFile(existing, "before");
-  const capture = new WorkspaceFiles(workspace);
-  t.after(() => capture.close());
-  await writeFile(existing, "after");
-  capture.add(["existing.txt", existing]);
   await mkdir(path.join(workspace, "new-folder"));
+  await writeFile(path.join(workspace, "new-folder", "old.txt"), "old output");
+  const removed = path.join(workspace, "removed.txt");
+  await writeFile(removed, "will be deleted");
+  const capture = await WorkspaceFiles.start(workspace);
+  await writeFile(existing, "after");
+  await rm(removed);
   await writeFile(
     path.join(workspace, "new-folder", "hello.html"),
     "<p>new</p>",
   );
   await writeFile(inputPath, "edited input");
-  await new Promise((resolve) => setTimeout(resolve, 80));
+  await files.codexPrompt("c1", workspace, "", [(await files.save("c1", "late.txt", Buffer.from("late upload"))).id]);
   const outputs = await capture.finish(files, "c1", "turn-files");
   assert.deepEqual(
     outputs.map((file) => file.name).sort(),
-    ["existing.txt", "hello.html", "设计.md"].sort(),
+    ["existing.txt", "hello.html"].sort(),
   );
+  const next = await WorkspaceFiles.start(workspace);
+  assert.deepEqual(await next.finish(files, "c1", "unchanged-turn"), []);
   await writeFile(existing, "next turn");
   const output = await files.get(
     "c1",
@@ -337,6 +341,33 @@ test("Codex 输入复制到工作目录，命令写入和补丁修改都保存�
   assert.equal(await readFile(copied.path, "utf8"), "original input");
   const copiedOutput = await files.get("branch", output.file.id);
   assert.equal(await readFile(copiedOutput.path, "utf8"), "after");
+});
+
+test("各对话目录独立，修改时间或大小变化都能生成票根", async (t) => {
+  const { files, workspace } = await fixture(t);
+  await writeFile(path.join(workspace, "legacy.txt"), "shared old file");
+  const first = await prepareConversationWorkspace(workspace, "c1");
+  const second = await prepareConversationWorkspace(workspace, "c2");
+  assert.deepEqual(await readdir(first), []);
+  assert.deepEqual(await readdir(second), []);
+  const changedTime = path.join(first, "mtime.txt");
+  const changedSize = path.join(first, "size.txt");
+  await writeFile(changedTime, "old");
+  await writeFile(changedSize, "old");
+  const originalTime = new Date("2025-01-01T00:00:00Z");
+  await utimes(changedTime, originalTime, originalTime);
+  await utimes(changedSize, originalTime, originalTime);
+  const capture = await WorkspaceFiles.start(first);
+  const other = await WorkspaceFiles.start(second);
+  await writeFile(changedTime, "new");
+  await utimes(changedTime, originalTime, new Date("2025-01-02T00:00:00Z"));
+  await writeFile(changedSize, "different size");
+  await utimes(changedSize, originalTime, originalTime);
+  await writeFile(path.join(second, "other.txt"), "other conversation");
+  assert.deepEqual((await capture.finish(files, "c1", "turn-1")).map(file => file.name).sort(), ["mtime.txt", "size.txt"]);
+  assert.deepEqual((await other.finish(files, "c2", "turn-2")).map(file => file.name), ["other.txt"]);
+  assert.equal(await prepareConversationWorkspace(workspace, "c1"), first);
+  assert.equal((await stat(changedTime)).isFile(), true);
 });
 
 test("只发文件、重载、分支和导出都保留票根，导出不带内容或下载路径", async () => {

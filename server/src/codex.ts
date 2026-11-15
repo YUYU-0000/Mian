@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
+import path from "node:path";
 import type {
   AppConfig,
   ConversationRuntimeMetadata,
@@ -672,10 +673,10 @@ export class CodexBridge extends EventEmitter {
     };
   }
 
-  private threadOptions() {
+  private threadOptions(conversationId: string) {
     if (!this.config) throw new Error("尚未连接 Codex");
     return {
-      cwd: this.config.workingDirectory,
+      cwd: path.join(this.config.workingDirectory, conversationId),
       sandbox: this.config.sandbox,
       model: this.config.model || null,
       approvalPolicy: "on-request",
@@ -711,7 +712,7 @@ export class CodexBridge extends EventEmitter {
         try {
           result = await this.request("thread/resume", {
             threadId: existingThreadId,
-            ...this.threadOptions(),
+            ...this.threadOptions(conversationId),
             excludeTurns: true,
           });
         } catch (error) {
@@ -719,13 +720,13 @@ export class CodexBridge extends EventEmitter {
             throw error;
           // 旧空线程尚无记录，只替换当前会话的失效绑定。
           result = await this.request("thread/start", {
-            ...this.threadOptions(),
+            ...this.threadOptions(conversationId),
             ephemeral: false,
           });
         }
       } else
         result = await this.request("thread/start", {
-          ...this.threadOptions(),
+          ...this.threadOptions(conversationId),
           ephemeral: false,
         });
       const binding = this.threadBinding(result);
@@ -748,23 +749,26 @@ export class CodexBridge extends EventEmitter {
     return operation;
   }
 
-  async createConversationThread() {
+  async createConversationThread(conversationId: string) {
     if (!this.current || this.lifecycleState !== "ready" || !this.config)
       throw new Error("尚未连接 Codex");
     const result = (await this.request("thread/start", {
-      ...this.threadOptions(),
+      ...this.threadOptions(conversationId),
       ephemeral: false,
     })) as any;
     const binding = this.threadBinding(result);
     return binding;
   }
 
-  async forkConversationThread(parentConversationId: string) {
+  async forkConversationThread(
+    parentConversationId: string,
+    conversationId: string,
+  ) {
     const parentThreadId =
       await this.ensureConversationThread(parentConversationId);
     const result = (await this.request("thread/fork", {
       threadId: parentThreadId,
-      ...this.threadOptions(),
+      ...this.threadOptions(conversationId),
       ephemeral: false,
       excludeTurns: true,
     })) as any;
@@ -817,6 +821,7 @@ export class CodexBridge extends EventEmitter {
       const threadId = await this.ensureConversationThread(conversationId);
       const result = (await this.request("turn/start", {
         threadId,
+        cwd: path.join(this.config.workingDirectory, conversationId),
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
           [MIAN_PUBLIC_REPLY_CONTEXT_KEY]: {

@@ -11,7 +11,10 @@ import { ApiChat } from "./apiChat.js";
 import { ChatFiles } from "./chatFiles.js";
 import { fileRoutes } from "./fileRoutes.js";
 import { settingsRoutes } from "./settingsRoutes.js";
-import { WorkspaceFiles } from "./workspaceFiles.js";
+import {
+  prepareConversationWorkspace,
+  WorkspaceFiles,
+} from "./workspaceFiles.js";
 import { readChannel, requirePreset } from "./apiPresets.js";
 import { CodexBridge } from "./codex.js";
 import { ConversationRegistry } from "./conversations.js";
@@ -69,7 +72,6 @@ app.use(
       for (const record of previous)
         bridge.forgetConversation(record.conversationId);
       bridge.restoreConversationThreads(conversations.list());
-      for (const capture of workspaceFiles.values()) capture.close();
       workspaceFiles.clear();
       eventBuffer.length = 0;
       channel = await readChannel();
@@ -239,12 +241,6 @@ bridge.on("event", (event: any) => {
     scheduleConversationActivity(event.conversationId);
 });
 bridge.on(
-  "files-changed",
-  ({ conversationId, paths }: { conversationId: string; paths: string[] }) => {
-    workspaceFiles.get(conversationId)?.add(paths);
-  },
-);
-bridge.on(
   "thread",
   ({
     conversationId,
@@ -316,20 +312,22 @@ app.get("/api/conversations", (_request, response) =>
 app.post("/api/conversations", async (_request, response) => {
   try {
     const config = await readConfig();
+    const conversationId = randomUUID();
+    await prepareConversationWorkspace(config.workingDirectory, conversationId);
     if (config.channel.kind === "api") {
       const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.createRoot({
-        threadId: null,
-        metadata: { model: preset.model },
-      });
+      const conversation = await conversations.createRoot(
+        { threadId: null, metadata: { model: preset.model } },
+        conversationId,
+      );
       bridge.restoreConversationThreads([conversation]);
       publishConversation(conversation);
       response.status(201).json({ conversation });
       return;
     }
     await bridge.connect(await readConfig());
-    const binding = await bridge.createConversationThread();
-    const conversation = await conversations.createRoot(binding);
+    const binding = await bridge.createConversationThread(conversationId);
+    const conversation = await conversations.createRoot(binding, conversationId);
     bridge.registerConversationThread(
       conversation.conversationId,
       binding.threadId,
@@ -345,6 +343,8 @@ app.post("/api/conversations/:id/fork", async (request, response) => {
   try {
     conversations.require(request.params.id);
     const config = await readConfig();
+    const conversationId = randomUUID();
+    await prepareConversationWorkspace(config.workingDirectory, conversationId);
     if (config.channel.kind === "api") {
       if (
         bridge.isConversationBusy(request.params.id) ||
@@ -352,14 +352,18 @@ app.post("/api/conversations/:id/fork", async (request, response) => {
       )
         throw new Error("当前会话仍在运行或等待权限处理");
       const preset = await requirePreset(config.channel.presetId);
-      const conversation = await conversations.createBranch(request.params.id, {
-        threadId: null,
-        metadata: {
-          model: preset.model,
-          reasoningEffort: null,
-          collaborationMode: null,
+      const conversation = await conversations.createBranch(
+        request.params.id,
+        {
+          threadId: null,
+          metadata: {
+            model: preset.model,
+            reasoningEffort: null,
+            collaborationMode: null,
+          },
         },
-      });
+        conversationId,
+      );
       await files.copyConversation(
         request.params.id,
         conversation.conversationId,
@@ -370,10 +374,18 @@ app.post("/api/conversations/:id/fork", async (request, response) => {
       return;
     }
     await bridge.connect(await readConfig());
-    const binding = await bridge.forkConversationThread(request.params.id);
+    await prepareConversationWorkspace(
+      config.workingDirectory,
+      request.params.id,
+    );
+    const binding = await bridge.forkConversationThread(
+      request.params.id,
+      conversationId,
+    );
     const conversation = await conversations.createBranch(
       request.params.id,
       binding,
+      conversationId,
     );
     await files.copyConversation(
       request.params.id,
@@ -489,19 +501,22 @@ app.post("/api/turn", async (request, response) => {
       return;
     }
     await bridge.connect(config);
+    const workspace = await prepareConversationWorkspace(
+      config.workingDirectory,
+      conversationId,
+    );
     const prompt = await files.codexPrompt(
       conversationId,
-      config.workingDirectory,
+      workspace,
       request.body.text.trim(),
       request.body.files ?? [],
     );
-    const capture = new WorkspaceFiles(config.workingDirectory);
+    const capture = await WorkspaceFiles.start(workspace);
     workspaceFiles.set(conversationId, capture);
     let result;
     try {
       result = await bridge.startTurn(prompt, conversationId);
     } catch (error) {
-      capture.close();
       workspaceFiles.delete(conversationId);
       throw error;
     }
@@ -569,7 +584,6 @@ server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
         console.log(`Mian LAN: http://${address.address}:${port}`);
 });
 const shutdown = () => {
-  for (const capture of workspaceFiles.values()) capture.close();
   apiChat.close();
   bridge.close();
   server.close();

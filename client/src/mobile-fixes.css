@@ -414,6 +414,10 @@
 .archive-tool-step.archive-pop-in {
   animation-duration: 0.3s;
 }
+.ft.archive-pop-in {
+  animation-fill-mode: both;
+  transform-origin: left bottom;
+}
 .archive-msg[data-role="user"] .archive-msg-head,
 .archive-msg[data-role="user"] .archive-bubble {
   transform-origin: right bottom;

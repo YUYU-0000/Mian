@@ -3,6 +3,7 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import test from "node:test";
+import path from "node:path";
 import {
   CodexBridge,
   type AppServerSpawner,
@@ -344,6 +345,8 @@ test("different conversation ids own different Codex threads and turns", async (
   });
   assert.equal((turnStarts[0].params as any).threadId, first.threadId);
   assert.equal((turnStarts[1].params as any).threadId, second.threadId);
+  assert.equal((turnStarts[0].params as any).cwd, path.join(baseConfig.workingDirectory, "c1"));
+  assert.equal((turnStarts[1].params as any).cwd, path.join(baseConfig.workingDirectory, "c2"));
   bridge.close();
 });
 
@@ -375,7 +378,7 @@ test("a fresh conversation shares one in-flight thread initialization", async ()
 
   const [started, forked] = await Promise.all([
     bridge.startTurn("first message", "fresh"),
-    bridge.forkConversationThread("fresh"),
+    bridge.forkConversationThread("fresh", "fresh-branch"),
   ]);
   const threadStarts = children[0].requests.filter(
     (request) => request.method === "thread/start",
@@ -449,7 +452,7 @@ test("a branch uses the official thread/fork method and keeps its own thread", a
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
   const parent = await bridge.startTurn("parent", "c1");
-  const forked = await bridge.forkConversationThread("c1");
+  const forked = await bridge.forkConversationThread("c1", "branch-1");
   bridge.registerConversationThread("branch-1", forked.threadId);
   const branch = await bridge.startTurn("branch", "branch-1");
 
@@ -459,6 +462,7 @@ test("a branch uses the official thread/fork method and keeps its own thread", a
   assert.ok(forkRequest);
   assert.equal((forkRequest.params as any).threadId, parent.threadId);
   assert.equal((forkRequest.params as any).ephemeral, false);
+  assert.equal((forkRequest.params as any).cwd, path.join(baseConfig.workingDirectory, "branch-1"));
   assert.equal(branch.threadId, forked.threadId);
   assert.deepEqual(forked.metadata, {
     model: "gpt-forked",
@@ -471,7 +475,7 @@ test("a branch uses the official thread/fork method and keeps its own thread", a
 test("archiving uses official thread/archive and removes runtime only after commit", async () => {
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
-  const original = await bridge.createConversationThread();
+  const original = await bridge.createConversationThread("c2");
   const originalThreadId = original.threadId;
   bridge.registerConversationThread("c2", originalThreadId);
 
@@ -502,7 +506,7 @@ test("a conversation without a thread can commit locally without connecting or i
 test("an empty thread with no rollout is already absent remotely and may commit locally", async () => {
   const { bridge, children } = bridgeFixture();
   await bridge.connect(baseConfig);
-  const binding = await bridge.createConversationThread();
+  const binding = await bridge.createConversationThread("c2");
   bridge.registerConversationThread("c2", binding.threadId);
   children[0].threadArchiveFailures = 1;
 
@@ -538,7 +542,7 @@ test("an active or approval-blocked conversation cannot be archived", async () =
 
   const approvalFixture = bridgeFixture();
   await approvalFixture.bridge.connect(baseConfig);
-  const binding = await approvalFixture.bridge.createConversationThread();
+  const binding = await approvalFixture.bridge.createConversationThread("c3");
   const threadId = binding.threadId;
   approvalFixture.bridge.registerConversationThread("c3", threadId);
   const request = (

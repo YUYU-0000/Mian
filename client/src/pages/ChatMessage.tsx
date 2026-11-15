@@ -236,6 +236,7 @@ const replyHeaderAnimationId = (replyGroupId: string) =>
   `reply-head:${replyGroupId}`;
 const preToolAnimationId = (bubbleId: string) => `pre-tool:${bubbleId}`;
 const bubbleAnimationId = (bubbleId: string) => `bubble:${bubbleId}`;
+const fileAnimationId = (fileId: string) => `file:${fileId}`;
 const toolAnimationId = (replyGroupId: string, toolId: string) =>
   `tool:${replyGroupId}:${toolId}`;
 
@@ -252,6 +253,7 @@ export function collectHistoricalAnimationIds(
     ids.add(replyHeaderAnimationId(group.replyGroupId));
     for (const id of group.preToolBubbleIds) ids.add(preToolAnimationId(id));
     for (const id of group.bubbleIds) ids.add(bubbleAnimationId(id));
+    for (const file of group.files ?? []) ids.add(fileAnimationId(file.id));
     for (const tool of group.tools)
       ids.add(toolAnimationId(group.replyGroupId, tool.id));
   }
@@ -443,11 +445,16 @@ export default memo(function ChatMessage({
               ))}
             {message.status &&
               activeTurnId !== message.replyGroupId &&
-              message.files?.map((file) => (
+              message.files?.map((file, index) => (
                 <FileTicket
                   key={file.id}
                   file={file}
                   conversationId={session.conversationId}
+                  entryDelayMs={
+                    historicalAnimationIds.has(fileAnimationId(file.id))
+                      ? undefined
+                      : index * 80
+                  }
                 />
               ))}
             {message.approvals.map((approval) => (

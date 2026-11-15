@@ -194,13 +194,14 @@ export class ConversationRegistry {
     binding: Omit<ConversationThreadBinding, "threadId"> & {
       threadId: string | null;
     },
+    conversationId: string = randomUUID(),
   ) {
     const rootNumber =
       Math.max(0, ...this.records.map((record) => record.rootNumber)) + 1;
     const number = String(rootNumber).padStart(2, "0");
     const timestamp = now();
     const record: ConversationRecord = {
-      conversationId: randomUUID(),
+      conversationId,
       threadId: binding.threadId,
       parentConversationId: null,
       rootNumber,
@@ -228,6 +229,7 @@ export class ConversationRegistry {
     binding: Omit<ConversationThreadBinding, "threadId"> & {
       threadId: string | null;
     },
+    conversationId: string = randomUUID(),
   ) {
     const parent = this.require(parentConversationId);
     parent.branchCounter += 1;
@@ -240,7 +242,7 @@ export class ConversationRegistry {
     const timestamp = now();
     const record: ConversationRecord = {
       ...parent,
-      conversationId: randomUUID(),
+      conversationId,
       threadId: binding.threadId,
       parentConversationId,
       branchPath,
