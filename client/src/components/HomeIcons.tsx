@@ -6,6 +6,22 @@ export const ChatGlyph = () => (
     <line x1="6.5" y1="11.9" x2="11.5" y2="11.9" />
   </svg>
 );
+export const ClueGlyph = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 6.6C10.2 5.3 7.7 4.7 4.6 4.9a.9.9 0 0 0-.8.9v11.3a.9.9 0 0 0 1 .9c3-.2 5.4.4 7.2 1.6c1.8-1.2 4.2-1.8 7.2-1.6a.9.9 0 0 0 1-.9V5.8a.9.9 0 0 0-.8-.9c-3.1-.2-5.6.4-7.4 1.7Z" />
+    <path d="M12 6.6v12.3" />
+    <path d="M6.6 8.7c1.2 0 2.3.3 3.1.7M6.6 11.7c1.2 0 2.3.3 3.1.7M17.4 8.7c-1.2 0-2.3.3-3.1.7M17.4 11.7c-1.2 0-2.3.3-3.1.7" />
+  </svg>
+);
 export const House = () => (
   <svg
     className="home-icon"

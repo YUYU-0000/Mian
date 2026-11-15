@@ -197,26 +197,42 @@
   bottom: 26px;
   background: linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396);
 }
-.clues-page .portrait .ft {
+.clues-page .portrait .portrait-caption {
   position: absolute;
   left: 8px;
   right: 8px;
   bottom: 8px;
+}
+.clues-page .portrait .caption-line {
+  --caption-scale: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: 4px;
+  width: calc(100% / var(--caption-scale));
+  transform: scale(var(--caption-scale));
+  transform-origin: left bottom;
+  white-space: nowrap;
 }
-.clues-page .portrait .ft span:first-child {
+.clues-page .portrait .caption-line > span {
+  flex: none;
+}
+.clues-page .portrait .portrait-caption span:first-child {
   font-family: var(--en);
   font-weight: 500;
-  font-size: 5.5px;
+  font-size: calc(var(--portrait-width) * 0.05);
   letter-spacing: 2px;
   color: var(--muted);
 }
-.clues-page .portrait .ft span:last-child {
+.clues-page .portrait .portrait-caption span:last-child {
   font-family: "ZSFT-l", cursive;
-  font-size: 16px;
-  line-height: 0.8;
+  font-size: calc(var(--portrait-width) * 0.15);
+  line-height: 1;
+  padding: 0.12em 0.2em;
+}
+.clues-page .portrait .portrait-caption i {
+  display: block;
+  font-style: normal;
   transform: rotate(-6deg);
 }
 .clues-page svg.threads {
@@ -276,21 +292,8 @@
   height: 24px;
   overflow: visible;
 }
-.clues-page .pin .ring {
-  fill: none;
-  stroke: var(--thread);
-  stroke-width: 1.1;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.clues-page .pin.sel .ring {
-  opacity: 1;
-  animation: clue-breathe 1.6s ease-in-clue-out infinite;
-}
-@keyframes clue-breathe {
-  50% {
-    opacity: 0.45;
-  }
+.clues-page .pin.sel:after {
+  box-shadow: 0 0 0 1.5px #fff, 0 1px 3px rgba(0, 0, 0, .25);
 }
 .clues-page .pin .prog {
   fill: none;

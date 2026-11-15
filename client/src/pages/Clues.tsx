@@ -3,6 +3,7 @@ import type { Clue } from "../clueTypes";
 import { createId } from "../id";
 import { notify } from "../components/Notify";
 import CluePaper from "./clues/CluePaper";
+import PortraitCaption from "./clues/PortraitCaption";
 import ClueEnvelope from "./clues/ClueEnvelope";
 import ClueSheet from "./clues/ClueSheet";
 import { useClueWall } from "./clues/useClueWall";
@@ -193,10 +194,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                       {portrait ? (
                         <>
                           <div className="ph" />
-                          <div className="ft">
-                            <span>彼方肖像</span>
-                            <span>Mian</span>
-                          </div>
+                          <PortraitCaption width={item.w} height={item.h} />
                         </>
                       ) : (
                         <CluePaper
@@ -259,7 +257,6 @@ export default function Clues({ onBack }: { onBack: () => void }) {
                   }
                 >
                   <svg aria-hidden="true">
-                    <circle className="ring" cx="12" cy="12" r="8.5" />
                     <circle className="prog" cx="12" cy="12" r="7.6" />
                   </svg>
                 </div>

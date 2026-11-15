@@ -1,4 +1,4 @@
-import { ChatGlyph, House, DockHouse, DockSliders } from "../components/HomeIcons";
+import { ChatGlyph, ClueGlyph, House, DockHouse, DockSliders } from "../components/HomeIcons";
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import type { ConnectionStatus } from "../types";
@@ -95,10 +95,7 @@ export default function Home({
             </button>
             <div className="home-label lbl-1">CHAT</div>
             <button className="home-app-icon icon-2 bg-2" aria-label="線索" onClick={onClues}>
-              <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-                <rect x="5" y="3" width="18" height="22" rx="2" />
-                <path d="M9 9h10M9 14h10M9 19h6" />
-              </svg>
+              <ClueGlyph />
             </button>
             <div className="home-label lbl-2">線索</div>
             <Icon className="icon-3 bg-3" />
