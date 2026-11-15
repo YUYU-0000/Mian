@@ -1,4 +1,4 @@
-export type ApiFormat = "openai";
+type ApiFormat = "openai";
 export type ProviderConfig = {
   endpoint: string;
   key: string;
@@ -11,20 +11,32 @@ export type ContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string } };
 export type ChatMessage = {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string | ContentPart[];
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+};
+export type ToolCall = {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+};
+export type ChatTool = {
+  type: "function";
+  function: { name: string; description: string; parameters: object };
 };
 export type TokenUsage = { totalTokens: number; uncachedTotalTokens: number };
 export type CompletionEvent =
   | { type: "text"; text: string; immediate?: boolean }
-  | { type: "usage"; usage: TokenUsage };
+  | { type: "usage"; usage: TokenUsage }
+  | { type: "tool-calls"; calls: ToolCall[] };
 
 // 仅使用 Web API，供服务端和手机端共用。
 export function providerMessage(message: string) {
   return message.replace(/\s+/g, " ").trim();
 }
 
-class ProviderError extends Error {
+export class ProviderError extends Error {
   constructor(
     readonly detail: string,
     readonly status: number,
@@ -80,8 +92,9 @@ export async function providerJson(
   config: ProviderConfig,
   resource: string,
   body?: object,
+  signal?: AbortSignal,
 ) {
-  const response = await providerResponse(config, resource, body);
+  const response = await providerResponse(config, resource, body, signal);
   const result = await response.json();
   if (result.error) throw responseError(result, response.status);
   return result;
@@ -112,6 +125,7 @@ function unsupported(error: unknown, field: string) {
 
 async function* readCompletion(
   response: Response,
+  withTools: boolean,
 ): AsyncGenerator<CompletionEvent> {
   const visible = new VisibleContent();
   if (!response.headers.get("content-type")?.includes("text/event-stream")) {
@@ -121,6 +135,8 @@ async function* readCompletion(
       visible.push(body.choices?.[0]?.message?.content ?? "") +
       visible.finish();
     if (text) yield { type: "text", text, immediate: true };
+    const calls = body.choices?.[0]?.message?.tool_calls;
+    if (withTools && calls?.length) yield { type: "tool-calls", calls };
     const usage = readUsage(body.usage);
     if (usage) yield { type: "usage", usage };
     return;
@@ -130,6 +146,7 @@ async function* readCompletion(
   let buffer = "";
   let finished = false;
   let done = false;
+  const calls = new Map<number, ToolCall>();
   const parse = function* (frame: string): Generator<CompletionEvent> {
     const data = frame
       .split(/\r?\n/)
@@ -145,7 +162,23 @@ async function* readCompletion(
     if (body.error) throw responseError(body, 400);
     const choice = body.choices?.[0];
     if (choice?.finish_reason) finished = true;
-    // reasoning_content 和 tool_calls 不进入正文。
+    if (withTools) {
+      for (const part of choice?.delta?.tool_calls ?? []) {
+        let call = calls.get(part.index);
+        if (!call) {
+          call = {
+            id: "",
+            type: "function",
+            function: { name: "", arguments: "" },
+          };
+          calls.set(part.index, call);
+        }
+        if (part.id) call.id = part.id;
+        call.function.name += part.function?.name ?? "";
+        call.function.arguments += part.function?.arguments ?? "";
+      }
+    }
+    // reasoning_content 不进入正文，工具调用单独返回给后端。
     if (choice?.delta?.content) {
       const text = visible.push(choice.delta.content);
       if (text) yield { type: "text", text };
@@ -172,6 +205,11 @@ async function* readCompletion(
     if (!done && !finished) throw new Error("服務商連線中斷，回覆尚未完成。");
     const tail = visible.finish();
     if (tail) yield { type: "text", text: tail };
+    if (calls.size)
+      yield {
+        type: "tool-calls",
+        calls: [...calls].sort(([a], [b]) => a - b).map(([, call]) => call),
+      };
   } finally {
     await reader.cancel();
     reader.releaseLock();
@@ -182,8 +220,9 @@ export async function* completeChat(
   config: ProviderConfig,
   messages: ChatMessage[],
   signal: AbortSignal,
+  tools?: ChatTool[],
 ): AsyncGenerator<CompletionEvent> {
-  const body = { model: config.model, messages };
+  const body = { model: config.model, messages, tools };
   let emitted = false;
   try {
     let response: Response;
@@ -199,6 +238,8 @@ export async function* completeChat(
         signal,
       );
     } catch (error) {
+      if (tools && error instanceof ProviderError && error.status === 400)
+        throw error;
       if (!unsupported(error, "stream_options")) throw error;
       response = await providerResponse(
         config,
@@ -207,11 +248,13 @@ export async function* completeChat(
         signal,
       );
     }
-    for await (const event of readCompletion(response)) {
+    for await (const event of readCompletion(response, Boolean(tools))) {
       emitted = true;
       yield event;
     }
   } catch (error) {
+    if (tools && error instanceof ProviderError && error.status === 400)
+      throw error;
     // 仅在明确不支持流式且尚未输出时重发，避免重复生成。
     if (emitted || signal.aborted || !unsupported(error, "stream")) throw error;
     const response = await providerResponse(
@@ -220,6 +263,6 @@ export async function* completeChat(
       { ...body, stream: false },
       signal,
     );
-    yield* readCompletion(response);
+    yield* readCompletion(response, Boolean(tools));
   }
 }

@@ -17,7 +17,7 @@ import type {
 import ArchiveRibbonTitle from "../components/ArchiveRibbonTitle";
 import TicketDrawer from "../components/TicketDrawer";
 import ChatMessage, { collectHistoricalAnimationIds } from "./ChatMessage";
-import FileTicket from "../components/FileTicket";
+import FileDraftTicket from "../components/FileDraftTicket";
 import { notify } from "../components/Notify";
 
 export default function Chat({
@@ -460,24 +460,12 @@ export default function Chat({
         {attachments.length > 0 && (
           <div className="file-drafts">
             {attachments.map((draft) => (
-              <div className="file-draft" key={draft.draftId}>
-                <FileTicket
-                  file={draft.file}
-                  conversationId={session.conversationId}
-                  mine
-                  pending
-                  previewUrl={draft.previewUrl}
-                  progress={draft.uploaded ? undefined : draft.progress}
-                />
-                <button
-                  type="button"
-                  className="file-draft-remove"
-                  aria-label={`移除 ${draft.file.name}`}
-                  onClick={() => session.attachments.remove(draft.draftId)}
-                >
-                  ×
-                </button>
-              </div>
+              <FileDraftTicket
+                key={draft.draftId}
+                draft={draft}
+                conversationId={session.conversationId}
+                onRemove={() => session.attachments.remove(draft.draftId)}
+              />
             ))}
           </div>
         )}

@@ -1,4 +1,11 @@
 import { Router } from "express";
+import {
+  migrateClues,
+  parseClue,
+  readClues,
+  writeClues,
+  type ClueWall,
+} from "./clues.js";
 import { readConfig, saveConfig } from "./config.js";
 import { readPresets, writePresets, type ApiPreset } from "./apiPresets.js";
 import {
@@ -14,6 +21,9 @@ import {
   type ConversationRegistry,
 } from "./conversations.js";
 import type { AppConfig, ConversationRecord } from "./types.js";
+import type { ConversationMessages } from "./messages.js";
+import type { ChatFiles, BackupFile } from "./chatFiles.js";
+import type { ChatGroup } from "../../shared/chatModel.mjs";
 
 type Backup = {
   format: "mian-backup";
@@ -21,8 +31,10 @@ type Backup = {
   config: AppConfig;
   apiPresets: Omit<ApiPreset, "key">[];
   fonts: FontSettings;
+  clues: ClueWall;
   conversations: ConversationRecord[];
-  chats: Record<string, unknown[]>;
+  chats: Record<string, ChatGroup[]>;
+  files?: BackupFile[];
   preferences: Record<string, string | null>;
 };
 
@@ -100,6 +112,7 @@ function parseBackup(value: Backup): Backup {
       endpoint: preset.endpoint,
       model: preset.model,
       format: preset.format,
+      toolsUnsupported: preset.toolsUnsupported,
     };
   });
   const channel = value.config.channel;
@@ -132,11 +145,14 @@ function parseBackup(value: Backup): Backup {
     new Set(presets.map((preset) => preset.id)).size !== presets.length
   )
     throw invalidBackup();
+  const clues = migrateClues(value.clues);
+  clues.cards = clues.cards.map(parseClue);
   return {
     ...value,
     apiPresets: presets,
     conversations,
     fonts: fontSettings(value.fonts),
+    clues,
   };
 }
 
@@ -144,6 +160,8 @@ export function settingsRoutes(
   conversations: ConversationRegistry,
   beforeImport: () => Promise<void>,
   afterImport: (previous: ConversationRecord[]) => Promise<void>,
+  messages: ConversationMessages,
+  files: ChatFiles,
 ) {
   const router = Router();
   router.get("/font-presets", async (_request, response) => {
@@ -166,23 +184,30 @@ export function settingsRoutes(
     }
   });
   router.get("/backup", async (_request, response) => {
-    const [config, { presets }, fonts] = await Promise.all([
+    const [config, { presets }, fonts, clues] = await Promise.all([
       readConfig(),
       readPresets(),
       readFontSettings(),
+      readClues(),
     ]);
+    const ids = conversations.list().map(record => record.conversationId);
+    const chats = await messages.export(ids);
     response.json({
       format: "mian-backup",
       version: 1,
       config,
       fonts,
+      clues,
+      chats,
+      files: await files.export(ids),
       // 金钥和提示前缀都不进入备份。
-      apiPresets: presets.map(({ id, note, endpoint, model, format }) => ({
+      apiPresets: presets.map(({ id, note, endpoint, model, format, toolsUnsupported }) => ({
         id,
         note,
         endpoint,
         model,
         format,
+        toolsUnsupported,
       })),
       conversations: conversations
         .list()
@@ -208,7 +233,14 @@ export function settingsRoutes(
         })),
       });
       await writeFontSettings(backup.fonts);
+      await writeClues(backup.clues);
       await conversations.replace(backup.conversations);
+      await files.restore(backup.files ?? []);
+      for (const record of previous)
+        if (!backup.conversations.some(item => item.conversationId === record.conversationId))
+          await messages.remove(record.conversationId);
+      for (const record of backup.conversations)
+        await messages.replace(record.conversationId, backup.chats[record.conversationId]);
       await afterImport(previous);
       response.json({ ok: true });
     } catch (error) {

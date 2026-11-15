@@ -6,8 +6,8 @@ import {
   saveChatGroups,
   type ChatGroup,
   type ReplyGroup,
-} from "../client/src/chatModel.ts";
-import { parsePublicReply } from "../client/src/replyProtocol.ts";
+} from "../shared/chatModel.mjs";
+import { parsePublicReply } from "../shared/replyProtocol.mjs";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
 import {
   isToolTimelineVisible,

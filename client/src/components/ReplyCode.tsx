@@ -1,10 +1,13 @@
 import { lazy, memo, Suspense, useState } from "react";
 import type { ReplyCode as Code } from "../replyMarkup";
+import { cacheLazyImport } from "../lazyImport";
 import HtmlPreview from "./HtmlPreview";
 import { notify } from "./Notify";
 
 // 第一段代码出现时才下载高亮器，加载期间保留完整代码。
-const CodeHighlight = lazy(() => import("./CodeHighlight"));
+const CodeHighlight = lazy(
+  cacheLazyImport("code-highlight", () => import("./CodeHighlight")),
+);
 
 // 局域网 HTTP 没有 Clipboard API，使用浏览器复制命令。
 async function copyCode(text: string) {

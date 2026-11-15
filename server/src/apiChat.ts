@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { apiRequestMessages } from "./apiPrompt.js";
+import { completeClueChat, type ApiClues } from "./clueChat.js";
 import {
-  completeChat,
   providerMessage,
   type ChatMessage,
   type ProviderConfig,
@@ -47,6 +46,7 @@ export class ApiChat {
     config: ProviderConfig,
     messages: ChatMessage[],
     localTime = `現在是 ${new Date().toLocaleString("zh-CN", { dateStyle: "full", timeStyle: "short", hour12: false })}`,
+    clues?: ApiClues,
   ) {
     if (this.isBusy(conversationId))
       throw new Error("当前会话已有正在运行的 turn");
@@ -58,12 +58,7 @@ export class ApiChat {
       turnId: turn.turnId,
       format: "api",
     });
-    void this.run(
-      conversationId,
-      turn,
-      config,
-      apiRequestMessages(messages, localTime),
-    );
+    void this.run(conversationId, turn, config, messages, localTime, clues);
     return { conversationId, turnId: turn.turnId };
   }
 
@@ -83,6 +78,8 @@ export class ApiChat {
     turn: ActiveTurn,
     config: ProviderConfig,
     messages: ChatMessage[],
+    localTime: string,
+    clues?: ApiClues,
   ) {
     const base = {
       conversationId,
@@ -93,13 +90,15 @@ export class ApiChat {
     let error: string | undefined;
     let usage: TokenUsage | undefined;
     try {
-      for await (const event of completeChat(
+      for await (const event of completeClueChat(
         config,
         messages,
+        localTime,
         turn.controller.signal,
+        clues,
       )) {
         if (event.type === "usage") usage = event.usage;
-        else
+        else if (event.type === "text")
           this.emit({
             ...base,
             type: "assistant-delta",

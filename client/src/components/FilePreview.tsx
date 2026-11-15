@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { api } from "../api";
 import { pad2 } from "../format";
 import { fileLanguage, fitPhoto, type PreviewKind } from "../filePreview";
+import { cacheLazyImport } from "../lazyImport";
 import type { ChatFile } from "../types";
 import { HTML_PREVIEW_SANDBOX } from "./HtmlPreview";
 import ReplyMarkdown from "./DeferredReplyMarkdown";
@@ -24,12 +25,14 @@ export default function FilePreview({
   conversationId,
   kind,
   previewUrl,
+  onImageError,
   onClose,
 }: {
   file: ChatFile;
   conversationId: string;
   kind: PreviewKind;
   previewUrl?: string;
+  onImageError?: () => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState<string | null>(null);
@@ -45,9 +48,26 @@ export default function FilePreview({
   const loaded = image ? photo !== null : kind === "pdf" || text !== null;
   const ready = loaded && availableHeight !== null;
   const download = useRef<HTMLAnchorElement>(null);
-  const preview = usePaperPreview(ready, image, onClose, () => {
-    download.current!.click();
-    notify.ok("已保存");
+  const preview = usePaperPreview(ready, image, onClose, async () => {
+    try {
+      if (
+        previewUrl &&
+        new URL(previewUrl, location.href).origin !== location.origin
+      ) {
+        const response = await fetch(previewUrl, {
+          referrerPolicy: "no-referrer",
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const url = URL.createObjectURL(await response.blob());
+        download.current!.href = url;
+        download.current!.click();
+        download.current!.href = previewUrl;
+        URL.revokeObjectURL(url);
+      } else download.current!.click();
+      notify.ok("已保存");
+    } catch (error) {
+      notify.fail("保存失敗", error);
+    }
   });
   useLayoutEffect(() => {
     if (!loaded) return;
@@ -87,11 +107,13 @@ export default function FilePreview({
   }, [loaded, viewport.width, viewport.height]);
   const CodeHighlight = useMemo(
     () =>
-      lazy(async () => {
-        const module = await import("./CodeHighlight");
-        await module.loadFileLanguage(fileLanguage(file.name));
-        return module;
-      }),
+      lazy(
+        cacheLazyImport(`file-language:${fileLanguage(file.name)}`, async () => {
+          const module = await import("./CodeHighlight");
+          await module.loadFileLanguage(fileLanguage(file.name));
+          return module;
+        }),
+      ),
     [file.name],
   );
 
@@ -158,6 +180,7 @@ export default function FilePreview({
               <img
                 className="pv-photo"
                 src={previewUrl ?? api.fileUrl(conversationId, file.id, true)}
+                referrerPolicy="no-referrer"
                 alt={file.name}
                 draggable={false}
                 onLoad={(event) =>
@@ -167,7 +190,8 @@ export default function FilePreview({
                   })
                 }
                 onError={() => {
-                  notify.fail("圖片讀取失敗", "圖片無法載入。");
+                  if (onImageError) onImageError();
+                  else notify.fail("圖片讀取失敗", "圖片無法載入。");
                   onClose();
                 }}
               />

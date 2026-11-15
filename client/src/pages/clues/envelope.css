@@ -1,0 +1,342 @@
+/* 底部 */
+.clues-page .dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(140px * var(--kc) + 64px + var(--sb));
+  z-index: auto;
+  pointer-events: none;
+}
+.clues-page .tray {
+  position: absolute;
+  right: calc(46px + 178px * var(--kc));
+  bottom: calc(var(--sb) + 36px - 32px * var(--kc));
+  width: 108px;
+  height: 67px;
+  transform-origin: 100% 100%;
+  transform: rotate(3deg) scale(calc(var(--kc) * 0.84));
+  pointer-events: auto;
+  z-index: 9;
+  filter: drop-shadow(0 4px 8px rgba(30, 40, 50, 0.18))
+    drop-shadow(0 1px 1px rgba(30, 40, 50, 0.1));
+}
+.clues-page .st-lr {
+  position: absolute;
+  inset: 0;
+  -webkit-mask:
+    radial-gradient(circle 2.6px at 0 50%, #0000 97%, #000) 0 50%/51% 8px
+      repeat-y,
+    radial-gradient(circle 2.6px at 100% 50%, #0000 97%, #000) 100% 50%/51% 8px
+      repeat-y;
+  mask:
+    radial-gradient(circle 2.6px at 0 50%, #0000 97%, #000) 0 50%/51% 8px
+      repeat-y,
+    radial-gradient(circle 2.6px at 100% 50%, #0000 97%, #000) 100% 50%/51% 8px
+      repeat-y;
+}
+.clues-page .st-tb {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  background-image: var(--grain);
+  -webkit-mask:
+    radial-gradient(circle 2.6px at 50% 0, #0000 97%, #000) 50% 0/8px 51%
+      repeat-x,
+    radial-gradient(circle 2.6px at 50% 100%, #0000 97%, #000) 50% 100%/8px 51%
+      repeat-x;
+  mask:
+    radial-gradient(circle 2.6px at 50% 0, #0000 97%, #000) 50% 0/8px 51%
+      repeat-x,
+    radial-gradient(circle 2.6px at 50% 100%, #0000 97%, #000) 50% 100%/8px 51%
+      repeat-x;
+}
+.clues-page .st-t {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7px;
+  text-align: center;
+  font-family: "ZSFT-l", cursive;
+  font-size: 19px;
+  line-height: 1;
+  transform: rotate(-2deg);
+}
+.clues-page .st-t small {
+  font-family: var(--serif);
+  font-size: 6.5px;
+  letter-spacing: 1.6px;
+  margin-left: 4px;
+  vertical-align: 3px;
+}
+.clues-page .st-l,
+.clues-page .st-r {
+  position: absolute;
+  top: 35px;
+  font-family: var(--en);
+  font-style: italic;
+  font-size: 6px;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+}
+.clues-page .st-l {
+  left: 9px;
+}
+.clues-page .st-r {
+  right: 9px;
+}
+.clues-page .st-b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  text-align: center;
+  font-family: var(--en);
+  font-style: italic;
+  font-size: 6px;
+  letter-spacing: 0.6px;
+}
+.clues-page .tp {
+  position: absolute;
+  left: 50%;
+  top: 39px;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border: 1px solid rgba(59, 77, 90, 0.5);
+  border-radius: 0;
+  transform: rotate(45deg);
+  box-shadow:
+    0 0 0 1.6px var(--paper),
+    0 0 0 2.3px rgba(59, 77, 90, 0.3);
+}
+.clues-page .tp:before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2.8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.22);
+  filter: blur(0.6px);
+}
+.clues-page .tp:after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 35% 32%,
+      rgba(255, 255, 255, 0.6) 0 1.3px,
+      transparent 2px
+    ),
+    var(--ink);
+}
+.clues-page .pin-source-hit {
+  position: absolute;
+  left: 50%;
+  top: 39px;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  transform: rotate(-3deg) scale(calc(1 / (var(--kc) * 0.84)));
+  touch-action: none;
+  cursor: grab;
+}
+.clues-page .envc {
+  position: absolute;
+  z-index: 8;
+  right: 20px;
+  bottom: calc(var(--sb) + 26px);
+  width: 270px;
+  height: 140px;
+  transform-origin: 100% 100%;
+  transform: scale(var(--kc)) rotate(-3deg);
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    right 0.28s cubic-bezier(0.22, 0.8, 0.3, 1),
+    transform 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
+  filter: drop-shadow(0 10px 16px rgba(30, 40, 50, 0.2))
+    drop-shadow(0 2px 3px rgba(30, 40, 50, 0.12));
+}
+.clues-page .envc > svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 270px;
+  height: 140px;
+  overflow: visible;
+}
+.clues-page .elab {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 104px;
+  text-align: center;
+  white-space: nowrap;
+  color: rgba(245, 242, 236, 0.85);
+  z-index: 5;
+}
+.clues-page .elab i {
+  display: block;
+  font-style: normal;
+  font-family: var(--en);
+  font-weight: 500;
+  font-size: 6.5px;
+  letter-spacing: 2.8px;
+  padding-left: 2.8px;
+}
+.clues-page .elab b {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 4px;
+  padding-left: 4px;
+  margin-top: 3px;
+}
+.clues-page .ghost {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  z-index: 30;
+  pointer-events: none;
+}
+.clues-page .ghost:after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.25);
+}
+
+/* 信封打開 */
+.clues-page .ov {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  touch-action: none;
+}
+.clues-page .ov.on {
+  display: block;
+}
+.clues-page .dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(40, 55, 66, 0.46);
+  opacity: 0;
+  transition: opacity 0.24s;
+}
+.clues-page .ov.show .dim,
+.clues-page .sw.show .dim {
+  opacity: 1;
+}
+.clues-page .envc .fo {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: scaleY(0);
+  transition: transform 0.24s ease-out;
+}
+.clues-page .envc .fc {
+  transition: opacity 0.12s;
+}
+.clues-page .envc.open {
+  z-index: 21;
+  right: calc(50% - 135px);
+  transform-origin: 50% 100%;
+  transform: scale(var(--kc));
+}
+.clues-page .envc.open .fc {
+  opacity: 0;
+}
+.clues-page .envc.open .fo {
+  transform: scaleY(1);
+  transition-delay: 0.04s;
+}
+.clues-page .stage {
+  position: absolute;
+  left: 50%;
+  top: var(--sy, 45%);
+  width: 0;
+  height: 0;
+  transform: translateY(18px) scale(var(--k));
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 0.2s;
+}
+.clues-page .ov.show .stage {
+  transform: scale(var(--k));
+  opacity: 1;
+}
+.clues-page .pp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 176px;
+  height: 185px;
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 8px 18px rgba(30, 40, 50, 0.24);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 0.3s;
+  cursor: pointer;
+}
+.clues-page .pp.drag {
+  transition: none;
+}
+.clues-page .pp.fly {
+  transition:
+    transform 0.2s ease-in,
+    opacity 0.2s;
+}
+.clues-page .pick {
+  position: absolute;
+  left: -150px;
+  width: 300px;
+  top: 98px;
+  text-align: center;
+  color: #f5f2ec;
+  text-shadow: 0 1px 8px rgba(40, 55, 66, 0.6);
+}
+.clues-page .pick .t {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+}
+.clues-page .pick .t b {
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 4px;
+}
+.clues-page .pick .t i {
+  font-style: normal;
+  font-family: var(--en);
+  font-weight: 500;
+  font-size: 7px;
+  letter-spacing: 2.4px;
+  opacity: 0.8;
+}
+.clues-page .pick em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 2.4px;
+  padding-left: 2.4px;
+  opacity: 0.7;
+}
+

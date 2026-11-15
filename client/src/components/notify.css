@@ -17,10 +17,14 @@
   transition: transform 0.5s cubic-bezier(0.22, 0.8, 0.3, 1);
   font-family: inherit;
   cursor: pointer;
+  touch-action: pan-x;
   -webkit-tap-highlight-color: transparent;
 }
 .mail.is-in {
-  transform: translate3d(-50%, 0, 0) rotate(-0.7deg);
+  transform: translate3d(-50%, var(--notice-offset, 0px), 0) rotate(-0.7deg);
+}
+.mail.is-dragging {
+  transition: none;
 }
 
 /* 撕邊都用遮罩切，陰影放在外層 drop-shadow 才不會被切掉 */

@@ -30,6 +30,24 @@ const root = createRoot(document.getElementById("root")!);
 };
 (window as any).showNotice = (title = "已複製", reason = "") =>
   reason ? notify.fail(title, reason) : notify.ok(title);
+(window as any).renderImageFixture = (text: string, typing = false) =>
+  root.render(
+    <>
+      <article className="archive-msg" data-role="assistant">
+        <div className="archive-msg-content">
+          <ReplyMarkdown
+            text={text}
+            typing={typing}
+            bubble={{
+              className: "archive-bubble",
+              conversationId: "image-test",
+            }}
+          />
+        </div>
+      </article>
+      <Notify page="/chat" />
+    </>,
+  );
 (window as any).renderTitleFixture = (title: string) =>
   root.render(
     <>

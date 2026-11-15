@@ -1,7 +1,7 @@
 import { DEFAULT_BUBBLE_SIZE, type FontSettings } from "./settingsTypes";
 
 export const INVALID_FONT = "請貼上完整的 @font-face 代碼。";
-export type ParsedFont = { family: string; css: string };
+type ParsedFont = { family: string; css: string };
 
 export function parseFontFace(face: string, id: string): ParsedFont {
   const source = face.trim();

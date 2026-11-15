@@ -4,7 +4,11 @@ import { readConfig, saveConfig } from "./config.js";
 import type { Channel } from "./types.js";
 import type { ProviderConfig } from "./providers/openai.js";
 
-export type ApiPreset = ProviderConfig & { id: string; note: string };
+export type ApiPreset = ProviderConfig & {
+  id: string;
+  note: string;
+  toolsUnsupported?: boolean;
+};
 type Presets = { presets: ApiPreset[] };
 const file = path.resolve("server/data/api-presets.json");
 
@@ -29,6 +33,12 @@ export async function writePresets(value: Presets) {
   await writeFile(file, JSON.stringify(value, null, 2), "utf8");
 }
 
+export async function markToolsUnsupported(id: string) {
+  const data = await readPresets();
+  data.presets.find((preset) => preset.id === id)!.toolsUnsupported = true;
+  await writePresets(data);
+}
+
 export function publicPreset({ key, ...preset }: ApiPreset) {
   return { ...preset, hasKey: Boolean(key), keyHint: key.slice(0, 7) };
 }
@@ -48,6 +58,7 @@ export async function resolvePreset(input: ApiPreset) {
     ...input,
     key: input.key || saved?.key || "",
     format: input.format ?? saved?.format ?? "openai",
+    toolsUnsupported: saved?.toolsUnsupported,
   };
 }
 

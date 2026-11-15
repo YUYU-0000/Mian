@@ -1,12 +1,15 @@
 import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { previewKind } from "../filePreview";
+import { cacheLazyImport } from "../lazyImport";
 import type { ChatFile } from "../types";
 import ScrollText from "./ScrollText";
 
-const FilePreview = lazy(() => import("./FilePreview"));
+const FilePreview = lazy(
+  cacheLazyImport("file-preview", () => import("./FilePreview")),
+);
 
-export function fileSize(size: number) {
+function fileSize(size: number) {
   if (size < 1024) return { value: String(size), unit: "B" };
   if (size < 1024 * 1024)
     return { value: (size / 1024).toFixed(1), unit: "KB" };
@@ -21,6 +24,8 @@ export default memo(function FileTicket({
   pending = false,
   previewUrl,
   entryDelayMs,
+  imageAlt,
+  hideSize = false,
 }: {
   file: ChatFile;
   conversationId: string;
@@ -29,8 +34,11 @@ export default memo(function FileTicket({
   pending?: boolean;
   previewUrl?: string;
   entryDelayMs?: number;
+  imageAlt?: string;
+  hideSize?: boolean;
 }) {
   const [viewing, setViewing] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const closePreview = useCallback(() => setViewing(false), []);
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
@@ -38,7 +46,9 @@ export default memo(function FileTicket({
   const size = fileSize(file.size);
   const extension = file.name.includes(".")
     ? file.name.split(".").at(-1)!.toUpperCase()
-    : "FILE";
+    : imageAlt !== undefined
+      ? "IMAGE"
+      : "FILE";
   const open = () => {
     if (pending && !image) return;
     if (kind) setViewing(true);
@@ -51,9 +61,11 @@ export default memo(function FileTicket({
       </div>
       <ScrollText className="ft-name">{file.name}</ScrollText>
       <div className="ft-meta">
-        <span>
-          <b>{size.value}</b> {size.unit}
-        </span>
+        {!hideSize && (
+          <span>
+            <b>{size.value}</b> {size.unit}
+          </span>
+        )}
         {!image && (
           <span>
             {progress !== undefined
@@ -73,6 +85,20 @@ export default memo(function FileTicket({
       </div>
     </>
   );
+  if (imageAlt !== undefined && (imageFailed || !previewUrl)) {
+    return (
+      <a
+        className="reply-image-failure"
+        href={previewUrl || undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        referrerPolicy="no-referrer"
+      >
+        <span>圖片載入失敗</span>
+        {imageAlt && <small>{imageAlt}</small>}
+      </a>
+    );
+  }
   return (
     <>
       <div
@@ -99,12 +125,23 @@ export default memo(function FileTicket({
         <div className="ft-main">
           {image ? (
             <>
-              <div
-                className="ft-thumb"
-                style={{
-                  backgroundImage: `url("${previewUrl ?? api.fileUrl(conversationId, file.id, true)}")`,
-                }}
-              />
+              {imageAlt !== undefined ? (
+                <img
+                  className="ft-thumb"
+                  src={previewUrl}
+                  alt={imageAlt}
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                  onError={() => setImageFailed(true)}
+                />
+              ) : (
+                <div
+                  className="ft-thumb"
+                  style={{
+                    backgroundImage: `url("${previewUrl ?? api.fileUrl(conversationId, file.id, true)}")`,
+                  }}
+                />
+              )}
               <div className="ft-col">{nameAndMeta}</div>
             </>
           ) : (
@@ -122,7 +159,7 @@ export default memo(function FileTicket({
         )}
         <a
           ref={download}
-          href={api.fileUrl(conversationId, file.id)}
+          href={previewUrl ?? api.fileUrl(conversationId, file.id)}
           download={file.name}
           hidden
         />
@@ -134,6 +171,9 @@ export default memo(function FileTicket({
             conversationId={conversationId}
             kind={kind}
             previewUrl={previewUrl}
+            onImageError={
+              imageAlt === undefined ? undefined : () => setImageFailed(true)
+            }
             onClose={closePreview}
           />
         </Suspense>

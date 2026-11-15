@@ -5,6 +5,7 @@ import type {
   CSSProperties,
 } from "react";
 import { storageHeart } from "../components/settings/StorageHeart";
+import { ArchiveTitle, BackFish } from "../components/ArchiveHeader";
 type Props = {
   rootRef: RefObject<HTMLElement | null>;
   active: number | null;
@@ -71,35 +72,9 @@ export default function SettingsLayout({
           tabIndex={0}
           aria-label="返回主界面"
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M10 4L2 12L10 20"
-              stroke="var(--icon-bg-4)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="9" cy="12" r="1.4" fill="var(--icon-bg-4)" />
-            <path
-              d="M18 8.5L13.5 12L18 15.5"
-              stroke="var(--icon-bg-4)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <BackFish />
         </div>
-        <div className="right-decor">
-          <div className="archive-en">ARCHIVES</div>
-          <div className="decor-line"></div>
-          <div className="archive-cn">檔案館</div>
-        </div>
+        <ArchiveTitle en="ARCHIVES" cn="檔案館" />
       </div>
 
       <div className="folders-container">

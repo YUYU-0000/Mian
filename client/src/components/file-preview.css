@@ -1,5 +1,9 @@
 /* 拍立得沿用设计稿，局部恢复字体和盒模型。 */
 .pv-viewer {
+  --ink: #3b4d5a;
+  --muted: #72828e;
+  --line: rgba(59, 77, 90, 0.18);
+  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
   position: fixed;
   inset: 0;
   width: 100%;
@@ -24,12 +28,6 @@
 }
 .pv-viewer::backdrop {
   background: transparent;
-}
-.pv-viewer {
-  --ink: #3b4d5a;
-  --muted: #72828e;
-  --line: rgba(59, 77, 90, 0.18);
-  --grain: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.07"/></svg>');
 }
 .pv-mask {
   position: fixed;
@@ -117,6 +115,7 @@
   color: var(--ink);
   white-space: nowrap;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -webkit-mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
   mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
@@ -162,9 +161,6 @@ img.pv-photo {
   height: auto;
   object-fit: contain;
   user-select: none;
-}
-.pv-name {
-  overflow-y: hidden;
 }
 .pv-name:not(.is-overflowing) {
   mask: none;

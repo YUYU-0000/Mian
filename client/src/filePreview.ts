@@ -8,7 +8,7 @@ const textExtensions = new Set(
   ),
 );
 
-export function fileExtension(name: string) {
+function fileExtension(name: string) {
   return name.toLowerCase().split(".").at(-1)!;
 }
 

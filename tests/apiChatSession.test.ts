@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
-import { chatHistory } from "../client/src/chatModel.ts";
-import type { ChatMessage } from "../client/src/types.ts";
+import { chatHistory, type UserGroup } from "../shared/chatModel.mjs";
 
 class MemoryStorage {
   values = new Map<string, string>();
@@ -23,12 +22,12 @@ const options = () => ({
   cancelSchedule: () => {},
 });
 
-test("API requests include public user/assistant history after reload and fork", async () => {
+test("API requests send only the new user group after reload", async () => {
   const shared = options();
-  const sent: ChatMessage[][] = [];
+  const sent: UserGroup[] = [];
   const apiClient = {
-    send: async (_text: string, _id: string, messages?: ChatMessage[]) => {
-      sent.push(messages!);
+    send: async (_text: string, _id: string, _files: unknown, message?: UserGroup) => {
+      sent.push(message!);
       return { turnId: `turn-${sent.length}` };
     },
     stop: async () => {},
@@ -58,35 +57,24 @@ test("API requests include public user/assistant history after reload and fork",
     apiClient,
     conversationId: "c1",
   });
-  const branch = new ChatSessionStore({
-    ...options(),
-    apiClient,
-    conversationId: "branch",
-  });
-  branch.seedFrom(restored.getSnapshot());
-  branch.saveUserRecord("分支问题");
-  await branch.startPendingTurn();
-  assert.deepEqual(sent[1], [
-    { role: "user", content: "第一问" },
-    { role: "assistant", content: "第一答" },
-    { role: "user", content: "分支问题" },
-  ]);
   assert.equal(restored.getSnapshot().messages.length, 2);
-  branch.dispose();
+  restored.saveUserRecord("第二问");
+  await restored.startPendingTurn();
+  assert.deepEqual(sent[1].records.map(record => record.text), ["第二问"]);
   restored.dispose();
 });
 
 test("API failures retain the user message and retry the same history", async () => {
   const errors: unknown[] = [];
-  const sent: ChatMessage[][] = [];
+  const sent: UserGroup[] = [];
   const store = new ChatSessionStore({
     ...options(),
     conversationId: "c1",
     onSendError: (error) => errors.push(error),
     apiClient: {
       stop: async () => {},
-      send: async (_text, _id, history) => {
-        sent.push(history!);
+      send: async (_text, _id, _files, message) => {
+        sent.push(message!);
         return { turnId: `turn-${sent.length}` };
       },
     },
@@ -115,10 +103,8 @@ test("API failures retain the user message and retry the same history", async ()
   assert.equal(store.getSnapshot().messages[0].role, "user");
   assert.equal((errors[0] as Error).message, "Insufficient quota.");
   await store.startPendingTurn();
-  assert.deepEqual(sent, [
-    [{ role: "user", content: "请回答" }],
-    [{ role: "user", content: "请回答" }],
-  ]);
+  assert.deepEqual(sent.map(group => group.records.map(record => record.text)), [["请回答"], ["请回答"]]);
+  assert.equal(sent[0].records[0].messageId, sent[1].records[0].messageId);
   assert.equal(
     store.getSnapshot().messages.filter((group) => group.role === "user")
       .length,

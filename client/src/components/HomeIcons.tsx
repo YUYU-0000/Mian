@@ -6,6 +6,22 @@ export const ChatGlyph = () => (
     <line x1="6.5" y1="11.9" x2="11.5" y2="11.9" />
   </svg>
 );
+export const DockOpenBook = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 6.6C10.2 5.3 7.7 4.7 4.6 4.9a.9.9 0 0 0-.8.9v11.3a.9.9 0 0 0 1 .9c3-.2 5.4.4 7.2 1.6c1.8-1.2 4.2-1.8 7.2-1.6a.9.9 0 0 0 1-.9V5.8a.9.9 0 0 0-.8-.9c-3.1-.2-5.6.4-7.4 1.7Z" />
+    <path d="M12 6.6v12.3" />
+    <path d="M6.6 8.7c1.2 0 2.3.3 3.1.7M6.6 11.7c1.2 0 2.3.3 3.1.7M17.4 8.7c-1.2 0-2.3.3-3.1.7M17.4 11.7c-1.2 0-2.3.3-3.1.7" />
+  </svg>
+);
 export const House = () => (
   <svg
     className="home-icon"
@@ -23,11 +39,20 @@ export const DockHouse = () => (
     <path d="M4 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9M2.5 10.5l8.25-7.13a2 2 0 0 1 2.5 0l8.25 7.13M10 21v-7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7" />
   </svg>
 );
-export const DockSliders = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24">
-    <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
-    <circle cx="15" cy="6" r="2" />
-    <circle cx="9" cy="12" r="2" />
-    <circle cx="17" cy="18" r="2" />
+export const DockBookmark = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4.5 18.8V5.4a2.2 2.2 0 0 1 2.2-2.2h10.6a2.2 2.2 0 0 1 2.2 2.2v9.8a1.4 1.4 0 0 1-1.4 1.4H6.7a2.2 2.2 0 0 0-2.2 2.2a2.2 2.2 0 0 0 2.2 2.2" />
+    <path d="M9.7 16.6v4.9l1.55-1.2 1.55 1.2v-4.9" />
+    <path d="M15.6 21h2.3a1.6 1.6 0 0 0 1.6-1.6v-.9" />
+    <path d="M8 7.6h8M9.3 10.2h5.4" />
   </svg>
 );

@@ -78,21 +78,50 @@
 }
 .avatar-crop-actions,
 .avatar-crop-actions * {
-  outline: none;
+  pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
-.avatar-crop-actions [role="button"] {
+.avatar-crop-button {
+  all: unset;
+  position: absolute;
+  z-index: 1;
+  top: 174px;
+  width: 28px;
+  height: 14px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   cursor: pointer;
-  pointer-events: all;
 }
-.avatar-crop-actions [role="button"]:active {
+.avatar-crop-button[data-action="confirm"] {
+  left: 50px;
+  transform: translate(-50%, -50%) rotate(34.2deg);
+}
+.avatar-crop-button[data-action="replace"] {
+  left: 100px;
+  top: 189px;
+  width: 38px;
+  transform: translate(-50%, -50%);
+}
+.avatar-crop-button[data-action="cancel"] {
+  left: 150px;
+  transform: translate(-50%, -50%) rotate(-34.2deg);
+}
+.avatar-crop-button[data-action="confirm"]:active
+  ~ .avatar-crop-ring
+  .avatar-crop-confirm,
+.avatar-crop-button[data-action="replace"]:active
+  ~ .avatar-crop-ring
+  .avatar-crop-replace,
+.avatar-crop-button[data-action="cancel"]:active
+  ~ .avatar-crop-ring
+  .avatar-crop-cancel {
   opacity: 0.6;
-}
-.avatar-crop-actions [aria-disabled="true"] {
-  pointer-events: none;
 }
 .avatar-crop-confirm {
   fill: var(--ink);

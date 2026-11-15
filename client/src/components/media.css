@@ -1,11 +1,11 @@
-/* 上传后的显影效果 */
-.settings-page .uploaded-media {
+/* Media 的共用顯影效果。 */
+.uploaded-media {
   transition:
     opacity 0.5s ease,
     filter 0.8s ease,
     transform 0.75s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
-.settings-page .uploaded-media.developing {
+.uploaded-media.developing {
   opacity: 0;
   filter: blur(8px) grayscale(1) brightness(1.2);
   transform: scale(1.04);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyReplyEvent, type ChatGroup } from "../client/src/chatModel.ts";
+import { applyReplyEvent, type ChatGroup } from "../shared/chatModel.mjs";
 import { shouldShowThinkingHourglass } from "../client/src/thinkingStatus.ts";
 import {
   emptyVisualReply,

@@ -1,19 +1,51 @@
-import { ChatGlyph, House, DockHouse, DockSliders } from "../components/HomeIcons";
+import {
+  ChatGlyph,
+  DockOpenBook,
+  House,
+  DockHouse,
+  DockBookmark,
+} from "../components/HomeIcons";
 import { pad2 } from "../format";
 import { useEffect, useRef, useState } from "react";
 import type { ConnectionStatus } from "../types";
 import ScrollText from "../components/ScrollText";
-const Icon = ({
-  className = "",
-  onClick,
+import Media from "../components/Media";
+import { homePhotoKeys } from "../homePhotos";
+import {
+  preloadChat,
+  preloadClues,
+  preloadConnections,
+  preloadSettings,
+} from "../pagePreloads";
+
+function HomePhoto({
+  className,
+  photo,
+  active,
 }: {
-  className?: string;
-  onClick?: () => void;
-}) => (
+  className: string;
+  photo: keyof typeof homePhotoKeys;
+  active: boolean;
+}) {
+  return (
+    <div
+      className={`home-photo ${className}`}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <span className="home-photo-placeholder">
+        TAP TO
+        <br />
+        UPLOAD
+      </span>
+      <Media storageKey={homePhotoKeys[photo]} active={active} />
+    </div>
+  );
+}
+
+const PlaceholderIcon = ({ className }: { className: string }) => (
   <button
     className={`home-app-icon ${className}`}
-    onClick={onClick}
-    aria-hidden={!onClick}
+    aria-hidden="true"
   />
 );
 export default function Home({
@@ -22,12 +54,14 @@ export default function Home({
   onChat,
   onConnections,
   onSettings,
+  onClues,
 }: {
   status: ConnectionStatus;
   channelName: string;
   onChat: () => void;
   onConnections: () => void;
   onSettings: () => void;
+  onClues: () => void;
 }) {
   const [now, setNow] = useState(new Date());
   const [page, setPage] = useState(0);
@@ -62,7 +96,8 @@ export default function Home({
         }}
         onPointerMove={(e) => {
           if (drag.current) {
-            e.currentTarget.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+            e.currentTarget.scrollLeft =
+              drag.current.left - (e.clientX - drag.current.x);
           }
         }}
         onPointerUp={() => {
@@ -88,68 +123,62 @@ export default function Home({
           </header>
           <div className="home-spacer" />
           <div className="home-grid">
-            <button className="home-app-icon icon-1 bg-1" onClick={onChat}>
+            <button
+              className="home-app-icon icon-1 bg-1"
+              onPointerDown={() => void preloadChat()}
+              onClick={onChat}
+            >
               <ChatGlyph />
             </button>
             <div className="home-label lbl-1">CHAT</div>
-            <Icon className="icon-2 bg-2" />
+            <PlaceholderIcon className="icon-2 bg-2" />
             <div className="home-label lbl-2">APP</div>
-            <Icon className="icon-3 bg-3" />
+            <PlaceholderIcon className="icon-3 bg-3" />
             <div className="home-label lbl-3">APP</div>
-            <Icon className="icon-4 bg-4" />
+            <PlaceholderIcon className="icon-4 bg-4" />
             <div className="home-label lbl-4">APP</div>
-            <div className="home-photo widget">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto className="widget" photo="widget" active={page === 0} />
             <div className="home-label widget-label">PHOTO</div>
           </div>
         </section>
         <section className="home-page">
           <div className="home-grid-2">
-            <div className="home-photo wide">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto className="wide" photo="wide" active={page === 1} />
             <div className="home-label wide-label">PHOTO</div>
-            <div className="home-photo square-left">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto
+              className="square-left"
+              photo="left"
+              active={page === 1}
+            />
             <div className="home-label square-left-label">PHOTO</div>
             {[1, 2, 3, 4].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
-                <Icon className={n === 1 || n === 4 ? "bg-1" : "bg-2"} />
+                <PlaceholderIcon
+                  className={n === 1 || n === 4 ? "bg-1" : "bg-2"}
+                />
                 <div className="home-label">APP</div>
               </div>
             ))}
             {[5, 6, 7, 8].map((n) => (
               <div className={`p2-pair p2-a${n}`} key={`a${n}`}>
-                <Icon className={n === 5 ? "bg-3" : n === 8 ? "bg-2" : "bg-1"} />
+                <PlaceholderIcon
+                  className={n === 5 ? "bg-3" : n === 8 ? "bg-2" : "bg-1"}
+                />
                 <div className="home-label">APP</div>
               </div>
             ))}
-            <div className="home-photo square-right">
-              <span>
-                TAP TO
-                <br />
-                UPLOAD
-              </span>
-            </div>
+            <HomePhoto
+              className="square-right"
+              photo="right"
+              active={page === 1}
+            />
             <div className="home-label square-right-label">PHOTO</div>
           </div>
         </section>
       </div>
-      <div className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}>
+      <div
+        className={`home-capsule indicator-capsule ${sliding ? "sliding" : ""}`}
+      >
         <div className={`home-code-status status-content ${connectionClass}`}>
           <House />
           <ScrollText className="capsule-text">{channelName}</ScrollText>
@@ -164,15 +193,28 @@ export default function Home({
         <button
           className="home-app-icon dock-1"
           aria-label="连接中心"
+          onPointerDown={() => void preloadConnections()}
           onClick={onConnections}
         >
           <DockHouse />
         </button>
-        <button className="home-app-icon dock-2" aria-label="设置" onClick={onSettings}>
-          <DockSliders />
+        <button
+          className="home-app-icon dock-2"
+          aria-label="设置"
+          onPointerDown={() => void preloadSettings()}
+          onClick={onSettings}
+        >
+          <DockOpenBook />
         </button>
-        <Icon className="dock-3" />
-        <Icon className="dock-4" />
+        <button
+          className="home-app-icon dock-3"
+          aria-label="線索"
+          onPointerDown={() => void preloadClues()}
+          onClick={onClues}
+        >
+          <DockBookmark />
+        </button>
+        <PlaceholderIcon className="dock-4" />
       </footer>
     </main>
   );

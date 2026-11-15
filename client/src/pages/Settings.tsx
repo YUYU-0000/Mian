@@ -163,7 +163,6 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                 index={index}
                 total={fontPages.length}
                 active={active === 1 && index === font.index}
-                inUse={fonts.activeId === preset.id}
                 onChange={editFont}
                 onSave={saveFont}
                 onAdd={() => {

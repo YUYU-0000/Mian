@@ -15,6 +15,8 @@
   width: min(228px, 100%);
   height: 70px;
   display: flex;
+  flex-shrink: 0;
+  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
   filter: drop-shadow(0 3px 6px rgba(59, 77, 90, 0.12))
     drop-shadow(0 0 1px rgba(59, 77, 90, 0.18));
   -webkit-tap-highlight-color: transparent;
@@ -154,7 +156,26 @@
   flex-shrink: 0;
   border-radius: 2px;
   background: #a4b8c6 center/cover;
+  object-fit: cover;
   box-shadow: 0 0 0 1px var(--t-line);
+}
+.reply-image-failure {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: min(228px, 100%);
+  min-height: 70px;
+  padding: 12px;
+  border-radius: 3px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 6px rgba(59, 77, 90, 0.12);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.reply-image-failure small {
+  font-size: 11px;
+  color: var(--muted);
 }
 .ft-col {
   min-width: 0;
@@ -191,11 +212,7 @@
   background: var(--t-ink);
 }
 
-/* 两款字体：名字和按钮用霞鹜铭心宋，标注用 ZSFT-br；盒模型不受聊天页全局规则影响。 */
-.ft {
-  font-family: "ZSFT-br", "LXGW Heart Serif", serif;
-  flex-shrink: 0;
-}
+/* 盒模型不受聊天页全局规则影响。 */
 .ft,
 .ft *,
 .ft *::before,
@@ -229,16 +246,15 @@
   position: relative;
   flex: 0 0 228px;
   max-width: 100%;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.archive-input .file-draft-remove {
-  position: absolute;
-  top: -8px;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  color: #3b4d5a;
-  background: #f5f2ec;
-  border-radius: 50%;
-  font: 16px serif;
+.file-draft .scroll-text {
+  touch-action: pan-x;
+}
+.file-draft-floating {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
 }

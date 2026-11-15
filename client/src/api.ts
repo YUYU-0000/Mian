@@ -1,5 +1,10 @@
 import { subscribe } from "./realtime";
+import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
+import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
+import { blobToDataURL, compressImage } from "./imageCompression";
+import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
+import type { ChatGroup, UserGroup } from "../../shared/chatModel.mjs";
 import {
   backupFilename,
   completeBackup,
@@ -9,7 +14,6 @@ import {
 } from "./settingsBackup";
 import type { FontPreset, FontSettings } from "./settingsTypes";
 import type {
-  ChatMessage,
   ChatFile,
   Config,
   ConnectionStatus,
@@ -62,6 +66,12 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
   );
 
 export const api = {
+  clues: () => request<ClueWall>("/api/clues"),
+  saveClueWall: (wall: ClueWall) =>
+    request<ClueWall>("/api/clues", {
+      method: "PUT",
+      body: JSON.stringify(wall),
+    }),
   subStatus: (provider: Provider) =>
     provider === "codex"
       ? request<Subscription>("/api/subscriptions/codex")
@@ -185,17 +195,21 @@ export const api = {
   // 待接后端：语音试听保留设计稿的预留实现。
   testVoice: (_cfg: VoiceConfig) => new Promise<void>(() => {}),
   importData: async (backup: Backup) => {
+    const { homePhotos, ...data } = backup;
     await request("/api/backup", {
       method: "POST",
-      body: JSON.stringify(backup),
+      body: JSON.stringify(data),
     });
     restoreBrowserBackup(backup, localStorage);
+    await restoreHomePhotos(homePhotos);
   },
   exportData: async () => {
+    await flushMessageSyncs();
     const content = completeBackup(
       await request<ServerBackup>("/api/backup"),
       localStorage,
     );
+    content.homePhotos = await exportHomePhotos();
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(content, null, 2)], {
         type: "application/json",
@@ -215,11 +229,24 @@ export const api = {
     }),
   test: () =>
     request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
-  listConversations: () =>
-    request<{
+  listConversations: async () => {
+    const data = await request<{
       defaultConversationId: string;
       conversations: ConversationRecord[];
-    }>("/api/conversations"),
+    }>("/api/conversations");
+    for (const record of data.conversations) {
+      if (!record.image) continue;
+      const file = await (await fetch(record.image)).blob();
+      const compressed = await compressImage(file, 1200, true);
+      if (compressed === file) continue;
+      const { conversation } = await api.updateConversation(
+        record.conversationId,
+        { image: await blobToDataURL(compressed) },
+      );
+      Object.assign(record, conversation);
+    }
+    return data;
+  },
   createConversation: () =>
     request<{ conversation: ConversationRecord }>("/api/conversations", {
       method: "POST",
@@ -253,6 +280,12 @@ export const api = {
     }),
   fileUrl: (conversationId: string, fileId: string, inline = false) =>
     `/api/conversations/${encodeURIComponent(conversationId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`,
+  loadMessages: (conversationId: string) =>
+    request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`),
+  saveMessages: (conversationId: string, groups: ChatGroup[], initialize = false) =>
+    request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: "PUT", body: JSON.stringify({ groups, initialize }),
+    }),
   fileText: async (
     conversationId: string,
     fileId: string,
@@ -302,15 +335,15 @@ export const api = {
   send: async (
     text: string,
     conversationId: string,
-    messages?: ChatMessage[],
     files?: ChatFile[],
+    message?: UserGroup,
   ) => {
     const result = await request<{ turnId?: unknown }>("/api/turn", {
       method: "POST",
       body: JSON.stringify({
         text,
         conversationId,
-        messages,
+        message,
         files: files?.map((file) => file.id),
         localTime: localDateTime(),
       }),

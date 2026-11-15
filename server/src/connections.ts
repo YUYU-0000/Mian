@@ -131,9 +131,8 @@ export function connectionRoutes(
   });
   router.post("/api-presets", async (req, res, next) => {
     try {
-      const { id, note, endpoint, key, model, format } = await resolvePreset(
-        req.body,
-      );
+      const { id, note, endpoint, key, model, format, toolsUnsupported } =
+        await resolvePreset(req.body);
       const preset = {
         id: id || randomUUID(),
         note,
@@ -141,6 +140,7 @@ export function connectionRoutes(
         key,
         model,
         format,
+        toolsUnsupported,
       };
       const data = await readPresets();
       const index = data.presets.findIndex((item) => item.id === preset.id);

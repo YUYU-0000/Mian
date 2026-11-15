@@ -4,8 +4,8 @@ import {
   applyReplyEvent,
   type ChatGroup,
   type ReplyGroup,
-} from "../client/src/chatModel.ts";
-import { parsePublicReply } from "../client/src/replyProtocol.ts";
+} from "../shared/chatModel.mjs";
+import { parsePublicReply } from "../shared/replyProtocol.mjs";
 import { localDateTime } from "../client/src/format.ts";
 import { api } from "../client/src/api.ts";
 import { ApiChat } from "../server/src/apiChat.ts";
@@ -175,10 +175,11 @@ test("API sends a fresh local clock and puts it beside the protocol in the syste
     });
   });
   const history = [{ role: "user" as const, content: "现在几点" }];
-  await api.send("现在几点", "clock", history);
+  await api.send("现在几点", "clock");
+  assert.equal("messages" in bodies[0], false);
   assert.equal(bodies[0].localTime, "現在是 2026-11-14 星期六 02:01");
   t.mock.timers.tick(60_000);
-  await api.send("现在几点", "clock", history);
+  await api.send("现在几点", "clock");
   assert.equal(bodies[1].localTime, "現在是 2026-11-14 星期六 02:02");
   const events: any[] = [];
   let finish!: () => void;
@@ -211,8 +212,8 @@ test("API sends a fresh local clock and puts it beside the protocol in the syste
     },
     { role: "user", content: `现在几点\n\n${API_FORMAT_REMINDER}` },
   ]);
-  assert.deepEqual(bodies[0].messages, history);
-  assert.deepEqual(bodies[1].messages, history);
+  assert.equal(bodies[0].messages, undefined);
+  assert.equal(bodies[1].messages, undefined);
   assert.deepEqual(history, [{ role: "user", content: "现在几点" }]);
   assert.equal(
     events.find((event) => event.type === "assistant-delta").immediate,

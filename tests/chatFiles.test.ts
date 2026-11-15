@@ -28,7 +28,7 @@ import { ChatSessionStore } from "../client/src/chatSession.ts";
 import { FileDrafts } from "../client/src/fileDrafts.ts";
 import { api } from "../client/src/api.ts";
 import { CodexBridge } from "../server/src/codex.ts";
-import { chatHistory } from "../client/src/chatModel.ts";
+import { chatHistory } from "../shared/chatModel.mjs";
 import {
   completeBackup,
   type ServerBackup,
@@ -389,7 +389,7 @@ test("各对话目录独立，修改时间或大小变化都能生成票根", as
   assert.equal((await stat(changedTime)).isFile(), true);
 });
 
-test("只发文件、重载、分支和导出都保留票根，导出不带内容或下载路径", async () => {
+test("只发文件、重载和导出都保留票根，导出不带内容或下载路径", async () => {
   const values = new Map<string, string>();
   const storage = {
     getItem: (key: string) => values.get(key) ?? null,
@@ -424,7 +424,7 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   store.saveUserRecord("", [input]);
   assert.equal(store.getSnapshot().messages.length, 1);
   await store.startPendingTurn();
-  assert.deepEqual(sent[0][3], [input]);
+  assert.deepEqual(sent[0][2], [input]);
   store.enqueueEvent({
     type: "files",
     conversationId: "c1",
@@ -451,18 +451,12 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
     (reloaded.getSnapshot().messages[1] as { files: ChatFile[] }).files,
     [output],
   );
-  const branch = new ChatSessionStore({
-    conversationId: "branch",
-    storage,
-    apiClient,
-  });
-  branch.seedFrom(snapshot);
-  assert.deepEqual(branch.getSnapshot().messages, snapshot.messages);
   const exported = completeBackup(
     {
+      chats: { c1: snapshot.messages },
       conversations: [
         {
-          conversationId: "branch",
+          conversationId: "c1",
           title: "附件对话",
           frontName: "Mian",
         } as ConversationRecord,
@@ -471,7 +465,7 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
     storage,
   );
   assert.deepEqual(
-    exported.chats.branch.flatMap((group) =>
+    exported.chats.c1.flatMap((group) =>
       group.role === "user"
         ? group.records.flatMap((record) => record.files ?? [])
         : (group.files ?? []),
@@ -480,5 +474,4 @@ test("只发文件、重载、分支和导出都保留票根，导出不带内�
   );
   assert.doesNotMatch(JSON.stringify(exported), /base64|\/files\//);
   reloaded.dispose();
-  branch.dispose();
 });

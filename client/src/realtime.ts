@@ -35,7 +35,8 @@ function loadStreamCursor(): StreamCursor | null {
 }
 
 function saveStreamCursor(cursor: StreamCursor) {
-  localStorage.setItem(STREAM_CURSOR_KEY, JSON.stringify(cursor));
+  try { localStorage.setItem(STREAM_CURSOR_KEY, JSON.stringify(cursor)); }
+  catch { /* 消息在服务器，游标缓存写满不打断事件接收。 */ }
 }
 
 export const subscribe = (
@@ -98,6 +99,8 @@ export const subscribe = (
         if (envelope.seq <= cursor.seq) return;
         onEvent({
           ...envelope.event,
+          eventSeq: envelope.seq,
+          streamId: envelope.streamId,
           conversationId:
             envelope.event.conversationId ?? envelope.conversationId,
         });

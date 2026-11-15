@@ -10,6 +10,9 @@ import {
 } from "react";
 import { replyMarkup, type ReplyCode as Code } from "../replyMarkup";
 import ReplyCode from "./ReplyCode";
+import ReplyImageTicket from "./ReplyImageTicket";
+import { replyImageSource, splitReplyImages } from "../replyImages";
+import type { ChatFile } from "../types";
 import "./reply-markdown.css";
 
 const attributeNames: Record<string, string> = {
@@ -116,24 +119,71 @@ function useThrottledText(text: string, typing: boolean) {
   return typing ? visible : text;
 }
 
+export type ReplyMarkdownProps = {
+  text: string;
+  typing: boolean;
+  bubble?: {
+    className: string;
+    conversationId: string;
+    files?: ChatFile[];
+  };
+};
+
 export default memo(function ReplyMarkdown({
   text,
   typing,
-}: {
-  text: string;
-  typing: boolean;
-}) {
+  bubble,
+}: ReplyMarkdownProps) {
   const visible = useThrottledText(text, typing);
-  const content = useMemo(() => {
-    const { fragment, codes } = replyMarkup(visible);
+  const parsed = useMemo(() => {
+    const { fragment, codes } = replyMarkup(visible, {
+      typing: Boolean(bubble) && typing,
+      imageSource: bubble
+        ? (src) => replyImageSource(src, bubble.conversationId, bubble.files)
+        : undefined,
+    });
     // Marked 的块间换行不应把光标挤到下一行。
     while (
       fragment.lastChild?.nodeType === Node.TEXT_NODE &&
       !fragment.lastChild.textContent?.trim()
     )
       fragment.lastChild.remove();
-    return renderNodes(fragment, codes, "", typing);
-  }, [visible, typing]);
+    return { fragment, codes, parts: bubble ? splitReplyImages(fragment) : [] };
+  }, [visible, typing, bubble?.conversationId, bubble?.files]);
+  if (bubble) {
+    let imageIndex = 0;
+    let textIndex = 0;
+    const lastTextIndex = parsed.parts
+      .map((part) => part.kind)
+      .lastIndexOf("text");
+    return parsed.parts.map((part, index) =>
+      part.kind === "image" ? (
+        <ReplyImageTicket
+          key={`image-${imageIndex++}-${part.image.src}`}
+          image={part.image}
+          conversationId={bubble.conversationId}
+          files={bubble.files}
+          animate={bubble.className.includes("archive-pop-in")}
+        />
+      ) : (
+        <div
+          key={`text-${textIndex++}`}
+          className={bubble.className}
+          data-timeline-kind="ASSISTANT_BUBBLE"
+        >
+          <div className="reply-markdown">
+            {renderNodes(
+              part.fragment,
+              parsed.codes,
+              "",
+              typing && index === lastTextIndex,
+            )}
+          </div>
+        </div>
+      ),
+    );
+  }
+  const content = renderNodes(parsed.fragment, parsed.codes, "", typing);
   return (
     <div className="reply-markdown">
       {content.length ? content : typing && <span className="cursor-blink" />}

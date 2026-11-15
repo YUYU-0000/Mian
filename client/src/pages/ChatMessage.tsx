@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from "react";
-import { type ChatGroup } from "../chatModel";
+import { type ChatGroup } from "../../../shared/chatModel.mjs";
 import { readableToolResult, visibleToolSummary } from "../toolPresentation";
 import { ChatSessionStore } from "../chatSession";
 import { isToolTimelineVisible } from "../replyTimeline";
@@ -374,19 +374,19 @@ export default memo(function ChatMessage({
             {message.preToolBubbles
               .slice(0, visual?.visiblePreToolBubbleCount ?? 0)
               .map((_bubble, index) => (
-                <div
+                <ReplyMarkdown
                   key={message.preToolBubbleIds[index]}
-                  className={`archive-bubble ${historicalAnimationIds.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`}
-                  data-timeline-kind="ASSISTANT_BUBBLE"
-                >
-                  <ReplyMarkdown
-                    text={visual?.preToolBubbles[index] ?? ""}
-                    typing={cursorMatches(visual?.cursor ?? null, {
-                      kind: "preToolBubble",
-                      index,
-                    })}
-                  />
-                </div>
+                  bubble={{
+                    className: `archive-bubble ${historicalAnimationIds.has(preToolAnimationId(message.preToolBubbleIds[index])) ? "" : "archive-pop-in"}`,
+                    conversationId: session.conversationId,
+                    files: message.files,
+                  }}
+                  text={visual?.preToolBubbles[index] ?? ""}
+                  typing={cursorMatches(visual?.cursor ?? null, {
+                    kind: "preToolBubble",
+                    index,
+                  })}
+                />
               ))}
             {message.tools.length > 0 && preToolReady && (
               <ArchiveModule
@@ -427,19 +427,19 @@ export default memo(function ChatMessage({
             {message.bubbles
               .slice(0, visual?.visibleBubbleCount ?? 0)
               .map((_bubble, index) => (
-                <div
+                <ReplyMarkdown
                   key={message.bubbleIds[index]}
-                  className={`archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`}
-                  data-timeline-kind="ASSISTANT_BUBBLE"
-                >
-                  <ReplyMarkdown
-                    text={visual?.bubbles[index] ?? ""}
-                    typing={cursorMatches(visual?.cursor ?? null, {
-                      kind: "bubble",
-                      index,
-                    })}
-                  />
-                </div>
+                  bubble={{
+                    className: `archive-bubble ${message.status === "interrupted" ? "stopped" : ""} ${historicalAnimationIds.has(bubbleAnimationId(message.bubbleIds[index])) ? "" : "archive-pop-in"}`,
+                    conversationId: session.conversationId,
+                    files: message.files,
+                  }}
+                  text={visual?.bubbles[index] ?? ""}
+                  typing={cursorMatches(visual?.cursor ?? null, {
+                    kind: "bubble",
+                    index,
+                  })}
+                />
               ))}
             {message.status &&
               activeTurnId !== message.replyGroupId &&
