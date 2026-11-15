@@ -58,6 +58,17 @@ export function useTicketSwipe({
     }, 50);
   };
 
+  const finishRebound = () => {
+    const motion = motionRef.current!;
+    motion.style.transform = "";
+    motion.style.opacity = "";
+    motion.style.transition = "";
+    motion.style.removeProperty("will-change");
+    dragRef.current = null;
+    frameRef.current = null;
+    onReboundComplete?.();
+  };
+
   const runFrame = (now: number) => {
     const state = dragRef.current;
     const motion = motionRef.current;
@@ -77,19 +88,14 @@ export function useTicketSwipe({
       state.offset += (0 - state.offset) * 0.28;
       state.angle += (0 - state.angle) * 0.28;
       if (Math.abs(state.offset) < 0.5 && Math.abs(state.angle) < 0.05) {
-        motion.style.transform = "";
-        motion.style.opacity = "";
-        motion.style.filter = "";
-        motion.style.transition = "";
-        dragRef.current = null;
-        frameRef.current = null;
-        onReboundComplete?.();
+        finishRebound();
         return;
       }
     } else if (state.phase === "exit") {
       state.offset += (-220 - state.offset) * 0.2;
       state.angle += (0 - state.angle) * 0.2;
       if (state.offset < -200) {
+        motion.style.removeProperty("will-change");
         onExitComplete();
         frameRef.current = null;
         return;
@@ -98,31 +104,32 @@ export function useTicketSwipe({
 
     const distance = Math.abs(state.offset);
     let opacity = 1;
-    let blurPx = 0;
     if (distance > 18) {
       const progress = Math.min(1, (distance - 18) / 54);
       opacity = Math.max(0.72, 1 - progress * 0.28);
-      blurPx = Math.min(0.45, progress * 0.45);
       if (state.phase === "exit")
         opacity = Math.max(0, opacity - Math.max(0, (distance - 72) / 148) * 0.72);
     }
     motion.style.transform = `${direction === "left" ? `translate3d(${state.offset}px, 0, 0)` : `translate3d(0, ${state.offset}px, 0)`} rotate(${state.angle}deg)`;
     if (state.phase !== "rebound" || direction === "down") {
       motion.style.opacity = String(opacity);
-      motion.style.filter = `blur(${blurPx}px)`;
     }
     frameRef.current = requestAnimationFrame(runFrame);
   };
 
   useEffect(
-    () => () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-      if (suppressTimerRef.current !== null)
-        window.clearTimeout(suppressTimerRef.current);
-      if (exitAnimation.current) {
-        exitAnimation.current.onfinish = null;
-        exitAnimation.current.cancel();
-      }
+    () => {
+      const motion = motionRef.current;
+      return () => {
+        if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+        if (suppressTimerRef.current !== null)
+          window.clearTimeout(suppressTimerRef.current);
+        if (exitAnimation.current) {
+          exitAnimation.current.onfinish = null;
+          exitAnimation.current.cancel();
+        }
+        motion?.style.removeProperty("will-change");
+      };
     },
     [],
   );
@@ -171,7 +178,10 @@ export function useTicketSwipe({
     if (direction === "down" && state.claimed && deltaY <= 0) state.targetOffset = 0;
     if (direction === "left" ? state.direction !== "horizontal" : state.direction !== "vertical" || deltaY <= 0) return;
     if (direction === "down" && !state.claimed) event.currentTarget.setPointerCapture(event.pointerId);
-    if (!state.claimed) onDragStart?.();
+    if (!state.claimed) {
+      onDragStart?.();
+      motionRef.current!.style.willChange = "transform, opacity";
+    }
     state.claimed = true;
     event.preventDefault();
     suppressClickRef.current = true;
@@ -202,16 +212,17 @@ export function useTicketSwipe({
         {
           transform: motion.style.transform,
           opacity: motion.style.opacity,
-          filter: motion.style.filter,
         },
         {
           transform: `translate3d(0, ${state.offset + state.height}px, 0) rotate(0deg) scale(0.94)`,
           opacity: 0,
-          filter: "blur(2px)",
         },
       ], { duration: 260, easing: "ease-out", fill: "forwards" });
       exitAnimation.current = animation;
-      animation.onfinish = onExitComplete;
+      animation.onfinish = () => {
+        motion.style.removeProperty("will-change");
+        onExitComplete();
+      };
     };
     if (
       !cancelled &&
@@ -231,9 +242,7 @@ export function useTicketSwipe({
     } else if (state.claimed) state.phase = "rebound";
     else {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-      dragRef.current = null;
-      if (motionRef.current) motionRef.current.style.transition = "";
+      finishRebound();
     }
     clearSuppressionSoon();
   };
