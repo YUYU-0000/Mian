@@ -4,6 +4,7 @@ import { dataDirectory } from "./config.js";
 import {
   CARD_HEIGHT,
   CARD_WIDTH,
+  PORTRAIT_ID,
   type Clue,
   type ClueWall,
 } from "../../shared/clues.mjs";
@@ -45,12 +46,18 @@ export function migrateClues(value: StoredWall | LegacyClue[] = []): ClueWall {
       scenes: card.scenes ?? [],
     } as Clue;
   });
-  return {
-    cards,
-    portrait,
-    pins: stored.pins ?? [],
-    threads: stored.threads ?? [],
-  };
+  const cardIds = new Set(cards.map((card) => card.id));
+  const pins = (stored.pins ?? []).filter(
+    (pin) =>
+      pin.cardId === null ||
+      pin.cardId === PORTRAIT_ID ||
+      cardIds.has(pin.cardId),
+  );
+  const pinIds = new Set(pins.map((pin) => pin.id));
+  const threads = (stored.threads ?? []).filter(
+    (thread) => pinIds.has(thread.from) && pinIds.has(thread.to),
+  );
+  return { cards, portrait, pins, threads };
 }
 
 export async function readClues(): Promise<ClueWall> {
