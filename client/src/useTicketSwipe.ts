@@ -1,3 +1,4 @@
+// 手势只改当前票根的合成层，放手后的退出由浏览器播放。
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import {
   authorizeTicketArchive,
@@ -91,15 +92,6 @@ export function useTicketSwipe({
         finishRebound();
         return;
       }
-    } else if (state.phase === "exit") {
-      state.offset += (-220 - state.offset) * 0.2;
-      state.angle += (0 - state.angle) * 0.2;
-      if (state.offset < -200) {
-        motion.style.removeProperty("will-change");
-        onExitComplete();
-        frameRef.current = null;
-        return;
-      }
     }
 
     const distance = Math.abs(state.offset);
@@ -107,8 +99,6 @@ export function useTicketSwipe({
     if (distance > 18) {
       const progress = Math.min(1, (distance - 18) / 54);
       opacity = Math.max(0.72, 1 - progress * 0.28);
-      if (state.phase === "exit")
-        opacity = Math.max(0, opacity - Math.max(0, (distance - 72) / 148) * 0.72);
     }
     motion.style.transform = `${direction === "left" ? `translate3d(${state.offset}px, 0, 0)` : `translate3d(0, ${state.offset}px, 0)`} rotate(${state.angle}deg)`;
     if (state.phase !== "rebound" || direction === "down") {
@@ -204,7 +194,6 @@ export function useTicketSwipe({
     const exit = () => {
       state.phase = "exit";
       onExitStart?.();
-      if (direction === "left") return;
       cancelAnimationFrame(frameRef.current!);
       frameRef.current = null;
       const motion = motionRef.current!;
@@ -214,10 +203,11 @@ export function useTicketSwipe({
           opacity: motion.style.opacity,
         },
         {
-          transform: `translate3d(0, ${state.offset + state.height}px, 0) rotate(0deg) scale(0.94)`,
+          transform: direction === "left" ? "translate3d(-220px, 0, 0) rotate(0deg)"
+            : `translate3d(0, ${state.offset + state.height}px, 0) rotate(0deg) scale(0.94)`,
           opacity: 0,
         },
-      ], { duration: 260, easing: "ease-out", fill: "forwards" });
+      ], { duration: direction === "left" ? 220 : 260, easing: "ease-out", fill: "forwards" });
       exitAnimation.current = animation;
       animation.onfinish = () => {
         motion.style.removeProperty("will-change");

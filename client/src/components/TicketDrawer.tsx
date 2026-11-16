@@ -1,9 +1,12 @@
 // 组织聊天票根抽屉、分支会话操作和纸片切换。
+import DevelopingMedia from "./DevelopingMedia";
 import MiniTicket from "./MiniTicket";
+import { useTicketLayout } from "../useTicketLayout";
 import {
   memo,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -63,15 +66,13 @@ export default memo(function TicketDrawer({
   const [previewId, setPreviewId] = useState(activeConversationId);
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [enteringId, setEnteringId] = useState<string | null>(null);
-  const enteringTimer = useRef<number | null>(null);
   const pinFrame = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const stripArea = useRef<HTMLDivElement>(null);
+  const layoutFinished = useTicketLayout(stripArea, conversations.map(item => item.conversationId).join("|"), open);
   const pendingImageId = useRef<string | null>(null);
   const pendingSelectionId = useRef<string | null>(null);
   const flipRemoval = useRef<{
-    before: Map<string, DOMRect>;
     adjacentId: string;
     switchAfter: boolean;
   } | null>(null);
@@ -98,39 +99,11 @@ export default memo(function TicketDrawer({
     const removal = flipRemoval.current;
     if (!removal) return;
     flipRemoval.current = null;
-    const reduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    const animations: Animation[] = [];
-    if (!reduced)
-      for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
-        ".mini-ticket-container",
-      ) ?? []) {
-        const oldRect = node.dataset.id
-          ? removal.before.get(node.dataset.id)
-          : undefined;
-        if (!oldRect) continue;
-        const deltaY = oldRect.top - node.getBoundingClientRect().top;
-        if (Math.abs(deltaY) <= 0.5) continue;
-        animations.push(
-          node.animate(
-            [
-              { transform: `translate3d(0, ${deltaY}px, 0)` },
-              { transform: "translate3d(0, 0, 0)" },
-            ],
-            { duration: 220, easing: "cubic-bezier(.22,1,.36,1)" },
-          ),
-        );
-      }
     const finish = () => {
       archiveInFlight.current = null;
       if (removal.switchAfter) onSelect(removal.adjacentId);
     };
-    if (animations.length)
-      void Promise.allSettled(
-        animations.map((animation) => animation.finished),
-      ).then(finish);
-    else finish();
+    void layoutFinished().then(finish);
   }, [conversations, onSelect]);
 
   useEffect(() => {
@@ -156,8 +129,6 @@ export default memo(function TicketDrawer({
   }, [onSelect, open]);
   useEffect(
     () => () => {
-      if (enteringTimer.current !== null)
-        window.clearTimeout(enteringTimer.current);
       if (pinFrame.current !== null) cancelAnimationFrame(pinFrame.current);
     },
     [],
@@ -171,13 +142,6 @@ export default memo(function TicketDrawer({
       if (!conversation) return;
       setPreviewId(conversation.conversationId);
       setFlipped(false);
-      setEnteringId(conversation.conversationId);
-      if (enteringTimer.current !== null)
-        window.clearTimeout(enteringTimer.current);
-      enteringTimer.current = window.setTimeout(() => {
-        enteringTimer.current = null;
-        setEnteringId(null);
-      }, 250);
     } catch (error) {
       console.error(error);
     } finally {
@@ -191,14 +155,7 @@ export default memo(function TicketDrawer({
       conversationId,
     );
     if (!adjacentId) return;
-    const before = new Map<string, DOMRect>();
-    for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
-      ".mini-ticket-container",
-    ) ?? [])
-      if (node.dataset.id && node.dataset.id !== conversationId)
-        before.set(node.dataset.id, node.getBoundingClientRect());
     flipRemoval.current = {
-      before,
       adjacentId,
       switchAfter: activeConversationId === conversationId,
     };
@@ -230,12 +187,6 @@ export default memo(function TicketDrawer({
 
   const pinPreview = async () => {
     if (!preview || busy) return;
-    const before = new Map<string, DOMRect>();
-    for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
-      ".mini-ticket-container",
-    ) ?? [])
-      if (node.dataset.id)
-        before.set(node.dataset.id, node.getBoundingClientRect());
     setBusy(true);
     try {
       await onUpdate(preview.conversationId, { pinned: true });
@@ -243,23 +194,6 @@ export default memo(function TicketDrawer({
       if (pinFrame.current !== null) cancelAnimationFrame(pinFrame.current);
       pinFrame.current = requestAnimationFrame(() => {
         pinFrame.current = null;
-        for (const node of stripArea.current?.querySelectorAll<HTMLElement>(
-          ".mini-ticket-container",
-        ) ?? []) {
-          const oldRect = node.dataset.id
-            ? before.get(node.dataset.id)
-            : undefined;
-          if (!oldRect) continue;
-          const deltaY = oldRect.top - node.getBoundingClientRect().top;
-          if (Math.abs(deltaY) <= 0.5) continue;
-          node.animate(
-            [
-              { transform: `translate3d(0, ${deltaY}px, 0)` },
-              { transform: "translate3d(0, 0, 0)" },
-            ],
-            { duration: 320, easing: "cubic-bezier(.22,1,.36,1)" },
-          );
-        }
         stripArea.current?.scrollTo({ top: 0, behavior: "smooth" });
       });
     } catch (error) {
@@ -274,6 +208,21 @@ export default memo(function TicketDrawer({
     event.preventDefault();
     setFlipped(true);
   };
+
+  const handlers = useRef({ finishArchive, importImage, canArchive, onArchive, busy });
+  handlers.current = { finishArchive, importImage, canArchive, onArchive, busy };
+  // 列表子项只接收稳定回调，增删和上传进度不会让整排票根重新渲染。
+  const ticketActions = useMemo(() => ({
+    onActivate: (id: string) => { setPreviewId(id); setFlipped(false); },
+    onImage: (id: string) => handlers.current.importImage(id),
+    canArchive: (id: string) => archiveInFlight.current === null && !handlers.current.busy && handlers.current.canArchive(id),
+    onArchive: async (id: string) => {
+      archiveInFlight.current = id;
+      try { await handlers.current.onArchive(id); }
+      catch (error) { archiveInFlight.current = null; throw error; }
+    },
+    onExitComplete: (id: string) => handlers.current.finishArchive(id),
+  }), []);
 
   const image = preview?.image ?? "";
   return (
@@ -330,31 +279,7 @@ export default memo(function TicketDrawer({
                   active={
                     conversation.conversationId === preview?.conversationId
                   }
-                  entering={conversation.conversationId === enteringId}
-                  onActivate={() => {
-                    setPreviewId(conversation.conversationId);
-                    setFlipped(false);
-                  }}
-                  onImage={() => importImage(conversation.conversationId)}
-                  canArchive={() =>
-                    archiveInFlight.current === null &&
-                    !busy &&
-                    canArchive(conversation.conversationId)
-                  }
-                  onArchive={async () => {
-                    if (archiveInFlight.current)
-                      throw new Error("archive busy");
-                    archiveInFlight.current = conversation.conversationId;
-                    try {
-                      await onArchive(conversation.conversationId);
-                    } catch (error) {
-                      archiveInFlight.current = null;
-                      throw error;
-                    }
-                  }}
-                  onExitComplete={() =>
-                    finishArchive(conversation.conversationId)
-                  }
+                  {...ticketActions}
                 />
               ))}
             </div>
@@ -375,13 +300,13 @@ export default memo(function TicketDrawer({
               >
                 <div className="ticket-part char-part upper main-upper">
                   {image && (
-                    <img className="ticket-bg-img" src={image} alt="" />
+                    <DevelopingMedia className="ticket-bg-img" src={image} />
                   )}
                   <div className="part-overlay front-overlay" />
                 </div>
                 <div className="ticket-part char-part lower main-lower">
                   {image && (
-                    <img className="ticket-bg-img" src={image} alt="" />
+                    <DevelopingMedia className="ticket-bg-img" src={image} />
                   )}
                   <div className="part-overlay front-overlay" />
                 </div>
@@ -420,13 +345,13 @@ export default memo(function TicketDrawer({
               >
                 <div className="ticket-part char-part upper main-upper">
                   {image && (
-                    <img className="ticket-bg-img" src={image} alt="" />
+                    <DevelopingMedia className="ticket-bg-img" src={image} />
                   )}
                   <div className="part-overlay back-overlay" />
                 </div>
                 <div className="ticket-part char-part lower main-lower">
                   {image && (
-                    <img className="ticket-bg-img" src={image} alt="" />
+                    <DevelopingMedia className="ticket-bg-img" src={image} />
                   )}
                   <div className="part-overlay back-overlay" />
                 </div>

@@ -1,5 +1,5 @@
 // 组装后端服务、鉴权、实时连接与静态页面，并注册各业务路由。
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { networkInterfaces } from "node:os";
@@ -65,7 +65,7 @@ app.use(
   "/api",
   fileRoutes(files, (id) => conversations.require(id)),
 );
-app.use("/api/backup", express.json({ limit: "64mb" }));
+app.use("/api/backup", express.json({ limit: "256mb" }));
 app.use("/api/conversations/:id/messages", express.json({ limit: "64mb" }));
 app.use(express.json({ limit: "4mb" }));
 app.use("/api/clues", clueRoutes());
@@ -98,6 +98,12 @@ app.use(
     files,
   ),
 );
+// 导出与导入错误保留具体原因，不能落到 Express 的 HTML 错误页。
+const backupError: ErrorRequestHandler = (error, _request, response, _next) => {
+  const status = error.status ?? 500;
+  response.status(status).json({ error: status === 413 ? "備份超過 256 MB 的導入上限。" : error.message });
+};
+app.use("/api/backup", backupError);
 app.use(
   "/api",
   connectionRoutes(bridge, async () => {

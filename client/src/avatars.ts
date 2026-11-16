@@ -1,23 +1,25 @@
 // 保存头像裁剪与图片，向共用媒体缓存和页面主题同步头像。
 import { cacheMedia, openMediaDatabase, readSettingsMedia } from "./mediaStorage";
+import { decodeImage } from "./imageLoading";
 
 export type AvatarRole = "assistant" | "user";
 export type AvatarCrop = { x: number; y: number; zoom: number; };
 export type AvatarEditor = { file: Blob; crop: AvatarCrop; };
 export const INITIAL_AVATAR_CROP: AvatarCrop = { x: 0, y: 0, zoom: 1 };
 const images = new Map<AvatarRole, HTMLImageElement>();
+const listeners = new Set<() => void>();
+export const avatarUrl = (role: AvatarRole) => images.get(role)?.src ?? "";
+export function watchAvatars(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
 
 async function applyAvatar(role: AvatarRole, file: Blob) {
   const url = URL.createObjectURL(file);
-  const image = new Image();
-  image.src = url;
-  await image.decode();
+  const image = await decodeImage(url);
   const previous = images.get(role);
   images.set(role, image);
-  document.documentElement.style.setProperty(
-    `--avatar-${role}`,
-    `url("${url}")`,
-  );
+  listeners.forEach(listener => listener());
   if (previous) URL.revokeObjectURL(previous.src);
 }
 

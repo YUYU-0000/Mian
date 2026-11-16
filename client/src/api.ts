@@ -3,6 +3,7 @@ import { subscribe } from "./realtime";
 import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
 import { exportHomePhotos, restoreHomePhotos } from "./homePhotos";
+import { exportBrowserMedia, restoreBrowserMedia } from "./browserMediaBackup";
 import { blobToDataURL, compressImage } from "./imageCompression";
 import { flushMessageSyncs, type MessageSnapshot } from "./messageSync";
 import type { ChatGroup, UserGroup } from "../../shared/chatModel.mjs";
@@ -10,6 +11,7 @@ import {
   backupFilename,
   completeBackup,
   restoreBrowserBackup,
+  requestBackup,
   type Backup,
   type ServerBackup,
 } from "./settingsBackup";
@@ -240,12 +242,13 @@ export const api = {
   },
   importData: async (backup: Backup) => {
     await flushOfflineSaves();
-    const { homePhotos, ...data } = backup;
-    await request("/api/backup", {
+    const { homePhotos, media, ...data } = backup;
+    await requestBackup({
       method: "POST",
       body: JSON.stringify(data),
     });
     restoreBrowserBackup(backup, localStorage);
+    await restoreBrowserMedia(media);
     await restoreHomePhotos(homePhotos);
     await refreshReads();
   },
@@ -253,20 +256,24 @@ export const api = {
     await flushOfflineSaves();
     await flushMessageSyncs();
     const content = completeBackup(
-      await request<ServerBackup>("/api/backup"),
+      await requestBackup<ServerBackup>(),
       localStorage,
     );
     content.homePhotos = await exportHomePhotos();
+    content.media = await exportBrowserMedia();
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify(content, null, 2)], {
+      new Blob([JSON.stringify(content)], {
         type: "application/json",
       }),
     );
     const link = document.createElement("a");
     link.href = url;
     link.download = backupFilename();
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    // 下载由浏览器接手后再释放；Safari 可能尚未消费刚点击的 Blob 地址。
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   },
   getConfig: readQuery<Config>("/api/config"),
   saveConfig: (config: Config) =>

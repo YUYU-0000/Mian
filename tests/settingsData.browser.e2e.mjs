@@ -1,3 +1,4 @@
+// 验证档案馆设置、头像裁切和包含浏览器媒体的完整备份往返。
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
@@ -87,7 +88,7 @@ try {
     await waitFor(
       () =>
         evaluate(
-          `!document.documentElement?.dataset.oldPage && !!document.querySelector(${JSON.stringify(route === "/settings" ? ".settings-page" : ".archive-bubble")})`,
+          `!document.documentElement?.dataset.oldPage && !document.querySelector('.auth-page') && !!document.querySelector(${JSON.stringify(route === "/settings" ? ".settings-page" : ".archive-bubble")})`,
         ),
       `打开 ${route}`,
     );
@@ -128,7 +129,7 @@ try {
     await evaluate(
       `(() => { const page=document.querySelector('${current}'), slider=page.querySelector('input[type=range]'); return [page.querySelector('.api-polaroid-input-main').value,page.querySelector('.api-field-input').readOnly,slider.min,slider.max,slider.value,!!page.querySelector('.font-status')]; })()`,
     ),
-    ["預設", true, "11.5", "17.5", "14.5", true],
+    ["預設", true, "11.5", "17.5", "14.5", false],
   );
   await click(`${current} .apiBtnAdd`);
   await waitFor(
@@ -234,7 +235,7 @@ try {
   );
   assert.equal(
     await evaluate("document.querySelectorAll('.font-status').length"),
-    1,
+    0,
   );
   await navigate("/chat");
   await waitFor(
@@ -374,7 +375,7 @@ try {
   await closeCrop();
   assert.equal(
     await evaluate(
-      "document.documentElement.style.getPropertyValue('--avatar-assistant')",
+      "document.querySelector('.avatar-page[data-role=assistant] .media-photo img')?.src ?? ''",
     ),
     "",
   );
@@ -505,7 +506,7 @@ try {
   await waitFor(
     () =>
       evaluate(
-        "document.documentElement.style.getPropertyValue('--avatar-assistant') && document.documentElement.style.getPropertyValue('--avatar-user')",
+        "!!document.querySelector('.avatar-page[data-role=assistant] .media-photo img') && !!document.querySelector('.avatar-page[data-role=user] .media-photo img')",
       ),
     "保存双方头像",
   );
@@ -527,13 +528,13 @@ try {
   await waitFor(
     () =>
       evaluate(
-        "getComputedStyle(document.querySelector('.archive-avatar.user')).backgroundImage.startsWith('url(')",
+        "!!document.querySelector('.archive-avatar.user img')?.complete",
       ),
     "刷新恢复头像",
   );
   assert.deepEqual(
     await evaluate(
-      "Array.from(document.querySelectorAll('.archive-avatar')).map(el=>[getComputedStyle(el).width,getComputedStyle(el).borderRadius,getComputedStyle(el).backgroundImage.startsWith('url(')])",
+      "Array.from(document.querySelectorAll('.archive-avatar')).map(el=>[getComputedStyle(el).width,getComputedStyle(el).borderRadius,!!el.querySelector('img')?.complete])",
     ),
     [
       ["34px", "50%", true],
@@ -596,8 +597,10 @@ try {
   assert.equal(backup.fonts.presets[1].name, "紙上字體");
   assert.doesNotMatch(
     JSON.stringify(backup),
-    /fake-key|keyHint|hasKey|data:image|blob:/,
+    /fake-key|keyHint|hasKey|blob:/,
   );
+  assert.match(backup.media.LauncherDB.savedMediaFile_avatar_user, /^data:image\//);
+  assert.match(backup.media.LauncherDB.avatarEditor_assistant.file, /^data:image\//);
   backup.conversations[0].title = "匯入標題";
   await writeFile(backupPath, JSON.stringify(backup));
   await evaluate(

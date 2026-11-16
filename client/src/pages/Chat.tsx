@@ -1,4 +1,5 @@
 // 组织聊天页面、附件草稿和发送操作，保持输入栏跟随键盘。
+import { useTicketLayout } from "../useTicketLayout";
 import {
   useCallback,
   useEffect,
@@ -99,6 +100,9 @@ export default function Chat({
   );
   const uploading = attachments.some((draft) => !draft.uploaded);
   const fileInput = useRef<HTMLInputElement>(null);
+  const draftStrip = useRef<HTMLDivElement>(null);
+  useTicketLayout(draftStrip, attachments.map(draft => draft.draftId).join("|"));
+  const removeDraft = useCallback((draftId: string) => session.attachments.remove(draftId), [session]);
   const active = turnPhase !== "idle";
   const historicalAnimationIds = useMemo(
     () => collectHistoricalAnimationIds(session.getSnapshot().messages, session.replyKey),
@@ -127,6 +131,7 @@ export default function Chat({
   const shouldFollowBottom = useRef(true);
   const inputFocused = useRef(false);
   const requestViewportSync = useRef<(forceBottom?: boolean) => void>(() => { });
+  const draftExit = useCallback(() => requestViewportSync.current(), []);
   const captureConversationFrame =
     useCallback((): FrozenConversationFrame | null => {
       const element = stream.current;
@@ -487,14 +492,14 @@ export default function Chat({
         }}
       >
         {attachments.length > 0 && (
-          <div className="file-drafts">
+          <div className="file-drafts" ref={draftStrip}>
             {attachments.map((draft) => (
               <FileDraftTicket
                 key={draft.draftId}
                 draft={draft}
                 conversationId={session.conversationId}
-                onRemove={() => session.attachments.remove(draft.draftId)}
-                onExitStart={() => requestViewportSync.current()}
+                onRemove={removeDraft}
+                onExitStart={draftExit}
               />
             ))}
           </div>

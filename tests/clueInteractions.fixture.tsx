@@ -5,6 +5,7 @@ import type { ClueWall } from "../client/src/clueTypes";
 import Clues from "../client/src/pages/Clues";
 import Home from "../client/src/pages/Home";
 import Media from "../client/src/components/Media";
+import DevelopingMedia from "../client/src/components/DevelopingMedia";
 import { removeSettingsMedia } from "../client/src/mediaStorage";
 import Notify, { notify } from "../client/src/components/Notify";
 import "../client/src/theme.css";
@@ -14,6 +15,7 @@ import "../client/src/pages/settings.css";
 const fixture = window as any;
 fixture.removeHomePhoto = () => removeSettingsMedia("home_photo_widget");
 const root = createRoot(document.getElementById("root")!);
+fixture.renderPicture = (src: string) => root.render(<DevelopingMedia src={src} className="fixture-picture" style={{ width: 160, height: 120 }} />);
 let mount = 0;
 let wall: ClueWall = {
   cards: [{

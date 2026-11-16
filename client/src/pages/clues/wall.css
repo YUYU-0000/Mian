@@ -188,10 +188,7 @@
   right: 7px;
   top: 7px;
   bottom: 26px;
-  background-image: var(
-    --avatar-assistant,
-    linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396)
-  );
+  background-image: linear-gradient(165deg, #dfe6ea, #9fb2bf 55%, #6b8396);
   background-size: cover;
   background-position: center;
 }

@@ -1,3 +1,4 @@
+// 验证附件与抽屉票根的合成层退出、节点保留和 FLIP 补位。
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -164,7 +165,7 @@ try {
   await waitFor(()=>evaluate('result.removed===1'),'mouse downward exit');
   assert.equal(await evaluate('result.exitOpacity'),0);
   assert.equal(await evaluate('result.exitWillChange'),'');
-  assert.equal(await evaluate("document.querySelector('.file-draft').getAnimations()[0].effect.getTiming().duration"),200);
+  assert.equal(await evaluate("document.querySelector('.file-draft').getAnimations()[0].effect.getTiming().duration"),220);
   await evaluate("document.querySelectorAll('.file-draft').forEach(item=>item.getAnimations().forEach(animation=>animation.finish()))");
   assert.equal(await evaluate("!!document.querySelector('.pv-viewer')"),false);
   await touch(0,45);
@@ -183,7 +184,7 @@ try {
   assert.equal(await evaluate('result.activated'),0);
   assert.equal(await evaluate('result.miniExitWillChange'),'');
   assert.deepEqual(errors,[]);
-  console.log('PASS original ticket/image nodes, fixed unclipped drag, no blur, released will-change, 260ms fade/shrink, 200ms neighbor movement, mouse/touch delete, rebound, native horizontal scrolling and MiniTicket archive.');
+  console.log('PASS original ticket/image nodes, fixed unclipped drag, no blur, released will-change, 260ms fade/shrink, 220ms neighbor movement, mouse/touch delete, rebound, native horizontal scrolling and MiniTicket archive.');
 } finally {
   const exited = once(browser, "exit");
   if (call) await call("Browser.close");

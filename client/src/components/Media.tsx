@@ -1,4 +1,4 @@
-// 显示本地图片和视频，复用内存媒体地址并只为新上传播放显影动画。
+// 连接本地媒体缓存、上传和头像裁切，显示统一交给共用显影层。
 import { getCachedMedia, loadCachedMedia, watchMedia, writeMedia, type CachedMedia } from "../mediaStorage";
 import { compressImage } from "../imageCompression";
 import {
@@ -8,12 +8,11 @@ import {
   type AvatarEditor,
   type AvatarRole,
 } from "../avatars";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { notify } from "./Notify";
 import AvatarCropper from "./AvatarCropper";
-import "./media.css";
+import DevelopingMedia from "./DevelopingMedia";
 
-type Picture = CachedMedia & { developing: boolean; };
 export default function Media({
   storageKey,
   cover = false,
@@ -29,32 +28,22 @@ export default function Media({
   const store = cover ? "media" : "mediaStore";
   const key = cover ? `${storageKey}_cover` : `savedMediaFile_${storageKey}`;
   const cached = getCachedMedia(name, store, key);
-  const [pictures, setPictures] = useState<Picture[]>(() => cached ? [{ ...cached, developing: false }] : []);
+  const [picture, setPicture] = useState<CachedMedia | null>(cached ?? null);
   const [loading, setLoading] = useState(cached === undefined);
-  const [icon, setIcon] = useState(!cached);
   const [playButton, setPlayButton] = useState(false);
   const [editor, setEditor] = useState<AvatarEditor | null>(null);
   const container = useRef<HTMLSpanElement>(null);
-  const uploading = useRef(false);
-  const timers = useRef<number[]>([]);
-  const frames = useRef<number[]>([]);
-  const show = (picture: CachedMedia | null, animate: boolean) => {
-    setPictures((current) => {
-      if (!picture) return [];
-      const next = { ...picture, developing: animate };
-      return animate ? [...current, next] : [next];
-    });
+  const show = (next: CachedMedia | null) => {
+    setPicture(next);
     setLoading(false);
-    if (!animate) setIcon(!picture);
   };
   useEffect(() => {
     let mounted = true;
     const unwatch = watchMedia(name, store, key, () => {
-      show(getCachedMedia(name, store, key)!, uploading.current);
-      uploading.current = false;
+      show(getCachedMedia(name, store, key)!);
     });
     const current = getCachedMedia(name, store, key);
-    if (current !== undefined) show(current, false);
+    if (current !== undefined) show(current);
     else void loadCachedMedia(name, store, key).catch((error) => {
       if (mounted) {
         setLoading(false);
@@ -64,76 +53,29 @@ export default function Media({
     return () => {
       mounted = false;
       unwatch();
-      timers.current.forEach(window.clearTimeout);
-      frames.current.forEach(cancelAnimationFrame);
     };
   }, [key]);
   useEffect(() => {
     if (cover)
       container.current!.parentElement!.classList.toggle(
         "has-image",
-        pictures.length > 0,
+        !!picture,
       );
-    container.current!.querySelectorAll("video").forEach((video) => {
-      if (active) void video.play().catch(() => setPlayButton(true));
-      else video.pause();
-    });
-  }, [active, pictures.length]);
-  const developed = (picture: Picture) => {
-    if (!picture.developing) return;
-    frames.current.push(
-      requestAnimationFrame(() =>
-        frames.current.push(
-          requestAnimationFrame(() => {
-            setPictures((current) =>
-              current.map((item) =>
-                item.url === picture.url
-                  ? { ...item, developing: false }
-                  : item,
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-    timers.current.push(window.setTimeout(() => setIcon(false), 300));
-    timers.current.push(
-      window.setTimeout(() => {
-        setPictures((current) => {
-          const index = current.findIndex((item) => item.url === picture.url);
-          return current.slice(index);
-        });
-      }, 900),
-    );
-  };
-  const style = (index: number): CSSProperties => ({
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    position: "absolute",
-    inset: 0,
-    zIndex: index ? "2" : "1",
-  });
+  }, [cover, picture]);
   return (
     <span ref={container} style={{ display: "contents" }}>
       <span
         className="upload-icon"
-        style={{ display: icon && !loading ? "flex" : "none" }}
+        style={{ display: !picture && !loading ? "flex" : "none" }}
       >
         +<span className="upload-text">點擊上傳</span>
       </span>
-      <div
-        className="loading-text"
-        style={{ display: loading ? "block" : "none" }}
-      >
-        載入中
-      </div>
       <input
         type="file"
         className={cover ? "cover-art-file" : "file-input"}
         accept={cover || avatar ? "image/*" : "image/*, video/*"}
         onClick={(event) => {
-          if (!avatar || !pictures.length) return;
+          if (!avatar || !picture) return;
           event.preventDefault();
           void readAvatarEditor(avatar)
             .then(setEditor)
@@ -155,10 +97,8 @@ export default function Media({
               notify.fail("文件太大", "請選擇小於 5MB 的文件。");
               return;
             }
-            uploading.current = true;
             await writeMedia(name, store, key, media);
           } catch (error) {
-            uploading.current = false;
             notify.fail(cover ? "封面存失敗" : "保存失敗", error);
           }
         }}
@@ -169,42 +109,17 @@ export default function Media({
           role={avatar}
           onClose={() => setEditor(null)}
           onSave={async (next) => {
-            uploading.current = true;
-            try { await saveAvatar(avatar, next); }
-            finally { uploading.current = false; }
+            await saveAvatar(avatar, next);
             notify.ok("已更換");
           }}
         />
       )}
-      {pictures.map((picture, index) =>
-        picture.video ? (
-          <video
-            key={picture.url}
-            className={`uploaded-media${picture.developing ? " developing" : ""}`}
-            src={picture.url}
-            style={style(index)}
-            autoPlay={active}
-            loop
-            muted
-            playsInline
-            onLoadedMetadata={event => { event.currentTarget.currentTime = picture.time; }}
-            onTimeUpdate={event => {
-              const current = getCachedMedia(name, store, key);
-              if (current?.url === picture.url) current.time = event.currentTarget.currentTime;
-            }}
-            onLoadedData={() => developed(picture)}
-          />
-        ) : (
-          <img
-            key={picture.url}
-            className={`uploaded-media${picture.developing ? " developing" : ""}`}
-            src={picture.url}
-            style={cover ? { zIndex: index ? "2" : "1" } : style(index)}
-            onLoad={() => developed(picture)}
-            alt=""
-          />
-        ),
-      )}
+      {(picture || loading) && <DevelopingMedia className="media-photo" src={picture?.url} video={picture?.video}
+        time={picture?.time} active={active} onPlaybackBlocked={() => setPlayButton(true)}
+        onTimeUpdate={(src, time) => {
+          const current = getCachedMedia(name, store, key);
+          if (current?.url === src) current.time = time;
+        }} />}
       {playButton && (
         <div
           className="video-play-btn"

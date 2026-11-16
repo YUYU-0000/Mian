@@ -350,23 +350,6 @@
   z-index: 10;
 }
 
-.ticket-drawer .mini-ticket-container.entering {
-  animation: ticketDrawerEnter 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@keyframes ticketDrawerEnter {
-  0% {
-    clip-path: inset(0 -30px 100% -30px);
-    opacity: 0.2;
-    transform: translate3d(0, -10px, 0);
-  }
-  100% {
-    clip-path: inset(0 -30px -30px -30px);
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 .ticket-drawer .mini-ticket-motion {
   transform: translate3d(0, 0, 0);
   transform-origin: center center;
@@ -380,7 +363,6 @@
   backface-visibility: hidden;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18)) brightness(0.72)
     saturate(0.72);
-  transition: filter 0.3s;
 }
 
 .ticket-drawer .mini-ticket-container.active .mini-ticket-visual {
@@ -541,6 +523,10 @@
 
 .ticket-drawer .mini-box:active {
   opacity: 0.78;
+}
+.ticket-drawer .mini-photo {
+  position: absolute;
+  inset: 0;
 }
 
 .ticket-drawer .mini-abbr {

@@ -1,4 +1,5 @@
 // 呈现图片和文件票根，管理上传细线、缓存读取、预览与下载。
+import DevelopingMedia from "./DevelopingMedia";
 import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { cachedFileUrl } from "../fileCache";
@@ -50,9 +51,10 @@ export default memo(function FileTicket({
   const closePreview = useCallback(() => setViewing(false), []);
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
+  const mimeType = kind === "pdf" ? "application/pdf" : file.mimeType;
   const image = file.mimeType.startsWith("image/");
   const sourceUrl = previewUrl ?? api.fileUrl(conversationId, file.id);
-  const cachedUrl = useCachedFile(sourceUrl, !pending && sourceUrl.startsWith("/api/"));
+  const cachedUrl = useCachedFile(sourceUrl, !pending && sourceUrl.startsWith("/api/"), mimeType);
   const displayUrl = sourceUrl.startsWith("/api/") ? cachedUrl : previewUrl;
   const size = fileSize(file.size);
   const extension = file.name.includes(".")
@@ -65,7 +67,7 @@ export default memo(function FileTicket({
     if (kind) setViewing(true);
     else {
       try {
-        download.current!.href = previewUrl ?? await cachedFileUrl(api.fileUrl(conversationId, file.id));
+        download.current!.href = previewUrl ?? await cachedFileUrl(api.fileUrl(conversationId, file.id), undefined, mimeType);
         download.current!.click();
       } catch (error) { notify.fail("文件讀取失敗", error); }
     }
@@ -150,23 +152,8 @@ export default memo(function FileTicket({
         <div className="ft-main">
           {image ? (
             <>
-              {imageAlt !== undefined ? (
-                <img
-                  className="ft-thumb"
-                  src={displayUrl}
-                  alt={imageAlt}
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                  onError={() => setImageFailed(true)}
-                />
-              ) : (
-                <div
-                  className="ft-thumb"
-                  style={{
-                    backgroundImage: displayUrl ? `url("${displayUrl}")` : undefined,
-                  }}
-                />
-              )}
+              <DevelopingMedia className="ft-thumb" src={displayUrl} alt={imageAlt}
+                referrerPolicy="no-referrer" onError={imageAlt === undefined ? undefined : () => setImageFailed(true)} />
               <div className="ft-col">{nameAndMeta}</div>
             </>
           ) : (

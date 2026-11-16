@@ -188,6 +188,7 @@ export function settingsRoutes(
     }
   });
   router.get("/backup", async (_request, response) => {
+    response.setHeader("Cache-Control", "no-store");
     const [config, { presets }, fonts, clues, voices] = await Promise.all([
       readConfig(),
       readPresets(),
@@ -215,9 +216,7 @@ export function settingsRoutes(
         format,
         toolsUnsupported,
       })),
-      conversations: conversations
-        .list()
-        .map((record) => ({ ...record, image: "" })),
+      conversations: conversations.list(),
     });
   });
   router.post("/backup", async (request, response) => {

@@ -1,4 +1,5 @@
 // 按会话回合呈现头像、思考、气泡和票根，复用现有回复播放顺序。
+import AvatarImage from "../components/AvatarImage";
 import {
   Fragment,
   memo,
@@ -321,6 +322,7 @@ export default memo(function ChatMessage({
         <>
           <div className="archive-msg-head">
             <div className="archive-avatar user">
+              <AvatarImage role="user" />
               <time>{message.time}</time>
             </div>
           </div>
@@ -359,6 +361,7 @@ export default memo(function ChatMessage({
           >
             <div className="archive-msg-head">
               <div className="archive-avatar assistant">
+                <AvatarImage role="assistant" />
                 <time>{message.time}</time>
               </div>
             </div>

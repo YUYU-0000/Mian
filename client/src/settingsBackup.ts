@@ -1,4 +1,7 @@
+// 组合完整备份的浏览器偏好，并在导入后重建本地聊天缓存。
 import { pad2 } from "./format";
+import { request } from "./backend";
+import type { BrowserMediaBackup } from "./browserMediaBackup";
 import type { ClueWall } from "./clueTypes";
 import { CHAT_STORAGE_KEY, type ChatGroup } from "../../shared/chatModel.mjs";
 import type { Config, ConversationRecord } from "./types";
@@ -24,7 +27,18 @@ export type Backup = ServerBackup & {
   exportedAt: string;
   preferences: Record<string, string | null>;
   homePhotos?: Record<string, string>;
+  media?: BrowserMediaBackup;
 };
+// 完整附件包可达数十 MB，传输不能沿用普通读取的十秒超时。
+export async function requestBackup<T>(init?: RequestInit): Promise<T> {
+  try { return await request<T>("/api/backup", init, { timeoutMs: 300000, detailedErrors: true }); }
+  catch (error) {
+    if (error instanceof DOMException && ["TimeoutError", "AbortError"].includes(error.name))
+      throw new Error("備份傳輸超過五分鐘，請保持連線再試。");
+    if (error instanceof TypeError) throw new Error(`備份連線中斷：${error.message}`);
+    throw error;
+  }
+}
 const preferenceKeys = ["launcher_settings", "mian.active-conversation.v1"];
 const chatKey = (id: string) => `mian.conversation.${id}.${CHAT_STORAGE_KEY}`;
 
