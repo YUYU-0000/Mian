@@ -142,6 +142,7 @@ export default function SettingsLayout({
       >
         <div
           className={`paper-stack-container${active === 1 || active === 3 ? " has-paper-stack" : active === 2 ? " has-avatar-stack" : ""}`}
+          data-keyboard-surface
           onClick={(e) => e.stopPropagation()}
         >
           <div className="paper-layer-bot"></div>

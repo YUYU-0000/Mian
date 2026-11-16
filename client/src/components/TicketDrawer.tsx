@@ -1,4 +1,3 @@
-import KeyboardScroll from "./KeyboardScroll";
 import MiniTicket from "./MiniTicket";
 import {
   memo,
@@ -301,6 +300,7 @@ export default memo(function TicketDrawer({
       >
         <div
           className="ticket-workspace"
+          data-keyboard-surface
           onTransitionEnd={(event) => {
             if (
               event.currentTarget !== event.target ||
@@ -386,29 +386,27 @@ export default memo(function TicketDrawer({
                   <div className="part-overlay front-overlay" />
                 </div>
                 {preview && (
-                  <KeyboardScroll>
-                    <ScrollText
-                      className="front-text"
-                      contentEditable
-                      suppressContentEditableWarning
-                      spellCheck={false}
-                      onBlur={(event) => {
-                        const frontName = event.currentTarget.textContent?.trim();
-                        if (frontName && frontName !== preview.frontName)
-                          void onUpdate(preview.conversationId, {
-                            frontName,
-                          }).catch(console.error);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          event.currentTarget.blur();
-                        }
-                      }}
-                    >
-                      {preview.frontName}
-                    </ScrollText>
-                  </KeyboardScroll>
+                  <ScrollText
+                    className="front-text"
+                    contentEditable
+                    suppressContentEditableWarning
+                    spellCheck={false}
+                    onBlur={(event) => {
+                      const frontName = event.currentTarget.textContent?.trim();
+                      if (frontName && frontName !== preview.frontName)
+                        void onUpdate(preview.conversationId, {
+                          frontName,
+                        }).catch(console.error);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                      }
+                    }}
+                  >
+                    {preview.frontName}
+                  </ScrollText>
                 )}
               </div>
 
@@ -433,7 +431,7 @@ export default memo(function TicketDrawer({
                   <div className="part-overlay back-overlay" />
                 </div>
                 {preview && (
-                  <div className="back-content-layer" data-keyboard-scroll>
+                  <div className="back-content-layer">
                     <div className="back-header">
                       <span>CONVERSATION LOG</span>
                       <span>{ticketNumber(preview)}</span>

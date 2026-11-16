@@ -2,48 +2,61 @@ import { getAppViewport } from "./appViewport";
 
 const editable = 'textarea,input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):not([type="submit"]),[contenteditable="true"]';
 
-export function installKeyboardScroll() {
+export function installKeyboardLift() {
   const positions = new Map<HTMLElement, number>();
+  const motions = new WeakMap<HTMLElement, { y: number; animation: Animation }>();
+  let surface: HTMLElement | null = null;
   let frame = 0;
-  const restore = () => {
+  const keyboardOpen = () => getAppViewport().height - (window.visualViewport?.height ?? window.innerHeight) >= 80;
+  const currentY = (element: HTMLElement) => parseFloat(getComputedStyle(element).translate.split(" ")[1]) || 0;
+  const move = (element: HTMLElement, y: number) => {
+    const previous = motions.get(element);
+    if ((previous?.y ?? 0) === y) return;
+    const from = currentY(element);
+    previous?.animation.cancel();
+    // 独立的 translate 也是合成层变换，不覆盖纸片原有的居中、旋转和翻页 transform。
+    element.style.translate = `0px ${y}px`;
+    const animation = element.animate(
+      [{ translate: `0px ${from}px` }, { translate: `0px ${y}px` }],
+      { duration: 240, easing: "ease-out" },
+    );
+    animation.onfinish = () => { if (y === 0) element.style.removeProperty("translate"); };
+    motions.set(element, { y, animation });
+  };
+  const restoreScroll = () => {
+    // 只撤销浏览器聚焦时擅自滚动的祖先容器，不用滚动对齐字段。
     for (const [element, top] of positions) {
-      element.style.removeProperty("--keyboard-room");
-      delete element.dataset.keyboardActive;
-      element.scrollTop = top;
+      if (element.scrollTop !== top) element.scrollTop = top;
     }
-    positions.clear();
   };
   const reveal = () => {
     frame = 0;
     const focused = document.activeElement as HTMLElement;
-    if (!focused.matches(editable) || focused.closest(".archive-input")) { restore(); return; }
+    const next = focused.matches(editable) && !focused.closest(".archive-input") && keyboardOpen()
+      ? focused.closest<HTMLElement>("[data-keyboard-surface]") : null;
+    if (surface && surface !== next) move(surface, 0);
+    surface = next;
+    if (!surface) return;
+    restoreScroll();
     const visible = window.visualViewport;
-    const height = visible?.height ?? window.innerHeight;
-    const covered = getAppViewport().height - height;
-    if (covered < 80) { restore(); return; }
-    // 页面本身不跟随 Safari 的自动平移；滚动留在纸片内容内。
-    if (window.scrollY) window.scrollTo(0, 0);
-    const bottom = height - 12;
-    let scroller = focused.closest<HTMLElement>("[data-keyboard-scroll]");
-    while (scroller) {
-      if (!positions.has(scroller)) positions.set(scroller, scroller.scrollTop);
-      scroller.style.setProperty("--keyboard-room", `${covered}px`);
-      scroller.dataset.keyboardActive = "";
-      const field = focused.getBoundingClientRect();
-      const area = scroller.getBoundingClientRect();
-      const limit = Math.min(bottom, area.bottom);
-      const fieldBottom = focused instanceof HTMLTextAreaElement ? field.top + Math.min(field.height, 40) : field.bottom;
-      if (fieldBottom > limit) scroller.scrollTop += fieldBottom - limit;
-      else if (field.top < area.top + 8) scroller.scrollTop -= area.top + 8 - field.top;
-      if (focused.getBoundingClientRect().bottom <= bottom) break;
-      scroller = scroller.parentElement?.closest<HTMLElement>("[data-keyboard-scroll]") ?? null;
-    }
+    const bottom = visible ? visible.offsetTop + visible.height : window.innerHeight;
+    // 用未平移的位置计算，键盘连续调整或在字段间切换时不会累加位移。
+    const fieldBottom = focused.getBoundingClientRect().bottom - currentY(surface);
+    move(surface, fieldBottom > bottom ? bottom - 12 - fieldBottom : 0);
   };
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(reveal);
   };
-  document.addEventListener("focusin", schedule, true);
+  document.addEventListener("focusin", () => {
+    positions.clear();
+    const focused = document.activeElement as HTMLElement;
+    if (focused.matches(editable) && !focused.closest(".archive-input") && focused.closest("[data-keyboard-surface]")) {
+      for (let parent = focused.parentElement; parent; parent = parent.parentElement) positions.set(parent, parent.scrollTop);
+    }
+    schedule();
+  }, true);
   document.addEventListener("focusout", schedule, true);
+  document.addEventListener("scroll", () => { if (surface) restoreScroll(); }, true);
   window.visualViewport?.addEventListener("resize", schedule);
   window.visualViewport?.addEventListener("scroll", schedule);
   window.addEventListener("resize", schedule);

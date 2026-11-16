@@ -54,18 +54,24 @@ try {
   assert.ok(Math.abs(spacing.top - spacing.bottom) < 1);
   assert.equal(spacing.gap, 20);
   const keyboardGate = await evaluate(`(async()=>{
-    const input=document.querySelector('.auth-password'), fish=document.querySelector('.auth-fish');
-    const before={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON()};
+    const input=document.querySelector('.auth-password'), fish=document.querySelector('.auth-fish'), brand=document.querySelector('.auth-brand');
+    const before={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON()};
     Object.defineProperty(visualViewport,'height',{configurable:true,value:480});
     input.focus({preventScroll:true});visualViewport.dispatchEvent(new Event('resize'));
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    const during={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON()};
+    await new Promise(resolve=>setTimeout(resolve,300));
+    const during={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON()};
     delete visualViewport.height;input.blur();visualViewport.dispatchEvent(new Event('resize'));
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    await new Promise(resolve=>setTimeout(resolve,300));
     return {before,during,after:input.getBoundingClientRect().toJSON()};
   })()`);
-  assert.deepEqual(keyboardGate.before.fish, keyboardGate.during.fish, 'keyboard keeps the login fish fixed');
-  assert.ok(keyboardGate.during.input.bottom <= 469, 'login input scrolls above the keyboard');
+  const loginLift=keyboardGate.before.input.bottom-468;
+  for (const name of ['fish','input','brand']) {
+    const before=keyboardGate.before[name], during=keyboardGate.during[name];
+    assert.ok(Math.abs(before.y-during.y-loginLift)<0.1, `login ${name} moves with the whole page`);
+    assert.equal(before.width,during.width);
+    assert.equal(before.height,during.height);
+  }
+  assert.ok(Math.abs(keyboardGate.during.input.bottom-468)<0.1, 'login input clears the keyboard by exactly 12px');
   assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, 'login line returns to its original position');
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
