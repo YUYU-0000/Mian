@@ -12,6 +12,8 @@ export const preloadHomeData = () => Promise.all([
   api.apiPresets(),
   api.listConversations(),
   api.fontPresets(),
+  api.clues(),
+  // 线索墙肖像共用 assistant 头像，在揭开首页前一起解码。
   loadAvatars(),
   ...Object.values(homePhotoKeys).map(readSettingsMedia),
 ]);

@@ -46,6 +46,7 @@ try {
   await call('Page.navigate', { url: backend.base });
   await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), 'first password form');
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
+  assert.deepEqual(await evaluate('[".auth-brand", ".auth-decor"].map(selector=>document.querySelector(selector).getBoundingClientRect().top)'), [24, 24]);
   const fillPassword = async (password = 'browser-test-password') => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
     await evaluate(`document.querySelector('.auth-keyrow').requestSubmit()`);
@@ -72,8 +73,8 @@ try {
   `);
   await fillPassword();
   await waitFor(() => evaluate('!!window.releaseGateData'), 'home data requested during drawing');
-  const order = await evaluate(`({login:gateRequests.find(item=>item.url==='/api/auth/setup').end, data:gateRequests.filter(item=>['/api/config','/api/api-presets','/api/conversations','/api/font-presets'].includes(item.url)).map(item=>item.start)})`);
-  assert.ok(order.data.length >= 4 && order.data.every(start => start >= order.login));
+  const order = await evaluate(`({login:gateRequests.find(item=>item.url==='/api/auth/setup').end, data:gateRequests.filter(item=>['/api/config','/api/api-presets','/api/conversations','/api/font-presets','/api/clues'].includes(item.url)).map(item=>item.start)})`);
+  assert.ok(order.data.length >= 5 && order.data.every(start => start >= order.login));
   assert.ok(await evaluate(`performance.getEntriesByType('resource').some(entry=>entry.name.includes('/assets/Chat-'))`));
   await waitFor(() => evaluate('performance.now()-gateStarted > 3400'), 'slow preload wait');
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
@@ -93,7 +94,7 @@ try {
   await call('Storage.clearDataForOrigin', { origin: backend.base, storageTypes: 'indexeddb' });
   const heldPreload = await call('Page.addScriptToEvaluateOnNewDocument', { source: `
     const timing=new MutationObserver(()=>{
-      if(!window.coldStarted && document.querySelector('.auth-page.is-drawing')) window.coldStarted=performance.now();
+      if(!window.coldStarted && document.querySelector('.auth-page.is-welcoming')) window.coldStarted=performance.now();
       if(window.coldStarted && !document.querySelector('.auth-page') && document.querySelector('.home-screen')) {
         window.coldElapsed=performance.now()-coldStarted;timing.disconnect();
       }
@@ -107,8 +108,13 @@ try {
     };
   ` });
   await call('Page.reload');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-welcoming") && document.querySelector(".auth-hint").textContent === "門開著，進來。" && getComputedStyle(document.querySelector(".auth-keyrow")).opacity === "1"'), 'cookie cold start shows the welcome line');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-submit"),"::before").content'), '""');
+  assert.equal(await evaluate('document.querySelector(".auth-password").focus(); document.activeElement === document.querySelector(".auth-password")'), false);
+  assert.equal(await evaluate('document.querySelector(".auth-password").disabled'), true);
   await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-drawing")'), 'cookie cold start draws automatically');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '0');
+  await waitFor(() => evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity === "0"'), 'welcome line fades when drawing starts');
   assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0');
   await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'bounded preload opens cached home');
   const coldElapsed = await evaluate('coldElapsed');
@@ -136,7 +142,7 @@ try {
   await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening")'), 'login again');
   assert.ok(await evaluate('performance.now()-gateStarted >= 3000'));
   await waitFor(() => evaluate('!document.querySelector(".auth-page")'), 'fast login finishes its fade');
-  console.log(`auth browser: setup, cold start, hidden inputs, crossfade, ${Math.round(coldElapsed)} ms bounded opening, silence, secure cookie, logout and cache gate passed`);
+  console.log(`auth browser: aligned titles, setup, welcome line without keyboard, cold start, crossfade, ${Math.round(coldElapsed)} ms bounded opening, silence, secure cookie, logout and cache gate passed`);
 } catch (error) {
   console.error(error);
   throw error;

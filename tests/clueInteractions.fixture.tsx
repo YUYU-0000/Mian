@@ -22,7 +22,10 @@ let wall: ClueWall = {
   portrait: { x: 190, y: 280, w: 104, h: 126, r: -1.5 },
   pins: [], threads: [],
 };
-api.clues = async () => structuredClone(wall);
+Object.assign(api.clues, {
+  getSnapshot: () => structuredClone(wall),
+  watch: (receive: (value: ClueWall) => void) => { receive(structuredClone(wall)); return () => {}; },
+});
 api.saveClueWall = async (next) => {
   wall = structuredClone(next);
   return structuredClone(wall);

@@ -234,6 +234,8 @@
   display: flex;
   gap: 10px;
   padding: 8px 0;
+  background: transparent;
+  box-shadow: none;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -252,6 +254,10 @@
 }
 .file-draft .scroll-text {
   touch-action: pan-x;
+}
+/* 草稿在滚动区域内，票根阴影会被裁成硬边；聊天中的票根保留阴影。 */
+.file-draft .ft {
+  filter: none;
 }
 .file-draft-floating {
   position: fixed;
