@@ -45,7 +45,10 @@ const wav = Buffer.alloc(44 + samples * 2);
 wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16);
 wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28);
 wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
-for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(Math.sin(i / 8000 * Math.PI * 880) * 12000), 44 + i * 2);
+for (let i = 0; i < samples; i++) {
+  const volume = 0.08 + 0.92 * (0.5 + 0.5 * Math.sin(i / 8000 * Math.PI * 2 / 1.6));
+  wav.writeInt16LE(Math.round(Math.sin(i / 8000 * Math.PI * 880) * 12000 * volume), 44 + i * 2);
+}
 app.get('/tone.wav', (_req, res) => res.set('X-File-Created-At', '2024-02-03T12:34:56.000Z').type('audio/wav').send(wav));
 const server = app.listen(0, "127.0.0.1");
 await once(server, "listening");
@@ -133,6 +136,13 @@ try {
   const show = (clip, fallback, id) => evaluate(`showVoice(${JSON.stringify(clip)},${JSON.stringify(fallback ?? null)},${JSON.stringify(id ?? 'voice')})`);
   await call('Page.enable');
   await call('Runtime.enable');
+  await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.audioContexts=[];
+    const Context=window.AudioContext;
+    window.AudioContext=class extends Context {
+      constructor(){super();audioContexts.push({context:this,gesture:navigator.userActivation.isActive});}
+    };
+  ` });
   await call('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
   await call('Emulation.setTouchEmulationEnabled', {enabled:true});
   await call('Page.navigate', {url:`http://127.0.0.1:${server.address().port}`});
@@ -172,10 +182,25 @@ try {
   assert.equal(await evaluate("document.querySelector('.pv-file-content').scrollHeight > document.querySelector('.pv-file-content').clientHeight"), true);
   await evaluate("document.querySelector('.pv-file-content').scrollTop=120");
   assert.ok(await evaluate("document.querySelector('.pv-file-content').scrollTop > 0"));
+  assert.equal(await evaluate('audioContexts.length'), 0, 'audio context waits for a play gesture');
   await click('.pv-foot .voice-play');
   await waitFor(() => evaluate("document.querySelectorAll('.voice-play.is-playing').length === 2"), 'shared playing state');
+  assert.equal(await evaluate('audioContexts.length===1 && audioContexts[0].gesture && audioContexts[0].context.state === "running"'), true);
+  const wave = await evaluate(`new Promise(resolve=>{
+    const samples=[],start=performance.now();
+    const sample=()=>{
+      const bars=[...document.querySelectorAll('.voice-wave i')];
+      samples.push({volume:voicePlayer.readVolume(),near:new DOMMatrix(getComputedStyle(bars[5]).transform).d,far:new DOMMatrix(getComputedStyle(bars[37]).transform).d,height:getComputedStyle(bars[5]).height});
+      if(performance.now()-start<1100) requestAnimationFrame(sample); else resolve(samples);
+    };sample();
+  })`);
+  assert.ok(Math.max(...wave.map(s=>s.volume))-Math.min(...wave.map(s=>s.volume))>0.2);
+  assert.ok(Math.max(...wave.map(s=>s.near))-Math.min(...wave.map(s=>s.near))>0.04, 'preview playback animates the ticket from measured audio');
+  assert.ok(wave.every(s=>Math.abs(s.far-1)<0.001 && s.height==='10px'), 'distant bars and layout remain still');
+  assert.ok(await evaluate('document.querySelectorAll(".voice-wave i.done").length>0'), 'played bars stay dark');
   await click('.pv-foot .voice-play');
   await waitFor(() => evaluate("document.querySelectorAll('.voice-play.is-playing').length === 0"), 'shared paused state');
+  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every(bar=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-1)<0.001)'), 'paused barcode settles to its static heights');
   await closePreview();
   await click('.voice-ticket .voice-play');
   await waitFor(() => evaluate("voicePlayer.getSnapshot().playing"), 'ticket playback');
@@ -198,6 +223,10 @@ try {
   }
   await call('Input.dispatchTouchEvent', {type:'touchEnd',touchPoints:[]});
   await waitFor(() => evaluate("!document.querySelector('.pv-viewer')"), 'drag closes voice preview');
+  await evaluate('voicePlayer.seek(6.8)');
+  await waitFor(() => evaluate('voicePlayer.getSnapshot().id === null'), 'voice completes');
+  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every(bar=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-1)<0.001)'), 'completed barcode settles');
+  assert.equal(await evaluate('audioContexts.length'), 1, 'resume and seek reuse the audio graph');
 
   const failed = {url:'',text:'[quietly amused] 陪你。'};
   await show(failed, null, 'failed');

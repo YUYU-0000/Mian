@@ -47,10 +47,27 @@ try {
   await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), 'first password form');
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
   assert.deepEqual(await evaluate('[".auth-brand", ".auth-decor"].map(selector=>document.querySelector(selector).getBoundingClientRect().top)'), [24, 24]);
-  const fillPassword = async (password = 'browser-test-password') => {
+  const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
+  };
+  const fillPassword = async (password = 'browser-test-password') => {
+    await typePassword(password);
     await evaluate(`document.querySelector('.auth-keyrow').requestSubmit()`);
   };
+  await typePassword('a');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我"'), 'first password character');
+  assert.equal(await evaluate('document.querySelector(".auth-password").type'), 'password');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-password")).opacity'), '0');
+  await evaluate('window.firstEchoCharacter=document.querySelector("[data-reveal-characters]").firstElementChild');
+  await typePassword('ab');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽"'), 'second password character');
+  assert.equal(await evaluate('firstEchoCharacter === document.querySelector("[data-reveal-characters]").firstElementChild'), true);
+  await typePassword('a');
+  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我');
+  await typePassword('abcdefghijklmnop');
+  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我聽見你來了，門就要開了我聽見你');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).bottom'), '112px');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).bottom'), '92px');
   await fillPassword();
   await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "再寫一次。"'), 'same line confirms the new password');
   await fillPassword('different-test-password');
@@ -65,6 +82,7 @@ try {
       const record={url,start:performance.now()};
       gateRequests.push(record);
       const response=await fetchOriginal(...args);
+      if(url==='/api/auth/setup') await new Promise(resolve=>window.releaseGateLogin=resolve);
       if(url==='/api/font-presets' && gateHoldData) await new Promise(resolve=>window.releaseGateData=resolve);
       record.end=performance.now();
       return response;
@@ -72,6 +90,10 @@ try {
     window.gateStarted=performance.now();
   `);
   await fillPassword();
+  await waitFor(() => evaluate('!!window.releaseGateLogin'), 'login response held');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "門開著，進來。"'), 'password echo transitions into the welcome hint');
+  assert.equal(await evaluate('document.querySelector(".auth-password").readOnly && document.activeElement !== document.querySelector(".auth-password")'), true);
+  await evaluate('releaseGateLogin()');
   await waitFor(() => evaluate('!!window.releaseGateData'), 'home data requested during drawing');
   const order = await evaluate(`({login:gateRequests.find(item=>item.url==='/api/auth/setup').end, data:gateRequests.filter(item=>['/api/config','/api/api-presets','/api/conversations','/api/font-presets','/api/clues'].includes(item.url)).map(item=>item.start)})`);
   assert.ok(order.data.length >= 5 && order.data.every(start => start >= order.login));
@@ -79,11 +101,15 @@ try {
   await waitFor(() => evaluate('performance.now()-gateStarted > 3400'), 'slow preload wait');
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
   assert.equal(await evaluate('!!document.querySelector(".auth-page.is-drawing")'), true);
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
   const slowOffsets = await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>Number(path.style.strokeDashoffset))`);
   assert.ok(slowOffsets.some(value => value === 0));
   assert.ok(await evaluate(`Number(document.querySelector('[data-ring]').style.strokeDashoffset)>0`));
   await evaluate('gateHoldData=false; releaseGateData()');
   await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening") && !!document.querySelector(".auth-content .home-screen")'), 'gate and pre-mounted home crossfade');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
   assert.equal(await evaluate('soundStarts'), 0);
   await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'home after setup');
   const { cookies } = await call('Network.getCookies', { urls: [backend.base] });
@@ -114,8 +140,8 @@ try {
   assert.equal(await evaluate('document.querySelector(".auth-password").focus(); document.activeElement === document.querySelector(".auth-password")'), false);
   assert.equal(await evaluate('document.querySelector(".auth-password").disabled'), true);
   await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-drawing")'), 'cookie cold start draws automatically');
-  await waitFor(() => evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity === "0"'), 'welcome line fades when drawing starts');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
   await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'bounded preload opens cached home');
   const coldElapsed = await evaluate('coldElapsed');
   assert.ok(coldElapsed < 8100, `opening took ${coldElapsed} ms`);
@@ -132,6 +158,7 @@ try {
   assert.equal(await evaluate(`fetch('/api/config').then(r=>r.status)`), 401);
   await fillPassword('wrong-test-password');
   await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "不對。" && getComputedStyle(document.querySelector(".auth-fish-ink")).opacity === "0"'), 'wrong password returns to the draft');
+  assert.equal(await evaluate('!document.querySelector(".auth-password").readOnly && !document.querySelector(".auth-password").disabled'), true);
   const stopped = await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>path.style.strokeDashoffset)`);
   await sleep(250);
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>path.style.strokeDashoffset)`), stopped);

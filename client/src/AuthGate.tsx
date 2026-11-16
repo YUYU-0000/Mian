@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, cachedAccess, type Access } from "./auth";
 import { backendAvailable, BackendUnavailable, OFFLINE_MESSAGE, setBackendAuthorized } from "./backend";
 import { startOfflineSync } from "./offline";
 import Notify, { notify } from "./components/Notify";
 import AnimatedText from "./components/AnimatedText";
+import ScrollText from "./components/ScrollText";
 import AuthFish, { drawFish } from "./AuthFish";
 import { preloadHomeData, preloadHomePages } from "./homePreload";
 import { gateFontsReady } from "./gateFonts";
@@ -13,6 +14,7 @@ import "./auth.css";
 
 type Phase = "checking" | "locked" | "welcome" | "drawing" | "settled" | "opening" | "open";
 const WELCOME_MS = 600;
+const PASSWORD_ECHO = "我聽見你來了，門就要開了";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [access, setAccess] = useState<Access | null>(cachedAccess);
@@ -27,6 +29,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [errorHint, setErrorHint] = useState("");
   const fish = useRef<SVGSVGElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const hintLine = useRef<HTMLSpanElement>(null);
   const drawing = useRef<ReturnType<typeof drawFish> | null>(null);
   const entryWasSlow = useRef(false);
   const navigate = useNavigate();
@@ -142,9 +145,16 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const canEnter = access && !access.authenticated && (!setup || access.canSetup);
   const busy = phase === "drawing" || phase === "settled" || phase === "opening";
   const value = confirming ? repeat : password;
-  const hint = phase === "checking" ? "" : access?.authenticated ? "門開著，進來。" : errorHint || (offline ? OFFLINE_MESSAGE : setup
+  const typing = phase === "locked" && !!value && !errorHint;
+  const echoLength = Array.from(value).length;
+  const echo = PASSWORD_ECHO.repeat(Math.ceil(echoLength / PASSWORD_ECHO.length)).slice(0, echoLength);
+  const hint = phase === "checking" ? "" : busy || access?.authenticated ? "門開著，進來。" : errorHint || (typing ? echo : offline ? OFFLINE_MESSAGE : setup
     ? access.canSetup ? confirming ? "再寫一次。" : "先把門鎖好。至少十個字。" : "先在這台電腦上把門鎖好。"
     : "密碼給門，不用給我");
+  useLayoutEffect(() => {
+    const line = hintLine.current?.querySelector(".scroll-text");
+    if (line && typing) line.scrollLeft = line.scrollWidth;
+  }, [hint, typing]);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canEnter || busy) return;
@@ -170,11 +180,11 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           <h1 className="auth-cn">敲門</h1>
         </header>
         <AuthFish svgRef={fish} />
-        <form className={`auth-keyrow${value && !errorHint ? " has-value" : ""}`} aria-busy={busy} onSubmit={submit}>
-          <span className="auth-hint" id="auth-hint" aria-live="polite"><AnimatedText text={hint} /></span>
+        <form className="auth-keyrow" aria-busy={busy} onSubmit={submit}>
+          <span ref={hintLine} className="auth-hint" id="auth-hint" aria-live="polite"><ScrollText><AnimatedText text={hint} revealCharacters={typing} /></ScrollText></span>
           <input ref={input} className="auth-password" type="password" aria-label={confirming ? "再次確認密碼" : "密碼"}
             aria-describedby="auth-hint" autoComplete={setup ? "new-password" : "current-password"} enterKeyHint={setup && !confirming ? "next" : "go"}
-            minLength={setup ? 10 : undefined} required disabled={!canEnter || phase !== "locked"} value={value}
+            minLength={setup ? 10 : undefined} required disabled={!canEnter} readOnly={phase !== "locked"} value={value}
             onChange={event => { setErrorHint(""); if (confirming) setRepeat(event.target.value); else setPassword(event.target.value); }} />
           <button className="auth-submit" type="submit" aria-label="敲門" disabled={!canEnter || phase !== "locked" || !value} />
         </form>

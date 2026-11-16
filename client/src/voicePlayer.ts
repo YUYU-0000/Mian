@@ -18,6 +18,9 @@ type PlayerState = { id: string | null; playing: boolean; duration: number | nul
 // 试听和聊天共用这一个 Audio。只有用户点击会装载新的播放队列。
 class VoicePlayer {
   private audio: HTMLAudioElement | null = null;
+  private context: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private samples = new Float32Array(512);
   private playback: Playback | null = null;
   private state: PlayerState = { id: null, playing: false, duration: null, currentTime: 0 };
   private listeners = new Set<() => void>();
@@ -29,6 +32,26 @@ class VoicePlayer {
   private update(patch: Partial<PlayerState>) {
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();
+  }
+
+  // 在点击调用栈内创建/恢复，后面的加载和分段播放继续复用同一条音频链。
+  private activateAudio() {
+    this.audio ??= new Audio();
+    if (!this.context) {
+      this.context = new AudioContext();
+      this.analyser = this.context.createAnalyser();
+      this.analyser.fftSize = this.samples.length;
+      this.context.createMediaElementSource(this.audio).connect(this.analyser);
+      this.analyser.connect(this.context.destination);
+    }
+    return this.context.resume();
+  }
+
+  readVolume() {
+    this.analyser!.getFloatTimeDomainData(this.samples);
+    let power = 0;
+    for (const sample of this.samples) power += sample * sample;
+    return Math.min(1, Math.sqrt(power / this.samples.length) * 4);
   }
 
   play(id: string, load: (signal: AbortSignal) => Promise<VoiceClip>, signal?: AbortSignal, onPlaying?: () => void, startAt = 0) {
@@ -48,11 +71,11 @@ class VoicePlayer {
   }
 
   private async load(playback: Playback, load: (signal: AbortSignal) => Promise<VoiceClip>, startAt: number) {
-    const clip = await load(playback.controller.signal);
+    const [, clip] = await Promise.all([this.activateAudio(), load(playback.controller.signal)]);
     playback.controller.signal.throwIfAborted();
     playback.parts = clip.parts ?? [{ url: clip.url, duration: clip.duration ?? 0 }];
     this.update({ duration: clip.duration ?? (clip.parts ? clip.parts.reduce((sum, part) => sum + part.duration, 0) : null) });
-    const audio = this.audio ??= new Audio();
+    const audio = this.audio!;
     audio.loop = false;
     audio.onplaying = () => {
       this.update({ playing: true });
@@ -85,6 +108,7 @@ class VoicePlayer {
   }
 
   private async startPart(playback: Playback, position: number) {
+    const ready = this.context!.resume();
     playback.seekTo = position;
     this.audio!.pause();
     this.update({ playing: false, currentTime: playback.offset + position });
@@ -93,7 +117,7 @@ class VoicePlayer {
     const url = source.startsWith("/api/") ? await cachedFileUrl(source, playback.controller.signal) : source;
     if (playback.index !== index) return;
     this.audio!.src = url;
-    return this.audio!.play();
+    await Promise.all([ready, this.audio!.play()]);
   }
 
   seek(seconds: number) {
@@ -119,7 +143,8 @@ class VoicePlayer {
   pause() { this.audio?.pause(); }
   resume() {
     const playback = this.playback;
-    if (playback?.parts.length && this.audio) void this.audio.play().catch(error => this.finish(playback, error));
+    if (playback?.parts.length && this.audio)
+      void Promise.all([this.context!.resume(), this.audio.play()]).catch(error => this.finish(playback, error));
   }
   stop(id?: string) {
     if (this.playback && (id === undefined || this.playback.id === id))
