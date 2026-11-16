@@ -30,7 +30,6 @@
 }
 .choice-tag .tag-card::before { background: var(--sheet); }
 .choice-tag .tag-card::after { background: url("/grain.png"); mix-blend-mode: multiply; }
-.choice-tag .tag-card > .keyboard-scroll { z-index: 1; }
 
 /* 上半部：屋頂、標題與操作文字 */
 .choice-tag .tag-roof {

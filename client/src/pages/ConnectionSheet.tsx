@@ -11,7 +11,6 @@ import type { ApiPreset } from "../connectionTypes";
 import type { Draft } from "../apiDrafts";
 import AnimatedText from "../components/AnimatedText";
 import PasswordToggle from "../components/PasswordToggle";
-import KeyboardScroll from "../components/KeyboardScroll";
 import ScrollText, { ScrollInput } from "../components/ScrollText";
 import { notify } from "../components/Notify";
 import type { TagConfig } from "../components/ChoiceTag";
@@ -123,7 +122,7 @@ export default function ConnectionSheet({
     const cfg = form();
     if (!cfg.note) {
       notify.note("寫個備註吧");
-      ref.current!.querySelector<HTMLInputElement>(".js-note")!.focus();
+      ref.current!.querySelector<HTMLInputElement>(".js-note")!.focus({ preventScroll: true });
       return;
     }
     if (!cfg.endpoint || (!cfg.key && !draft.hasKey) || !cfg.model) {
@@ -207,158 +206,156 @@ export default function ConnectionSheet({
       <div className="api-bar" />
       <div className="api-hatch" />
       <div className="api-side">REMOTE CONNECT</div>
-      <KeyboardScroll>
-        <div className="api-head">
-          <div className="api-giant">
-            {draft.plus ? (
-              <button
-                className="api-plus js-add"
-                type="button"
-                aria-label="新增一張紙"
-                onClick={onAdd}
-              >
-                +
-              </button>
-            ) : (
-              pad2(index + 1)
-            )}
-            <span className="api-total">/ {pad2(total)}</span>
-          </div>
-          <label className="api-note-label">NOTE 備註</label>
-          <ScrollInput
-            className="api-note js-note"
-            type="text"
-            maxLength={16}
-            autoComplete="off"
-            placeholder={!draft.id ? "新紙，寫個備註" : "寫個備註，好分清楚"}
-            value={draft.note}
-            onChange={(e) => onChange({ note: e.target.value })}
-          />
-        </div>
-        <div className="api-rule">
-          <span>A QUIET LINE</span>
-          <span className="api-rule-line" />
-          {!draft.plus && (
+      <div className="api-head">
+        <div className="api-giant">
+          {draft.plus ? (
             <button
-              className="api-del js-del"
+              className="api-plus js-add"
               type="button"
-              onClick={() => void remove()}
+              aria-label="新增一張紙"
+              onClick={onAdd}
             >
-              <AnimatedText text={armed ? "再點一次刪除" : "DELETE"} />
+              +
             </button>
+          ) : (
+            pad2(index + 1)
           )}
+          <span className="api-total">/ {pad2(total)}</span>
         </div>
-        <div className="api-form">
-          <label className="api-field">
-            <span className="api-label">
-              <b>01</b>ENDPOINT
-            </span>
-            <span className="api-row">
+        <label className="api-note-label">NOTE 備註</label>
+        <ScrollInput
+          className="api-note js-note"
+          type="text"
+          maxLength={16}
+          autoComplete="off"
+          placeholder={!draft.id ? "新紙，寫個備註" : "寫個備註，好分清楚"}
+          value={draft.note}
+          onChange={(e) => onChange({ note: e.target.value })}
+        />
+      </div>
+      <div className="api-rule">
+        <span>A QUIET LINE</span>
+        <span className="api-rule-line" />
+        {!draft.plus && (
+          <button
+            className="api-del js-del"
+            type="button"
+            onClick={() => void remove()}
+          >
+            <AnimatedText text={armed ? "再點一次刪除" : "DELETE"} />
+          </button>
+        )}
+      </div>
+      <div className="api-form">
+        <label className="api-field">
+          <span className="api-label">
+            <b>01</b>ENDPOINT
+          </span>
+          <span className="api-row">
+            <ScrollInput
+              className="api-input js-endpoint"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="https://api.deepseek.com"
+              value={draft.endpoint}
+              onChange={(e) => onChange({ endpoint: e.target.value })}
+            />
+          </span>
+        </label>
+        <label className="api-field">
+          <span className="api-label">
+            <b>02</b>KEY
+          </span>
+          <span className="api-row">
+            <ScrollInput
+              className="api-input js-key"
+              type={showKey ? "text" : "password"}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={draft.hasKey ? draft.keyHint : "sk-"}
+              value={draft.key ?? ""}
+              onChange={(e) => onChange({ key: e.target.value })}
+            />
+            {draft.key && (
+              <PasswordToggle className="js-toggle" visible={showKey} onToggle={() => setShowKey(value => !value)} />
+            )}
+          </span>
+        </label>
+        <div className="api-field">
+          <span className="api-label">
+            <b>03</b>MODEL
+          </span>
+          <span className="api-row">
+            {manualModel ? (
               <ScrollInput
-                className="api-input js-endpoint"
-                type="url"
-                inputMode="url"
+                className="api-input js-model"
+                type="text"
+                aria-label="MODEL 模型名稱"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="https://api.deepseek.com"
-                value={draft.endpoint}
-                onChange={(e) => onChange({ endpoint: e.target.value })}
+                autoFocus
+                placeholder="輸入模型名稱"
+                value={draft.model}
+                onChange={(event) => onChange({ model: event.target.value })}
+                onBlur={() => onChange({ model: draft.model.trim() })}
               />
-            </span>
-          </label>
-          <label className="api-field">
-            <span className="api-label">
-              <b>02</b>KEY
-            </span>
-            <span className="api-row">
-              <ScrollInput
-                className="api-input js-key"
-                type={showKey ? "text" : "password"}
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={draft.hasKey ? draft.keyHint : "sk-"}
-                value={draft.key ?? ""}
-                onChange={(e) => onChange({ key: e.target.value })}
-              />
-              {draft.key && (
-                <PasswordToggle className="js-toggle" visible={showKey} onToggle={() => setShowKey(value => !value)} />
-              )}
-            </span>
-          </label>
-          <div className="api-field">
-            <span className="api-label">
-              <b>03</b>MODEL
-            </span>
-            <span className="api-row">
-              {manualModel ? (
-                <ScrollInput
-                  className="api-input js-model"
-                  type="text"
-                  aria-label="MODEL 模型名稱"
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoFocus
-                  placeholder="輸入模型名稱"
-                  value={draft.model}
-                  onChange={(event) => onChange({ model: event.target.value })}
-                  onBlur={() => onChange({ model: draft.model.trim() })}
-                />
-              ) : (
-                <button
-                  className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
-                  type="button"
-                  onClick={() => void model()}
-                >
-                  <ScrollText>
-                    <AnimatedText
-                      text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
-                    />
-                  </ScrollText>
-                </button>
-              )}
-            </span>
-          </div>
-        </div>
-        <div className="api-foot">
-          <AnimatedText
-            className={`api-status js-status${isOn ? " is-on" : ""}`}
-            text={status}
-          />
-          <span className="api-actions">
-            <button
-              className="api-act js-test"
-              type="button"
-              onClick={() => void test()}
-            >
-              TEST
-            </button>
-            {draft.id && (
+            ) : (
               <button
-                className="api-act js-use"
+                className={`api-pick js-model${draft.model ? "" : " is-empty"}`}
                 type="button"
-                onClick={() => {
-                  void api
-                    .useApiPreset(draft.id)
-                    .then(() => {
-                      onUse();
-                      notify.ok("已切換");
-                    })
-                    .catch((error) => notify.fail("切換失敗", error));
-                }}
+                onClick={() => void model()}
               >
-                USE
+                <ScrollText>
+                  <AnimatedText
+                    text={loadingModels ? "讀取中" : draft.model || "點擊讀取"}
+                  />
+                </ScrollText>
               </button>
             )}
-            <button
-              className="api-act is-primary js-save"
-              type="button"
-              onClick={() => void save()}
-            >
-              SAVE
-            </button>
           </span>
         </div>
-      </KeyboardScroll>
+      </div>
+      <div className="api-foot">
+        <AnimatedText
+          className={`api-status js-status${isOn ? " is-on" : ""}`}
+          text={status}
+        />
+        <span className="api-actions">
+          <button
+            className="api-act js-test"
+            type="button"
+            onClick={() => void test()}
+          >
+            TEST
+          </button>
+          {draft.id && (
+            <button
+              className="api-act js-use"
+              type="button"
+              onClick={() => {
+                void api
+                  .useApiPreset(draft.id)
+                  .then(() => {
+                    onUse();
+                    notify.ok("已切換");
+                  })
+                  .catch((error) => notify.fail("切換失敗", error));
+              }}
+            >
+              USE
+            </button>
+          )}
+          <button
+            className="api-act is-primary js-save"
+            type="button"
+            onClick={() => void save()}
+          >
+            SAVE
+          </button>
+        </span>
+      </div>
     </div>
   );
 }

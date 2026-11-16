@@ -21,7 +21,7 @@ export default function SettingsSecurity({ active }: { active: boolean }) {
     catch (error) { notify.fail("還沒改好", error); }
     finally { setBusy(false); }
   };
-  return <section className="security-panel" data-keyboard-scroll>
+  return <section className="security-panel">
     <span className="auth-eyebrow">PRIVATE ACCESS</span>
     <h2>門鎖</h2>
     <label className="security-local">

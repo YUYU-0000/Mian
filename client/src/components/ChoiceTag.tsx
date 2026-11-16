@@ -2,7 +2,6 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import WorkspaceEditor from "../pages/WorkspaceEditor";
 import AnimatedText from "./AnimatedText";
 import ScrollText from "./ScrollText";
-import KeyboardScroll from "./KeyboardScroll";
 import "./hang-tag.css";
 import "./choice-tag.css";
 export type TagConfig = {
@@ -82,6 +81,7 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
       ></div>
       <div
         className={`hang-tag${tagVisible ? " is-visible" : ""}`}
+        data-keyboard-surface
         ref={hanging}
         inert={!tagVisible}
         aria-hidden={!tagVisible}
@@ -116,84 +116,80 @@ export default function ChoiceTag({ tag, tagVisible, onTagClose, anchor }: {
               strokeWidth="6"
               strokeLinejoin="round"
             />
-          </svg>
-          <KeyboardScroll>
-            <svg className="tag-roof" viewBox="0 0 188 150" aria-hidden="true">
-              <text
-                ref={roofText}
-                xmlSpace="preserve"
-                style={{ whiteSpace: "pre" }}
-                fontSize="6.2"
-                letterSpacing="1.3"
-                fill="rgba(241,239,233,.5)"
-              >
-                <textPath href={`#${roofId}`} startOffset="50%" textAnchor="middle">
-                  SOFTLY REMEMBERING WARMLY
-                </textPath>
-              </text>
-              <text
-                x="94"
-                y={tag?.giantY || 117}
-                textAnchor="middle"
-                fontSize={Math.min(
-                  28,
-                  Math.floor(118 / ((tag?.giant.length || 5) * 0.62)),
-                )}
-                fontWeight="300"
-                letterSpacing="1"
-                fill="#f1efe9"
-              >
-                {tag?.giant || "MODEL"}
-              </text>
-              <text
-                className={`tag-title${tag?.titleAction ? " is-action" : ""}`}
-                onClick={() => {
-                  if (tag?.titleAction) {
-                    if (tag.titleConfirm && !titleArmed) setTitleArmed(true);
-                    else {
-                      close();
-                      tag.titleAction();
-                    }
+            <text
+              ref={roofText}
+              xmlSpace="preserve"
+              style={{ whiteSpace: "pre" }}
+              fontSize="6.2"
+              letterSpacing="1.3"
+              fill="rgba(241,239,233,.5)"
+            >
+              <textPath href={`#${roofId}`} startOffset="50%" textAnchor="middle">
+                SOFTLY REMEMBERING WARMLY
+              </textPath>
+            </text>
+            <text
+              x="94"
+              y={tag?.giantY || 117}
+              textAnchor="middle"
+              fontSize={Math.min(
+                28,
+                Math.floor(118 / ((tag?.giant.length || 5) * 0.62)),
+              )}
+              fontWeight="300"
+              letterSpacing="1"
+              fill="#f1efe9"
+            >
+              {tag?.giant || "MODEL"}
+            </text>
+            <text
+              className={`tag-title${tag?.titleAction ? " is-action" : ""}`}
+              onClick={() => {
+                if (tag?.titleAction) {
+                  if (tag.titleConfirm && !titleArmed) setTitleArmed(true);
+                  else {
+                    close();
+                    tag.titleAction();
                   }
-                }}
-                x="94"
-                y={tag?.titleY || 132}
-                textAnchor="middle"
-                fontSize="8.5"
-                letterSpacing="2"
-                fill="rgba(241,239,233,.72)"
-              >
-                {tag?.titleConfirm
-                  ? <AnimatedText as="tspan" text={titleArmed ? tag.titleConfirm : tag.title} />
-                  : tag?.title || "模型"}
-              </text>
-            </svg>
-            <div className="tag-walls">
-              <div className="tag-kicker">
-                {tag?.kicker || "SELECT"}
-              </div>
-              <div className="tag-list" ref={list} onScroll={updateFade}>
-                {tag?.workspace && (
-                  <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />
-                )}
-                {tag?.items.map((item, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`tag-option${item.selected ? " is-selected" : ""}${item.static ? " is-static" : ""}`}
-                    onClick={() => {
-                      if (!item.static) {
-                        close();
-                        tag.onPick!(item.value!);
-                      }
-                    }}
-                  >
-                    <ScrollText>{item.label}</ScrollText>
-                  </button>
-                ))}
-              </div>
+                }
+              }}
+              x="94"
+              y={tag?.titleY || 132}
+              textAnchor="middle"
+              fontSize="8.5"
+              letterSpacing="2"
+              fill="rgba(241,239,233,.72)"
+            >
+              {tag?.titleConfirm
+                ? <AnimatedText as="tspan" text={titleArmed ? tag.titleConfirm : tag.title} />
+                : tag?.title || "模型"}
+            </text>
+          </svg>
+          <div className="tag-walls">
+            <div className="tag-kicker">
+              {tag?.kicker || "SELECT"}
             </div>
-          </KeyboardScroll>
+            <div className="tag-list" ref={list} onScroll={updateFade}>
+              {tag?.workspace && (
+                <WorkspaceEditor key={tag.workspace.value} {...tag.workspace} />
+              )}
+              {tag?.items.map((item, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`tag-option${item.selected ? " is-selected" : ""}${item.static ? " is-static" : ""}`}
+                  onClick={() => {
+                    if (!item.static) {
+                      close();
+                      tag.onPick!(item.value!);
+                    }
+                  }}
+                >
+                  <ScrollText>{item.label}</ScrollText>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
   </div>;

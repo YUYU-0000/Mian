@@ -6,13 +6,12 @@ import { reloadOnPreloadError } from "./lazyImport";
 import { registerShellWorker } from "./serviceWorker";
 import AuthGate from "./AuthGate";
 import { installAppViewport } from "./appViewport";
-import { installKeyboardScroll } from "./keyboard";
+import { installKeyboardLift } from "./keyboard";
 import "./theme.css";
 import "./mobile-fixes.css";
 import "./ticket-drawer.css";
 
 import "./design-surface.css";
-import "./keyboard.css";
 import "./pages/connections.css";
 import "./pages/settings.css";
 import "./components/scroll-text.css";
@@ -22,7 +21,7 @@ import "./components/file-preview.css";
 
 window.addEventListener("vite:preloadError", () => reloadOnPreloadError());
 installAppViewport();
-installKeyboardScroll();
+installKeyboardLift();
 registerShellWorker();
 
 createRoot(document.getElementById("root")!).render(
