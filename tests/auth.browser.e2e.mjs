@@ -53,25 +53,43 @@ try {
   assert.equal(spacing.top, spacing.decor);
   assert.ok(Math.abs(spacing.top - spacing.bottom) < 1);
   assert.equal(spacing.gap, 20);
+  const fishPlacement = await evaluate(`(async()=>{
+    const image=new Image();image.src='/fish_hi.png';await image.decode();
+    const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+    const context=canvas.getContext('2d');context.drawImage(image,0,0);
+    const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+    let left=canvas.width,right=0;
+    for(let i=3;i<pixels.length;i+=4) if(pixels[i]) {const x=((i-3)/4)%canvas.width;left=Math.min(left,x);right=Math.max(right,x+1);}
+    const svg=document.querySelector('.auth-fish'), raster=svg.querySelector('image'), bounds=raster.getBBox();
+    const scale=Math.min(bounds.width/canvas.width,bounds.height/canvas.height);
+    const point=new DOMPoint(bounds.x+(bounds.width-canvas.width*scale)/2+(left+right)/2*scale,0).matrixTransform(svg.getScreenCTM());
+    const rect=svg.getBoundingClientRect();
+    return {inkCenter:point.x,screenCenter:innerWidth/2,verticalCenter:rect.top+rect.height/2,pageCenter:innerHeight/2};
+  })()`);
+  assert.ok(Math.abs(fishPlacement.inkCenter-fishPlacement.screenCenter)<0.05,'visible fish pixels are horizontally centered');
+  assert.ok(Math.abs(fishPlacement.verticalCenter-fishPlacement.pageCenter)<0.05,'fish keeps its original vertical placement');
   const keyboardGate = await evaluate(`(async()=>{
-    const input=document.querySelector('.auth-password'), fish=document.querySelector('.auth-fish'), brand=document.querySelector('.auth-brand');
-    const before={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON()};
+    const input=document.querySelector('.auth-password');
+    const snapshot=()=>Object.fromEntries(Object.entries({fish:'.auth-fish',input:'.auth-password',brand:'.auth-brand',decor:'.auth-decor',foot:'.auth-foot',page:'.auth-page'})
+      .map(([name,selector])=>[name,document.querySelector(selector).getBoundingClientRect().toJSON()]));
+    const before=snapshot();
     Object.defineProperty(visualViewport,'height',{configurable:true,value:480});
     input.focus({preventScroll:true});visualViewport.dispatchEvent(new Event('resize'));
     await new Promise(resolve=>setTimeout(resolve,300));
-    const during={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON()};
+    const during=snapshot();
     delete visualViewport.height;input.blur();visualViewport.dispatchEvent(new Event('resize'));
     await new Promise(resolve=>setTimeout(resolve,300));
     return {before,during,after:input.getBoundingClientRect().toJSON()};
   })()`);
-  const loginLift=keyboardGate.before.input.bottom-468;
-  for (const name of ['fish','input','brand']) {
+  const loginLift=keyboardGate.before.input.bottom-472;
+  for (const name of ['input','foot']) {
     const before=keyboardGate.before[name], during=keyboardGate.during[name];
-    assert.ok(Math.abs(before.y-during.y-loginLift)<0.1, `login ${name} moves with the whole page`);
+    assert.ok(Math.abs(before.y-during.y-loginLift)<0.1, `login ${name} moves with the input block`);
     assert.equal(before.width,during.width);
     assert.equal(before.height,during.height);
   }
-  assert.ok(Math.abs(keyboardGate.during.input.bottom-468)<0.1, 'login input clears the keyboard by exactly 12px');
+  for (const name of ['fish','brand','decor','page']) assert.deepEqual(keyboardGate.during[name],keyboardGate.before[name],`login ${name} stays fixed behind the keyboard lift`);
+  assert.ok(Math.abs(keyboardGate.during.input.bottom-472)<0.1, 'login input clears the keyboard by exactly 8px');
   assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, 'login line returns to its original position');
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);

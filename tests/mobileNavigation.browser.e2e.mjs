@@ -107,32 +107,43 @@ try {
 
   // Both browser keyboard behaviors: visual viewport only, and a resized layout viewport.
   await evaluate(`window.keyboardHeight=844;Object.defineProperty(visualViewport,'height',{configurable:true,get:()=>keyboardHeight});
-    window.rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};`);
+    window.rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
+    window.keyboardBackground=()=>Array.from(document.querySelectorAll('.connections-page,.settings-page,.clues-page,.settings-header,.connections-page .envelope,.settings-page .folders-container,.clues-page .head,.clues-page .wall,.ticket-drawer .strip-col'),element=>element.getBoundingClientRect().toJSON());
+    window.paperFrames=selector=>new Promise(resolve=>{const frames=[],start=performance.now();const sample=()=>{frames.push(rect(selector).y);if(performance.now()-start<260)requestAnimationFrame(sample);else resolve(frames)};requestAnimationFrame(sample)});`);
   const keyboard = async (paper, input, mode = 'visual') => {
     const before = await evaluate(`(()=>{
       window.keyboardAncestors=[];
       for(let parent=document.querySelector(${JSON.stringify(input)}).parentElement;parent;parent=parent.parentElement) keyboardAncestors.push([parent,parent.scrollTop]);
-      return {paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)})};
+      return {paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),background:keyboardBackground()};
     })()`);
     await evaluate(`document.querySelector(${JSON.stringify(input)}).focus({preventScroll:true});keyboardHeight=480;visualViewport.dispatchEvent(new Event('resize'));`);
     assert.equal(await evaluate(`document.activeElement===document.querySelector(${JSON.stringify(input)})`), true, `${input} accepts focus`);
     if (mode === 'layout') await metrics(480);
-    await sleep(300);
+    const moving = await evaluate(`paperFrames(${JSON.stringify(paper)})`);
     await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
-    const after = await evaluate(`({paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),height:document.documentElement.style.getPropertyValue('--app-h'),scrollFixed:keyboardAncestors.every(([element,top])=>element.scrollTop===top)})`);
+    const after = await evaluate(`({paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),height:document.documentElement.style.getPropertyValue('--app-h'),scrollFixed:keyboardAncestors.every(([element,top])=>element.scrollTop===top),background:keyboardBackground()})`);
     const bottom = before.input.y + before.input.height;
-    const lift = bottom > 480 ? bottom - 468 : 0;
+    const lift = bottom > 480 ? bottom - 472 : 0;
     for (const key of ['x', 'width', 'height']) assert.ok(Math.abs(before.paper[key] - after.paper[key]) < 0.1, `${input} preserves paper ${key} in ${mode}`);
     assert.equal(after.height, '844px');
-    assert.ok(Math.abs(before.paper.y - after.paper.y - lift) < 0.1, `${input} lifts the whole paper only when covered, with exactly 12px clearance`);
+    assert.ok(Math.abs(before.paper.y - after.paper.y - lift) < 0.1, `${input} lifts the whole paper only when covered, with exactly 8px clearance`);
     assert.ok(Math.abs(before.input.y - after.input.y - lift) < 0.1, `${input} moves with its paper`);
     assert.equal(after.scrollFixed, true, `${input} never scrolls the paper contents`);
+    assert.deepEqual(after.background,before.background,`${input} keeps page backgrounds, decorations and headers fixed`);
+    for (let i=0;i<moving.length;i++) {
+      assert.ok(moving[i]>=after.paper.y-0.1 && moving[i]<=before.paper.y+0.1,`${input} never overshoots while lifting`);
+      if(i) assert.ok(moving[i]<=moving[i-1]+0.1,`${input} lifts without bouncing`);
+    }
     await evaluate(`keyboardHeight=844;visualViewport.dispatchEvent(new Event('resize'));document.activeElement.blur();`);
     if (mode === 'layout') await metrics(844);
-    await sleep(300);
+    const returning = await evaluate(`paperFrames(${JSON.stringify(paper)})`);
     const restored = await evaluate(`({paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)})})`);
     assert.ok(Math.abs(before.paper.y - restored.paper.y) < 0.1, `${input} restores the paper position`);
     assert.ok(Math.abs(before.input.y - restored.input.y) < 0.1, `${input} restores its original position`);
+    for (let i=0;i<returning.length;i++) {
+      assert.ok(returning[i]>=after.paper.y-0.1 && returning[i]<=before.paper.y+0.1,`${input} never overshoots while returning`);
+      if(i) assert.ok(returning[i]>=returning[i-1]-0.1,`${input} returns without bouncing`);
+    }
   };
   const checkHome = async () => {
     assert.equal(await evaluate(`savedHome===document.querySelector('.home-screen') && savedPhoto===document.querySelector('.home-photo.widget img') && savedVideo===document.querySelector('.home-photo.wide video') && savedDock===document.querySelector('.dock-1')`), true);
@@ -160,7 +171,7 @@ try {
   })()`);
   for (const name of ['note','key']) {
     const field=apiSwitch.before[name], bottom=field.y+field.height;
-    assert.ok(Math.abs(apiSwitch[name].y - (apiSwitch.before.paper.y - (bottom>480?bottom-468:0)))<0.1, `switching to ${name} does not accumulate translation`);
+    assert.ok(Math.abs(apiSwitch[name].y - (apiSwitch.before.paper.y - (bottom>480?bottom-472:0)))<0.1, `switching to ${name} does not accumulate translation`);
   }
   await evaluate(`document.querySelector('#apiStack .js-key').focus({preventScroll:true})`);
   await setInput('#apiStack .api-sheet .js-key', 'fixture-key');
@@ -220,7 +231,7 @@ try {
   assert.ok(await evaluate(`document.querySelector('.archive-input').getBoundingClientRect().bottom<=480`), 'only the chat composer follows the keyboard');
   await evaluate(`keyboardHeight=844;visualViewport.dispatchEvent(new Event('resize'));document.activeElement.blur()`);
   await click('.ribbon-back-hit'); await route('/'); await checkHome();
-  console.log('PASS whole-paper keyboard lift with exact 12px clearance, no content scrolling, field switching and restore in both viewport modes; retained home, shared password toggles and unchanged chat composer.');
+  console.log('PASS whole-paper keyboard lift with exact 8px clearance, no content scrolling, field switching and restore in both viewport modes; retained home, shared password toggles and unchanged chat composer.');
 } finally {
   cdp?.close();
   const exited = once(browser, 'exit');

@@ -174,7 +174,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         move("open");
         if (entryWasSlow.current || !backendAvailable()) notify.note(OFFLINE_MESSAGE);
       }}>
-      <div className="auth-gate" data-keyboard-surface>
+      <div className="auth-gate">
         <div className="auth-brand">Mian</div>
         <header className="auth-decor">
           <span className="auth-en">Private Archive</span>
@@ -182,16 +182,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           <h1 className="auth-cn">敲門</h1>
         </header>
         <AuthFish svgRef={fish} />
-        <form className="auth-keyrow" aria-busy={busy} onSubmit={submit}>
-          <span ref={hintLine} className={`auth-hint${typing ? " is-typing" : ""}`} id="auth-hint" aria-live="polite"><ScrollText><AnimatedText text={hint} revealCharacters={typing && !showPassword} transitionKey={showPassword} /></ScrollText></span>
-          <input ref={input} className="auth-password" type="password" aria-label={confirming ? "再次確認密碼" : "密碼"}
-            aria-describedby="auth-hint" autoComplete={setup ? "new-password" : "current-password"} enterKeyHint={setup && !confirming ? "next" : "go"}
-            minLength={setup ? 10 : undefined} required disabled={!canEnter} readOnly={phase !== "locked"} value={value}
-            onChange={event => { setErrorHint(""); if (confirming) setRepeat(event.target.value); else setPassword(event.target.value); }} />
-          {canEnter && phase === "locked" && <PasswordToggle className="auth-password-toggle" visible={showPassword} onToggle={() => setShowPassword(value => !value)} />}
-          <button className="auth-submit" type="submit" aria-label="敲門" disabled={!canEnter || phase !== "locked" || !value} />
-        </form>
-        <div className="auth-foot">SINCE  10.15</div>
+        <div className="auth-entry" data-keyboard-surface>
+          <form className="auth-keyrow" aria-busy={busy} onSubmit={submit}>
+            <span ref={hintLine} className={`auth-hint${typing ? " is-typing" : ""}`} id="auth-hint" aria-live="polite"><ScrollText><AnimatedText text={hint} revealCharacters={typing && !showPassword} transitionKey={showPassword} /></ScrollText></span>
+            <input ref={input} className="auth-password" type="password" aria-label={confirming ? "再次確認密碼" : "密碼"}
+              aria-describedby="auth-hint" autoComplete={setup ? "new-password" : "current-password"} enterKeyHint={setup && !confirming ? "next" : "go"}
+              minLength={setup ? 10 : undefined} required disabled={!canEnter} readOnly={phase !== "locked"} value={value}
+              onChange={event => { setErrorHint(""); if (confirming) setRepeat(event.target.value); else setPassword(event.target.value); }} />
+            {canEnter && phase === "locked" && <PasswordToggle className="auth-password-toggle" visible={showPassword} onToggle={() => setShowPassword(value => !value)} />}
+            <button className="auth-submit" type="submit" aria-label="敲門" disabled={!canEnter || phase !== "locked" || !value} />
+          </form>
+          <div className="auth-foot">SINCE  10.15</div>
+        </div>
       </div>
       {!homeReady && <Notify page="/login" />}
     </main>}

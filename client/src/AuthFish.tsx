@@ -3,6 +3,10 @@ import DATA from "./authFishData.json";
 
 const [x, y, width, height] = DATA.vb;
 const bounds = { x, y, width, height };
+// fish_hi.png 为 1127 × 1786，非透明像素的水平范围为 [117, 1126)。
+// 只平移 viewBox，让底稿、描线和点圈一起按实际线条居中，纵向不变。
+const inkCenterX = (117 + 1126) / 2;
+const centeredX = x + (inkCenterX - 1127 / 2) * Math.min(width / 1127, height / 1786);
 const ys = DATA.paths.map(path => path.y);
 const ymin = Math.min(...ys), ymax = Math.max(...ys);
 const strokes = DATA.paths.map(path => ({
@@ -19,7 +23,7 @@ const clamp = (value: number) => Math.max(0, Math.min(1, value));
 export default function AuthFish({ svgRef }: { svgRef: Ref<SVGSVGElement> }) {
   const id = useId();
   const alpha = `${id}-fish`, reveal = `${id}-reveal`, gradient = `${id}-gradient`;
-  return <svg ref={svgRef} className="auth-fish" viewBox={DATA.vb.join(" ")} aria-hidden="true" stroke="none">
+  return <svg ref={svgRef} className="auth-fish" viewBox={[centeredX, y, width, height].join(" ")} aria-hidden="true" stroke="none">
     <defs>
       <mask id={alpha} maskUnits="userSpaceOnUse" {...bounds} style={{ maskType: "alpha" }}>
         <image href="/fish_hi.png" {...bounds} />

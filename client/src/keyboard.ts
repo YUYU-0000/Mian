@@ -18,7 +18,7 @@ export function installKeyboardLift() {
     element.style.translate = `0px ${y}px`;
     const animation = element.animate(
       [{ translate: `0px ${from}px` }, { translate: `0px ${y}px` }],
-      { duration: 240, easing: "ease-out" },
+      { duration: 200, easing: "ease-out" },
     );
     animation.onfinish = () => { if (y === 0) element.style.removeProperty("translate"); };
     motions.set(element, { y, animation });
@@ -42,7 +42,7 @@ export function installKeyboardLift() {
     const bottom = visible ? visible.offsetTop + visible.height : window.innerHeight;
     // 用未平移的位置计算，键盘连续调整或在字段间切换时不会累加位移。
     const fieldBottom = focused.getBoundingClientRect().bottom - currentY(surface);
-    move(surface, fieldBottom > bottom ? bottom - 12 - fieldBottom : 0);
+    move(surface, fieldBottom > bottom ? bottom - 8 - fieldBottom : 0);
   };
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(reveal);
