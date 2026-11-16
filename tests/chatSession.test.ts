@@ -202,8 +202,8 @@ test("conversation stores persist and send independently", async () => {
   await first.startPendingTurn();
   await second.startPendingTurn();
 
-  assert.equal(first.getSnapshot().messages.length, 1);
-  assert.equal(second.getSnapshot().messages.length, 1);
+  assert.equal(first.getSnapshot().messages.length, 2);
+  assert.equal(second.getSnapshot().messages.length, 2);
   assert.deepEqual(
     sends.map((entry) => entry.conversationId),
     ["c1", "c2"],
@@ -301,12 +301,95 @@ test("failed first initialization retains the pending message for a safe retry",
   const afterFailure = store.getSnapshot().messages[0];
   assert.ok(afterFailure?.role === "user");
   assert.equal(afterFailure.role === "user" && afterFailure.pending, true);
+  const failedReply = store.getSnapshot().messages.at(-1);
+  assert.ok(failedReply?.role === "assistant");
+  assert.equal(failedReply.status, "failed");
+  assert.equal(store.getSnapshot().pendingReplyId, undefined);
 
   await store.startPendingTurn();
   assert.equal(attempts, 2);
   assert.equal(submitted[0], submitted[1]);
   assert.match(submitted[1], /不能丢的原消息/);
   assert.equal(store.getSnapshot().activeTurnId, "retry-turn");
+  assert.equal(store.replyKey("retry-turn"), failedReply.replyGroupId);
+});
+
+test("reply placeholder appears before synchronization and survives a stale message snapshot", async () => {
+  const storage = new MemoryStorage();
+  let initialize!: (snapshot: any) => void;
+  let finishSend!: (result: { turnId: string }) => void;
+  let saved: any[] = [];
+  let sends = 0;
+  const initial = new Promise<any>(resolve => { initialize = resolve; });
+  let firstLoad = true;
+  const store = new ChatSessionStore({
+    storage, conversationId: "waiting-sync", requireRemoteSynchronization: true,
+    nowLabel: () => "10:20",
+    messageApi: {
+      loadMessages: async () => {
+        if (firstLoad) { firstLoad = false; return initial; }
+        return { groups: saved, exists: true, eventSeq: 0, streamId: "fixture" };
+      },
+      saveMessages: async (_id, groups) => {
+        saved = groups;
+        return { groups, exists: true, eventSeq: 0, streamId: "fixture" };
+      },
+    },
+    apiClient: {
+      send: () => { sends++; return new Promise(resolve => { finishSend = resolve; }); },
+      stop: async () => {},
+    },
+  });
+  try {
+    store.saveUserRecord("先把占位放出来");
+    const request = store.startPendingTurn();
+    const waiting = store.getSnapshot();
+    assert.equal(sends, 0);
+    assert.equal(waiting.turnPhase, "starting");
+    assert.ok(waiting.pendingReplyId);
+    assert.equal(waiting.messages.at(-1)?.time, "10:20");
+    assert.equal(JSON.parse(storage.getItem(`mian.conversation.waiting-sync.${CHAT_STORAGE_KEY}`)!).length, 1, "temporary IDs never enter stored messages");
+    store.synchronizeRemoteTurn(null, false);
+    assert.equal(store.getSnapshot().turnPhase, "starting");
+    initialize({ groups: [], exists: false, eventSeq: 0, streamId: "fixture" });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(sends, 1);
+    assert.equal(store.getSnapshot().pendingReplyId, waiting.pendingReplyId);
+    finishSend({ turnId: "server-turn" });
+    await request;
+    assert.equal(store.replyKey("server-turn"), waiting.pendingReplyId);
+    assert.equal(store.getSnapshot().messages.filter(group => group.role === "assistant").length, 1);
+    store.refreshMessages();
+    await new Promise(resolve => setImmediate(resolve));
+    const reply = store.getSnapshot().messages.at(-1);
+    assert.ok(reply?.role === "assistant");
+    assert.equal(reply.replyGroupId, "server-turn");
+    assert.equal(store.replyKey(reply.replyGroupId), waiting.pendingReplyId);
+  } finally { store.dispose(); }
+});
+
+test("WebSocket completion before the send response keeps one reply and its original UI identity", async () => {
+  let finishSend!: (result: { turnId: string }) => void;
+  const clock = fakePlaybackClock();
+  const store = new ChatSessionStore({
+    storage: new MemoryStorage(), conversationId: "fast-reply",
+    nowMs: clock.now, schedule: clock.schedule, cancelSchedule: clock.cancel,
+    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => {} },
+  });
+  store.saveUserRecord("马上回来");
+  const request = store.startPendingTurn();
+  const key = store.getSnapshot().pendingReplyId;
+  store.enqueueEvent({ type: "turn-started", turnId: "fast-turn", format: "api" });
+  store.enqueueEvent({ type: "assistant-delta", turnId: "fast-turn", format: "api", delta: "<mian-bubble>回来了。</mian-bubble>" });
+  store.enqueueEvent({ type: "turn-completed", turnId: "fast-turn", status: "completed" });
+  clock.runAll();
+  finishSend({ turnId: "fast-turn" });
+  await request;
+  assert.equal(store.getSnapshot().activeTurnId, null);
+  assert.equal(store.getSnapshot().messages.filter(group => group.role === "assistant").length, 1);
+  assert.equal(store.replyKey("fast-turn"), key);
+  assert.equal(store.getSnapshot().turnPhase, "idle");
+  store.dispose();
 });
 
 test("C-02 and C-03 use their own pending groups when empty-send starts a turn", async () => {

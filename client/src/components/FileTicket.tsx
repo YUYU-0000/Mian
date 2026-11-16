@@ -24,6 +24,7 @@ export default memo(function FileTicket({
   conversationId,
   mine = false,
   progress,
+  uploadComplete = false,
   pending = false,
   previewUrl,
   entryDelayMs,
@@ -34,6 +35,7 @@ export default memo(function FileTicket({
   conversationId: string;
   mine?: boolean;
   progress?: number;
+  uploadComplete?: boolean;
   pending?: boolean;
   previewUrl?: string;
   entryDelayMs?: number;
@@ -79,9 +81,7 @@ export default memo(function FileTicket({
         )}
         {!image && (
           <span>
-            {progress !== undefined
-              ? `上傳中 ${progress}%`
-              : pending
+            {pending
                 ? "待寄出"
                 : new Date(file.createdAt).toLocaleTimeString("zh-CN", {
                     hour: "2-digit",
@@ -167,9 +167,8 @@ export default memo(function FileTicket({
           <span className="ft-ext">{extension}</span>
         </div>
         {progress !== undefined && (
-          <div className="ft-progress">
-            <i style={{ width: `${progress}%` }} />
-          </div>
+          <div className={`ft-progress${uploadComplete ? " is-complete" : ""}`}
+            style={{ transform: `scaleX(${progress / 100})` }} aria-hidden="true" />
         )}
         <a
           ref={download}

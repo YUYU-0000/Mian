@@ -241,6 +241,7 @@ const toolAnimationId = (replyGroupId: string, toolId: string) =>
 
 export function collectHistoricalAnimationIds(
   groups: ChatGroup[],
+  replyKey: (id: string) => string = id => id,
 ): Set<string> {
   const ids = new Set<string>();
   for (const group of groups) {
@@ -251,7 +252,7 @@ export function collectHistoricalAnimationIds(
       }
       continue;
     }
-    ids.add(replyHeaderAnimationId(group.replyGroupId));
+    ids.add(replyHeaderAnimationId(replyKey(group.replyGroupId)));
     for (const id of group.preToolBubbleIds) ids.add(preToolAnimationId(id));
     for (const id of group.bubbleIds) ids.add(bubbleAnimationId(id));
     for (const file of group.files ?? []) ids.add(fileAnimationId(file.id));
@@ -285,6 +286,7 @@ export default memo(function ChatMessage({
   message,
   visual,
   activeTurnId,
+  waiting = false,
   historicalAnimationIds,
   expandedTools,
   onToggleTool,
@@ -293,11 +295,13 @@ export default memo(function ChatMessage({
   message: ChatGroup;
   visual: VisualReply | null;
   activeTurnId: string | null;
+  waiting?: boolean;
   historicalAnimationIds: Set<string>;
   expandedTools: Set<string>;
   onToggleTool: (key: string) => void;
   session: ChatSessionStore;
 }) {
+  const [startedWaiting] = useState(() => message.role === "assistant" && !message.status);
   const preToolReady =
     message.role === "assistant" &&
     isToolTimelineVisible(message, visual ?? emptyVisualReply());
@@ -309,7 +313,6 @@ export default memo(function ChatMessage({
       : [];
   return (
     <article
-      key={message.role === "user" ? message.groupId : message.replyGroupId}
       className="archive-msg"
       data-role={message.role}
     >
@@ -350,7 +353,7 @@ export default memo(function ChatMessage({
       ) : (
         <>
           <div
-            className={`archive-reply-head ${historicalAnimationIds.has(replyHeaderAnimationId(message.replyGroupId)) ? "" : "archive-pop-in"}`}
+            className={`archive-reply-head ${historicalAnimationIds.has(replyHeaderAnimationId(session.replyKey(message.replyGroupId))) ? "" : "archive-pop-in"}`}
             data-timeline-kind="THINKING"
           >
             <div className="archive-msg-head">
@@ -359,13 +362,13 @@ export default memo(function ChatMessage({
               </div>
             </div>
             <div className="archive-msg-content archive-reply-head-content">
-              {(!message.format || message.thinking) && (
+              {(startedWaiting || !message.format || message.thinking) && (
                 <ArchiveModule
                   title="THINKING"
                   running={shouldShowThinkingHourglass(
                     message,
                     visual ?? emptyVisualReply(),
-                    activeTurnId,
+                    waiting ? message.replyGroupId : activeTurnId,
                   )}
                 >
                   <div className="archive-thought">
@@ -492,6 +495,9 @@ export default memo(function ChatMessage({
                 }
               />
             ))}
+            {message.status === "failed" && (
+              <div className={`archive-bubble stopped ${historicalAnimationIds.has(replyHeaderAnimationId(session.replyKey(message.replyGroupId))) ? "" : "archive-pop-in"}`} role="status">那邊沒接上，再試一次。</div>
+            )}
           </div>
         </>
       )}

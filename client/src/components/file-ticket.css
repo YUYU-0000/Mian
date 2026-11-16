@@ -193,23 +193,22 @@
   --t-line: rgba(245, 242, 236, 0.35);
   --t-accent: var(--paper);
 }
-/* 上傳中：底部一道細進度線 */
-.ft.is-mine:has(.ft-progress) .ft-main {
-  padding-bottom: 9px;
-}
+/* 进度沿票根底边生长，不占用票面空间。 */
 .ft-progress {
   position: absolute;
-  left: 16px;
-  right: 62px;
-  bottom: 3px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 1px;
-  background: var(--t-line);
+  background: var(--ink);
+  opacity: 0.35;
+  transform-origin: left center;
+  transition: transform 200ms ease-out, opacity 240ms ease-out;
+  pointer-events: none;
 }
-.ft-progress i {
-  display: block;
-  height: 100%;
-  width: 62%;
-  background: var(--t-ink);
+.ft-progress.is-complete {
+  opacity: 0;
+  transition-delay: 0s, 200ms;
 }
 
 /* 盒模型不受聊天页全局规则影响。 */

@@ -52,7 +52,7 @@ export default function FileDraftTicket({ draft, conversationId, onRemove, onExi
     }}>
       <div ref={motionRef}>
         <FileTicket file={draft.file} conversationId={conversationId} mine pending
-          previewUrl={draft.previewUrl} progress={draft.uploaded ? undefined : draft.progress} />
+          previewUrl={draft.previewUrl} progress={draft.progress} uploadComplete={draft.uploaded} />
       </div>
     </div>
   );
