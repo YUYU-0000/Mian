@@ -8,7 +8,6 @@ import FontPage from "./SettingsFont";
 import VoicePage from "./SettingsVoice";
 import ChoiceTag, { type TagConfig } from "../components/ChoiceTag";
 import SettingsAvatar from "./SettingsAvatar";
-import SettingsSecurity from "./SettingsSecurity";
 import { createId } from "../id";
 import { applyBubbleFont, parseFontFace } from "../bubbleFont";
 import {
@@ -151,8 +150,6 @@ export default function Settings({ onBack }: { onBack: () => void }) {
         anchor={() => voice.track.current!.querySelector<HTMLElement>(".vc-page.current")!} />}
       rootRef={root}
       active={active}
-      securityPage={<SettingsSecurity active={active === 5} />}
-      onSecurity={() => setActive(5)}
       onBack={onBack}
       onClose={close}
       onFolder={(id) => {
