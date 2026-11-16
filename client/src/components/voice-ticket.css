@@ -67,8 +67,10 @@
   display: block;
   width: 1.3px;
   background: rgba(59, 77, 90, 0.26);
-  transition: background 0.25s;
+  transform-origin: center;
+  transition: background 0.25s, transform 0.3s ease-out;
 }
+.voice-wave.is-playing i { transition: background 0.25s, transform 0.16s ease-out; }
 .voice-wave i.done {
   background: var(--ink);
 }

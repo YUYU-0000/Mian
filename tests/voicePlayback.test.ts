@@ -25,11 +25,23 @@ test("one global player waits for playing, replaces older audio, pauses and play
     pause() { this.paused = true; this.onpause?.(); }
   }
   const previous = Object.getOwnPropertyDescriptor(globalThis, "Audio");
+  const previousContext = Object.getOwnPropertyDescriptor(globalThis, "AudioContext");
+  let contexts = 0, sources = 0, resumes = 0;
+  class FakeAudioContext {
+    destination = {};
+    constructor() { contexts++; }
+    createAnalyser() { return { fftSize: 0, connect() {}, getFloatTimeDomainData(samples: Float32Array) { samples.fill(0.125); } }; }
+    createMediaElementSource(element: FakeAudio) { assert.equal(element, audio); sources++; return { connect() {} }; }
+    async resume() { resumes++; }
+  }
   Object.defineProperty(globalThis, "Audio", { configurable: true, value: FakeAudio });
+  Object.defineProperty(globalThis, "AudioContext", { configurable: true, value: FakeAudioContext });
   t.after(() => {
     voicePlayer.stop();
     if (previous) Object.defineProperty(globalThis, "Audio", previous);
     else Reflect.deleteProperty(globalThis, "Audio");
+    if (previousContext) Object.defineProperty(globalThis, "AudioContext", previousContext);
+    else Reflect.deleteProperty(globalThis, "AudioContext");
   });
   const clip = { url: "/one.mp3", text: "陪你。", duration: 2, parts: [{ url: "/one.mp3", duration: 1 }, { url: "/two.mp3", duration: 1 }] };
   t.mock.method(globalThis, "fetch", async () => Response.json(clip));
@@ -43,6 +55,7 @@ test("one global player waits for playing, replaces older audio, pauses and play
   assert.equal(audio!.loop, false);
   audio!.onloadedmetadata!();
   audio!.onplaying!();
+  assert.equal(voicePlayer.readVolume(), 0.5);
   assert.equal(started, true);
   audio!.currentTime = 0.6;
   audio!.ontimeupdate!();
@@ -93,6 +106,9 @@ test("one global player waits for playing, replaces older audio, pauses and play
   await stopped;
   await ready;
   assert.equal(instances, 1);
+  assert.equal(contexts, 1);
+  assert.equal(sources, 1);
+  assert.ok(resumes > 1);
   controller.abort();
   await assert.rejects(second, { name: "AbortError" });
   assert.equal(audio!.paused, true);

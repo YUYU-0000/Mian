@@ -32,6 +32,26 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
   const previewName = sentAt ? `${sentAt.slice(0, 10).replaceAll("-", ".")}  沈眠` : "沈眠";
   const transcript = stripVoiceTags(clip.text);
   const progress = active && duration ? player.currentTime / duration : 0;
+  const animateWave = useCallback((element: HTMLButtonElement | null) => {
+    if (!element || !playing) return;
+    const bars = [...element.querySelectorAll("i")];
+    let frame: number;
+    const animate = () => {
+      const volume = voicePlayer.readVolume();
+      const state = voicePlayer.getSnapshot();
+      const position = state.duration ? state.currentTime / state.duration * (bars.length - 1) : 0;
+      bars.forEach((bar, index) => {
+        const influence = Math.exp(-Math.pow((index - position) / 5, 2));
+        bar.style.transform = `scaleY(${1 + (volume - 0.5) * 0.5 * influence})`;
+      });
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => {
+      cancelAnimationFrame(frame);
+      for (const bar of bars) bar.style.transform = "scaleY(1)";
+    };
+  }, [playing]);
   useEffect(() => {
     const urls = clip.parts?.map(part => part.url) ?? [clip.url];
     for (const url of urls) if (url) void cachedFile(url).catch(() => {});
@@ -77,7 +97,7 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
           <div className="voice-row">
             {playButton}
             <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot" blur={false}>
-              {content => content === "wave" ? <button className="voice-wave" type="button" disabled={duration === null}
+              {content => content === "wave" ? <button ref={animateWave} className={`voice-wave${playing ? " is-playing" : ""}`} type="button" disabled={duration === null}
               aria-label="跳轉語音播放位置"
               onClick={event => {
                 event.stopPropagation();

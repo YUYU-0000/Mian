@@ -59,7 +59,7 @@
 .auth-keyrow {
   position: absolute;
   left: 50%;
-  bottom: 128px;
+  bottom: 112px;
   width: 196px;
   transform: translateX(-50%);
   transition: opacity .3s;
@@ -87,8 +87,9 @@
   letter-spacing: 6px;
   color: #3b4d5a;
   text-align: center;
+  opacity: 0;
+  caret-color: transparent;
 }
-.auth-password:disabled { caret-color: transparent; }
 .auth-hint {
   position: absolute;
   inset: 0;
@@ -100,7 +101,7 @@
   pointer-events: none;
   transition: opacity .2s;
 }
-.auth-keyrow.has-value .auth-hint { opacity: 0; }
+.auth-hint [data-reveal-characters] { display: block; text-align: left; }
 .auth-submit {
   position: absolute;
   bottom: -12px;
@@ -125,7 +126,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 108px;
+  bottom: 92px;
   text-align: center;
   white-space: pre;
   font: 500 7px/1 ZSFT-br, serif;
@@ -147,9 +148,9 @@
 }
 .auth-fish-ink { opacity: 0; transition: opacity .3s; }
 .auth-page.is-drawing .auth-fish-ink { opacity: 1; }
-.auth-page:is(.is-locked, .is-welcoming) .auth-keyrow { opacity: 1; }
+.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-keyrow { opacity: 1; }
 .auth-page.is-locked .auth-keyrow { pointer-events: auto; }
-.auth-page:is(.is-locked, .is-welcoming) .auth-foot { opacity: .6; }
+.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-foot { opacity: .6; }
 .auth-page.is-opening { opacity: 0; pointer-events: none; }
 .auth-content { min-height: 100%; height: 100%; background: #f1efe9; }
 .auth-brand, .auth-decor, .auth-keyrow, .auth-foot { visibility: hidden; }
