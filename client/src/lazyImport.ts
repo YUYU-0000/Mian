@@ -16,11 +16,6 @@ export function reloadOnPreloadError(moduleId = VITE_PRELOAD) {
   } else window.location.reload();
 }
 
-export function reloadForNewShell() {
-  sessionStorage.removeItem(RELOAD_KEY);
-  if (!refreshing) { refreshing = true; window.location.reload(); }
-}
-
 export function cacheLazyImport<T>(moduleId: string, load: () => Promise<T>) {
   let request: Promise<T> | undefined;
   return () =>

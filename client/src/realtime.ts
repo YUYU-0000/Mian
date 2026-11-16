@@ -1,5 +1,5 @@
 import type { ChatEvent, RealtimeSession } from "./types";
-import { setBackendAvailable } from "./backend";
+import { setBackendAvailable, requireLogin } from "./backend";
 
 const STREAM_CURSOR_KEY = "mian.chat-event-cursor.v1";
 
@@ -115,7 +115,7 @@ export const subscribe = (
     ws.onclose = (event) => {
       if (closedByClient) return;
       if (event.code === 4001) {
-        window.dispatchEvent(new Event("mian:login-required"));
+        requireLogin();
         return;
       }
       reportFailure();

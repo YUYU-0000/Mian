@@ -72,14 +72,16 @@ try {
   assert.equal(initial.animation, "hourglass");
   assert.equal(initial.entry, "bubblePop");
   assert.match(initial.avatar, /blob:/);
-  await sleep(100);
-  assert.notEqual(await evaluate("getComputedStyle(glassNode).transform"), "matrix(1, 0, 0, 1, 0, 0)");
+  await waitFor(() => evaluate("getComputedStyle(glassNode).transform !== 'matrix(1, 0, 0, 1, 0, 0)'"), "hourglass rotates");
+  assert.equal(await evaluate("document.querySelectorAll('[data-role=user] .archive-avatar').length===1 && document.querySelectorAll('[data-role=user] .archive-bubble').length===3"), true);
+  await evaluate(`feedback.event({type:'turn-started',turnId:'reply',format:'api'}); feedback.event({type:'assistant-delta',turnId:'reply',format:'api',delta:'<mian-thinking>在这里。</mian-thinking><mian-bubble>回来了。</mian-bubble><mian-bubble>第二句。</mian-bubble>'});`);
   await evaluate("feedback.resolve()");
   await evaluate("new Promise(requestAnimationFrame)");
   assert.equal(await evaluate("replyNode === document.querySelector('[data-role=assistant]') && headNode === replyNode.querySelector('.archive-reply-head') && glassNode === headNode.querySelector('.hourglass')"), true);
-  await evaluate(`feedback.event({type:'turn-started',turnId:'reply',format:'api'}); feedback.event({type:'assistant-delta',turnId:'reply',format:'api',delta:'<mian-thinking>在这里。</mian-thinking><mian-bubble>回来了。</mian-bubble>'}); feedback.event({type:'turn-completed',turnId:'reply',status:'completed'});`);
+  await evaluate(`feedback.event({type:'turn-completed',turnId:'reply',status:'completed'});`);
   await waitFor(() => evaluate("feedback.idle() && document.querySelector('[data-role=assistant] .archive-reply-body').textContent.includes('回来了。') && !headNode.querySelector('.hourglass')"), "reply playback");
   assert.equal(await evaluate("replyNode === document.querySelector('[data-role=assistant]') && headNode === replyNode.querySelector('.archive-reply-head')"), true);
+  assert.equal(await evaluate("document.querySelectorAll('[data-role=assistant] .archive-avatar').length===1 && document.querySelectorAll('[data-role=assistant] .archive-bubble').length===2"), true);
 
   await evaluate("feedback.begin()");
   await waitFor(() => evaluate("document.querySelectorAll('[data-role=assistant]').length === 2"), "second placeholder");
@@ -93,16 +95,19 @@ try {
   await evaluate("Promise.all(progressNodes.flatMap(line => line.getAnimations().map(animation => animation.finished))).then(() => null)");
   const progress = await evaluate(`[...document.querySelectorAll('.file-drafts .ft')].map(ticket => {
     const line = ticket.querySelector('.ft-progress'), css = getComputedStyle(line);
-    return { image: ticket.classList.contains('is-image'), height: css.height, bottom: css.bottom, color: css.backgroundColor, opacity: css.opacity, scale: new DOMMatrix(css.transform).a, numericLabel: /[0-9]+%/.test(ticket.textContent) };
+    return { image: ticket.classList.contains('is-image'), paper: line.parentElement.className, left: css.left, right: css.right, height: css.height, bottom: css.bottom, color: css.backgroundColor, opacity: css.opacity, scale: new DOMMatrix(css.transform).a, numericLabel: /[0-9]+%/.test(ticket.textContent) };
   })`);
   assert.deepEqual(progress.map(value => value.image), [false, true]);
   for (const line of progress) {
+    assert.equal(line.paper, "ft-body"); assert.equal(line.left, "3px"); assert.equal(line.right, "3px");
     assert.equal(line.height, "1px"); assert.equal(line.bottom, "0px"); assert.equal(line.color, "rgb(59, 77, 90)");
     assert.equal(Number(line.opacity), 0.35); assert.ok(Math.abs(line.scale - 0.4) < 0.01, JSON.stringify(line)); assert.equal(line.numericLabel, false);
   }
   await evaluate("feedback.uploaded(); new Promise(requestAnimationFrame)");
   await evaluate("Promise.all(progressNodes.flatMap(line => line.getAnimations().map(animation => animation.finished))).then(() => null)");
-  assert.equal(await evaluate("progressNodes.every((line, i) => line === document.querySelectorAll('.ft-progress')[i] && getComputedStyle(line).opacity === '0' && new DOMMatrix(getComputedStyle(line).transform).a === 1)"), true);
+  await waitFor(() => evaluate("!document.querySelector('.ft-progress') && progressNodes.every(line=>!line.isConnected)"), "completed progress removed");
+  await evaluate("feedback.saveFiles()");
+  await waitFor(() => evaluate("document.querySelectorAll('[data-role=user] .ft').length===2 && !document.querySelector('.ft-progress')"), "saved file and image tickets have no progress");
   assert.deepEqual(errors, []);
   console.log("PASS immediate avatar/thinking, stable reply nodes, failure feedback, avatar decoding and 1px image/file upload progress.");
 } catch (error) {

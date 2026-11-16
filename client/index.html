@@ -1,1 +1,62 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,interactive-widget=resizes-content"/><meta name="theme-color" content="#f1efe9"/><link rel="preload" href="/fonts/zsft/main.woff2" as="font" type="font/woff2" crossorigin/><link rel="preload" href="/fonts/zsft/light.woff2" as="font" type="font/woff2" crossorigin/><link rel="preload" href="/fonts/lxgw/result.css" as="style"/><title>Mian Archive Chat</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#f1efe9" />
+    <meta name="color-scheme" content="light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Mian" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="preload" href="/fish_hi.png" as="image" />
+    <link rel="preload" href="/fonts/zsft/main.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/zsft/medium.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/9893ae868517c554.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/4092908570116d43.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/610bb7b7e11e70e0.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/4f3fde30f1e95075.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/fdefb3f88113d77e.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/1e991472a5af02b5.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/c7f9cc62826305f5.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/d9d6ade1c518827f.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/b781b723bc07cdc1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/ba48606ab1c583cd.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/bca7bf1608c5a2e4.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/7ab3d008c0efdaf7.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/9dda566b163ca04b.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/5dfb956c973f21f0.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lxgw/de59183ca8aeff55.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      html,body,#root{margin:0;width:100%;height:100%;background:#f1efe9;color-scheme:light}
+      .auth-page{position:fixed;inset:0;z-index:100;overflow:auto;background:#f1efe9 url('/grain.png');color:#3b4d5a;font-family:"LXGW Heart Serif",serif}
+      .auth-gate{position:relative;width:100%;max-width:430px;height:100%;min-height:720px;margin:0 auto}
+      .auth-brand{position:absolute;top:max(44px,env(safe-area-inset-top));left:30px;font:400 34px/1 ZSFT-br,serif;letter-spacing:1px;color:#2d3c47}
+      .auth-decor{position:absolute;top:max(44px,env(safe-area-inset-top));right:28px;display:flex;gap:8px;align-items:flex-start}
+      .auth-en{writing-mode:vertical-rl;font:500 8px/1 ZSFT-br,serif;letter-spacing:2.5px;text-transform:uppercase;opacity:.75;padding-top:1px}
+      .auth-decor-line{width:1px;height:65px;background:linear-gradient(180deg,rgba(90,112,130,.6),rgba(90,112,130,0))}
+      .auth-cn{margin:0;writing-mode:vertical-rl;font:800 24px/1 "LXGW Heart Serif",serif;letter-spacing:12px;background:linear-gradient(180deg,#5a7082,rgba(90,112,130,.15));-webkit-background-clip:text;background-clip:text;color:transparent}
+      .auth-brand,.auth-decor,.auth-keyrow,.auth-foot{visibility:hidden}
+      .gate-fonts-ready :is(.auth-brand,.auth-decor,.auth-keyrow,.auth-foot){visibility:visible}
+      .auth-skeleton-fish{position:absolute;left:50%;top:50%;width:250px;height:398px;transform:translate(-50%,-50%);opacity:.2;background:linear-gradient(90deg,#7f9bb8 32%,#c58f92 68%);-webkit-mask:url('/fish_hi.png') center/contain no-repeat;mask:url('/fish_hi.png') center/contain no-repeat}
+    </style>
+    <title>Mian</title>
+  </head>
+  <body>
+    <div id="root">
+      <main class="auth-page">
+        <div class="auth-gate">
+          <div class="auth-brand">Mian</div>
+          <header class="auth-decor"><span class="auth-en">Private Archive</span><span class="auth-decor-line"></span><h1 class="auth-cn">敲門</h1></header>
+          <div class="auth-skeleton-fish" aria-hidden="true"></div>
+        </div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -3,6 +3,7 @@ type ConversationRuntimeState = {
   threadId: string | null;
   loaded: boolean;
   activeTurnId: string | null;
+  completedTurnId: string | null;
   startingTurn: boolean;
   threadOperation: Promise<string> | null;
 };
@@ -20,6 +21,7 @@ export class ConversationRuntimeRegistry {
       threadId: null,
       loaded: false,
       activeTurnId: null,
+      completedTurnId: null,
       startingTurn: false,
       threadOperation: null,
     };
@@ -80,6 +82,7 @@ export class ConversationRuntimeRegistry {
 
   clearActiveTurn(conversationId: string, turnId?: string) {
     const state = this.require(conversationId);
+    if (turnId) state.completedTurnId = turnId;
     if (turnId && state.activeTurnId !== turnId) return false;
     if (state.activeTurnId && this.turnOwners.get(state.activeTurnId) === conversationId)
       this.turnOwners.delete(state.activeTurnId);
@@ -110,6 +113,7 @@ export class ConversationRuntimeRegistry {
       if (state.activeTurnId)
         interrupted.push([state.conversationId, state.activeTurnId]);
       state.activeTurnId = null;
+      state.completedTurnId = null;
       state.startingTurn = false;
       state.threadOperation = null;
       state.loaded = false;

@@ -2,6 +2,17 @@ export const OFFLINE_MESSAGE = "那邊沒醒，等一下";
 export class BackendUnavailable extends Error {
   constructor() { super(OFFLINE_MESSAGE); }
 }
+export class LoginRequired extends Error {
+  constructor() { super("先敲門，再進來。"); }
+}
+let authorized = true;
+export const backendAuthorized = () => authorized;
+export function setBackendAuthorized(value: boolean) { authorized = value; }
+export function requireLogin() {
+  authorized = false;
+  window.dispatchEvent(new Event("mian:login-required"));
+  return new LoginRequired();
+}
 
 let available = true;
 const listeners = new Set<() => void>();
@@ -17,6 +28,7 @@ export function onBackendRecovery(listener: () => void) {
 }
 
 export async function backendFetch(url: string, init?: RequestInit) {
+  if (!authorized && !url.startsWith("/api/auth/")) throw new LoginRequired();
   let response: Response;
   try {
     response = await fetch(url, {
@@ -32,8 +44,10 @@ export async function backendFetch(url: string, init?: RequestInit) {
     setBackendAvailable(false);
     throw new BackendUnavailable();
   }
+  if (response.status === 401 && url !== "/api/auth/login") {
+    throw requireLogin();
+  }
   setBackendAvailable(true);
-  if (response.status === 401) window.dispatchEvent(new Event("mian:login-required"));
   return response;
 }
 

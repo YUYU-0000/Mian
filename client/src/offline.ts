@@ -1,4 +1,4 @@
-import { backendAvailable, onBackendRecovery, request, BackendUnavailable } from "./backend";
+import { backendAvailable, backendAuthorized, onBackendRecovery, request, BackendUnavailable, LoginRequired } from "./backend";
 import { readOffline, writeOffline } from "./offlineStorage";
 
 type QueuedSave = { url: string; method: string; body?: string; keys: string[] };
@@ -93,6 +93,7 @@ async function flush() {
   await initialize();
   return flushing ??= (async () => {
     while (outbox.length) {
+      if (!backendAuthorized()) throw new LoginRequired();
       const save = outbox[0];
       await request(save.url, { method: save.method, body: save.body });
       const remaining = outbox.slice(1);
@@ -105,6 +106,7 @@ async function flush() {
 export function queueSave<T>(url: string, method: string, body: unknown,
   prepare: () => Promise<{ updates: Record<string, unknown>; result: T }>, quiet = false): Promise<T> {
   const operation = writes.catch(() => {}).then(async () => {
+    if (!backendAuthorized()) throw new LoginRequired();
     await initialize();
     const { updates, result } = await prepare();
     const save = { url, method, body: body === undefined ? undefined : JSON.stringify(body), keys: Object.keys(updates) };
@@ -119,6 +121,7 @@ export function queueSave<T>(url: string, method: string, body: unknown,
       if (!backendAvailable()) throw new BackendUnavailable();
       await flush();
     } catch (error) {
+      if (error instanceof LoginRequired) throw error;
       if (!quiet) {
         queuedAt = Date.now();
         for (const listener of notices) listener();
@@ -144,6 +147,7 @@ export function flushOfflineSaves() {
 export function startOfflineSync() {
   let recovering: Promise<void> | undefined;
   const recover = () => recovering ??= (async () => {
+    if (!backendAuthorized()) return;
     await initialize();
     await request("/api/config");
     try { await flushOfflineSaves(); }

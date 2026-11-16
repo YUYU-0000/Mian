@@ -616,7 +616,9 @@ export class CodexBridge extends EventEmitter {
         summary: "auto",
       })) as any;
       const turnId = String(result.turn.id);
-      this.conversations.setActiveTurn(conversationId, turnId);
+      // 完成通知可能早于 RPC 响应，不能把已结束的回合重新标成运行中。
+      if (runtime.completedTurnId !== turnId)
+        this.conversations.setActiveTurn(conversationId, turnId);
       return { conversationId, threadId, turnId };
     } finally {
       runtime.startingTurn = false;

@@ -6,13 +6,13 @@ self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL);
     await cache.addAll(ASSETS.map(url => new Request(url, { cache: "reload" })));
-    await self.skipWaiting();
+    // 新版下载完成后等待旧页面全部关闭，下次冷启动再接管。
   })());
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
-    // 留上一版分块给尚在切换的页面，controllerchange 会让页面加载新版。
+    // 保留上一版分块，兼容尚在结束的旧导航请求。
     const previous = (await caches.keys()).filter(key => key.startsWith("mian-shell-") && key !== SHELL);
     await Promise.all(previous.slice(0, -1).map(key => caches.delete(key)));
     await self.clients.claim();

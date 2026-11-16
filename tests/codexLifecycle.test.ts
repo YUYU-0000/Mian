@@ -37,6 +37,7 @@ class FakeAppServer extends EventEmitter {
   threadResumeFailures = 0;
   threadArchiveFailures = 0;
   turnInterruptFailures = 0;
+  completeBeforeReply = false;
   private input = "";
   private finished = false;
   private threadCount = 0;
@@ -157,8 +158,16 @@ class FakeAppServer extends EventEmitter {
       );
       return;
     }
-    else if (message.method === "turn/start")
+    else if (message.method === "turn/start") {
       result = { turn: { id: `turn-${++this.turnCount}` } };
+      if (this.completeBeforeReply) queueMicrotask(() => {
+        for (const method of ["turn/started", "turn/completed"])
+          this.stdout.write(JSON.stringify({ method, params: {
+            threadId: (message.params as any).threadId,
+            turn: { id: `turn-${this.turnCount}`, status: "completed" },
+          } }) + "\n");
+      });
+    }
     else if (
       message.method === "turn/interrupt" &&
       this.turnInterruptFailures > 0
@@ -796,5 +805,16 @@ test("invalid cached usage is clamped and logged without a negative patch", () =
   ]);
   assert.equal(logs.length, 1);
   assert.match(logs[0], /cachedInputTokens exceeds inputTokens/);
+  bridge.close();
+});
+
+test("completion before turn/start response does not leave the conversation busy", async () => {
+  const { bridge, children } = bridgeFixture();
+  await bridge.connect(baseConfig);
+  children[0].completeBeforeReply = true;
+  await bridge.startTurn("first", "c1");
+  assert.equal(bridge.getActiveTurnId("c1"), null);
+  await bridge.startTurn("second", "c1");
+  assert.equal(bridge.isConversationBusy("c1"), false);
   bridge.close();
 });

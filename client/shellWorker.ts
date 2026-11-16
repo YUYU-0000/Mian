@@ -9,7 +9,20 @@ export function shellWorker(): Plugin {
   return {
     name: "mian-offline-shell",
     apply: "build",
+    enforce: "post",
     configResolved(config) { output = path.resolve(config.root, config.build.outDir); },
+    generateBundle(_options, bundle) {
+      const html = bundle["index.html"];
+      if (html.type !== "asset") return;
+      // CSS 引用的分片字体会带构建哈希，preload 必须指向同一份文件。
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".woff2")) continue;
+        for (const original of asset.originalFileNames) {
+          const font = original.replaceAll("\\", "/").match(/fonts\/.+\.woff2$/)?.[0];
+          if (font) html.source = String(html.source).replaceAll(`href="/${font}"`, `href="/${asset.fileName}"`);
+        }
+      }
+    },
     async closeBundle() {
       const files = (await readdir(output, { recursive: true, withFileTypes: true }))
         .filter(entry => entry.isFile() && entry.name !== "sw.js")

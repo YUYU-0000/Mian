@@ -95,8 +95,11 @@ test("three registered conversations own independent pending, turns and event st
     turnId: "turn-c2",
     delta: "<mian-bubble>only-c2</mian-bubble>",
   });
-  assert.equal(sessions.get("c1").getSnapshot().messages.length, 1);
-  assert.equal(sessions.get("c3").getSnapshot().messages.length, 1);
+  for (const id of ["c1", "c3"]) {
+    const groups = sessions.get(id).getSnapshot().messages;
+    assert.equal(groups.length, 2);
+    assert.equal(groups[1].role === "assistant" && groups[1].raw, "", "other conversations keep only their own waiting reply");
+  }
   assert.equal(sessions.get("c2").getSnapshot().messages.length, 2);
 });
 
