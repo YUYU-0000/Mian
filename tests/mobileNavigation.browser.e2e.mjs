@@ -117,6 +117,7 @@ try {
     window.setKeyboard=(height,offset=0)=>{keyboardHeight=height;keyboardOffset=offset;if(testVK){testVK.boundingRect=height<844?new DOMRect(0,height,390,844-height):new DOMRect();testVK.dispatchEvent(new Event('geometrychange'))}else visualViewport.dispatchEvent(new Event('resize'))};
     window.screenRect=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y-visualViewport.offsetTop,width:r.width,height:r.height}};
     window.rect=selector=>screenRect(document.querySelector(selector));
+    window.paperEdge=selector=>{const paper=document.querySelector(selector);return Math.max(...[paper,...paper.querySelectorAll(':scope > .stack-bot,:scope > .stack-mid,:scope > .paper-layer-bot,:scope > .paper-layer-mid,:scope .security-panel')].filter(element=>element.getBoundingClientRect().height>0).map(element=>{const r=screenRect(element);return r.y+r.height}))};
     window.keyboardBackground=()=>Array.from(document.querySelectorAll('.connections-page,.settings-page,.clues-page,.settings-header,.connections-page .envelope,.settings-page .folders-container,.clues-page .head,.clues-page .wall,.ticket-drawer .strip-col'),screenRect);
     window.paperFrames=selector=>new Promise(resolve=>{const frames=[],start=performance.now();const sample=()=>{frames.push(rect(selector).y);if(performance.now()-start<260)requestAnimationFrame(sample);else resolve(frames)};requestAnimationFrame(sample)});`;
   await evaluate(geometryHelpers);
@@ -124,19 +125,20 @@ try {
     const before = await evaluate(`(()=>{
       window.keyboardAncestors=[];
       for(let parent=document.querySelector(${JSON.stringify(input)}).parentElement;parent;parent=parent.parentElement) keyboardAncestors.push([parent,parent.scrollTop]);
-      return {paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),background:keyboardBackground()};
+      return {paper:rect(${JSON.stringify(paper)}),edge:paperEdge(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),background:keyboardBackground()};
     })()`);
     await evaluate(`document.querySelector(${JSON.stringify(input)}).focus({preventScroll:true});setKeyboard(480);`);
     assert.equal(await evaluate(`document.activeElement===document.querySelector(${JSON.stringify(input)})`), true, `${input} accepts focus`);
     if (mode === 'layout') await metrics(480);
     const moving = await evaluate(`paperFrames(${JSON.stringify(paper)})`);
     await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
-    const after = await evaluate(`({paper:rect(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),height:document.documentElement.style.getPropertyValue('--app-h'),scrollFixed:keyboardAncestors.every(([element,top])=>element.scrollTop===top),background:keyboardBackground()})`);
-    const bottom = before.paper.y + before.paper.height;
+    const after = await evaluate(`({paper:rect(${JSON.stringify(paper)}),edge:paperEdge(${JSON.stringify(paper)}),input:rect(${JSON.stringify(input)}),height:document.documentElement.style.getPropertyValue('--app-h'),scrollFixed:keyboardAncestors.every(([element,top])=>element.scrollTop===top),background:keyboardBackground()})`);
+    const bottom = before.edge;
     const lift = bottom > 480 ? bottom - 474 : 0;
     for (const key of ['x', 'width', 'height']) assert.ok(Math.abs(before.paper[key] - after.paper[key]) < 0.1, `${input} preserves paper ${key} in ${mode}`);
     assert.equal(after.height, '844px');
-    assert.ok(Math.abs(before.paper.y - after.paper.y - lift) < 0.1, `${input} lifts the whole paper only when covered, with exactly 6px clearance at the paper bottom`);
+    assert.ok(Math.abs(before.paper.y - after.paper.y - lift) < 0.1, `${input} lifts the complete stack only when covered`);
+    if (bottom>480) assert.ok(Math.abs(after.edge-474)<0.1,`${input} keeps the lowest paper layer exactly 6px above the keyboard`);
     assert.ok(Math.abs(before.input.y - after.input.y - lift) < 0.1, `${input} moves with its paper`);
     assert.equal(after.scrollFixed, true, `${input} never scrolls the paper contents`);
     assert.deepEqual(after.background,before.background,`${input} keeps page backgrounds, decorations and headers fixed`);
@@ -167,6 +169,19 @@ try {
   assert.equal(await evaluate(`focusCalls.at(-1).preventScroll`),true,'tapping an input uses preventScroll');
   await keyboard('#apiStack', '#apiStack .api-sheet .js-note', 'layout');
   await keyboard('#apiStack', '#apiStack .api-sheet .js-key');
+  const extraLayer = await evaluate(`(async()=>{
+    const style=document.createElement('style');style.textContent='.keyboard-extra-fixture::after{content:"";position:absolute;top:calc(100% + 10px);left:0;width:100%;height:18px;background:#e1ddd2}';document.head.append(style);
+    const paper=document.createElement('div');paper.className='keyboard-extra-fixture';paper.dataset.keyboardSurface='';
+    paper.style.cssText='position:fixed;top:350px;left:20px;width:200px;height:120px;background:#f5f2ec;z-index:200;--keyboard-extra:18px';
+    paper.innerHTML='<input style="position:absolute;top:10px;left:10px;width:100px;height:30px"><div style="position:absolute;top:100%;height:10px;width:100%;background:#ebe7de"></div><div style="opacity:0;position:absolute;top:100%;height:250px"><div style="height:300px"></div></div><div style="display:none;height:700px"></div><div style="position:absolute;top:50px;height:30px;width:20px;overflow:hidden"><div style="height:500px"></div></div>';
+    document.querySelector('#root').append(paper);paper.querySelector('input').focus({preventScroll:true});setKeyboard(480);
+    await new Promise(resolve=>requestAnimationFrame(resolve));await Promise.all(paper.getAnimations().map(animation=>animation.finished));
+    const shifted=paper.getBoundingClientRect().top;
+    setKeyboard(844);document.activeElement.blur();await new Promise(resolve=>requestAnimationFrame(resolve));await Promise.all(paper.getAnimations().map(animation=>animation.finished));
+    const restored=paper.getBoundingClientRect().top;paper.remove();style.remove();return {shifted,restored};
+  })()`);
+  assert.ok(Math.abs(extraLayer.shifted-326)<0.1,'visible child layer and 18px pseudo layer are counted; hidden and clipped content is excluded');
+  assert.equal(extraLayer.restored,350,'the complete stack returns to its original position');
   const panning = await evaluate(`(async()=>{
     const background=keyboardBackground();
     document.querySelector('#apiStack .js-key').focus({preventScroll:true});setKeyboard(480);
@@ -192,13 +207,13 @@ try {
     const note={paper:rect('#apiStack'),field:rect('#apiStack .js-note')};
     document.querySelector('#apiStack .js-key').focus({preventScroll:true});
     await new Promise(resolve=>setTimeout(resolve,300));
-    const key={paper:rect('#apiStack'),field:rect('#apiStack .js-key')};
+    const key={paper:rect('#apiStack'),field:rect('#apiStack .js-key'),edge:paperEdge('#apiStack')};
     setKeyboard(844);document.activeElement.blur();
     await new Promise(resolve=>setTimeout(resolve,300));
     return {before,note,key};
   })()`);
   assert.ok(Math.abs(apiSwitch.note.field.y+apiSwitch.note.field.height-254)<0.1,'tall paper keeps the upper field visible with 6px clearance');
-  assert.ok(Math.abs(apiSwitch.key.paper.y+apiSwitch.key.paper.height-254)<0.1,'switching to the lower field restores alignment to the paper bottom');
+  assert.ok(Math.abs(apiSwitch.key.edge-254)<0.1,'switching to the lower field restores alignment to the lowest layer');
   await evaluate(`document.querySelector('#apiStack .js-key').focus({preventScroll:true})`);
   await setInput('#apiStack .api-sheet .js-key', 'fixture-key');
   await tap('#apiStack .password-toggle');
@@ -278,7 +293,7 @@ try {
   await sleep(260);
   assert.ok(await evaluate(`document.querySelector('.archive-input').getBoundingClientRect().bottom<=480`),'chat composer follows overlay keyboard geometry');
   await evaluate(`setKeyboard(844);document.activeElement.blur()`);
-  console.log('PASS 6px paper-bottom clearance, tall-paper field fallback, immediate viewport-pan cancellation, preventScroll input/label focus, overlay keyboard geometry, stable backgrounds and chat composer.');
+  console.log('PASS 6px clearance below the lowest visible paper layer, pseudo-element extension, hidden/clipped content exclusion, tall-paper fallback, stable backgrounds and chat composer with both keyboard geometry sources.');
 } finally {
   cdp?.close();
   const exited = once(browser, 'exit');

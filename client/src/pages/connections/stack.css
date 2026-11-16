@@ -16,6 +16,8 @@
 
 /* 兩個袋子共用紙堆：底紙斜放，上層紙張以抽走與蓋回切換。 */
 .connections-page .stack {
+  /* 垫纸是实际子元素，键盘避让直接测量；没有额外的伪元素纸层。 */
+  --keyboard-extra: 0px;
   position: fixed;
   top: calc(var(--app-h, 100svh) * .5);
   left: 50%;

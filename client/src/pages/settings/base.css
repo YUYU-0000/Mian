@@ -245,6 +245,8 @@
 }
 
 .settings-page .paper-stack-container {
+  /* 垫纸是实际子元素，键盘避让直接测量；没有额外的伪元素纸层。 */
+  --keyboard-extra: 0px;
   width: 82%;
   max-width: 340px;
   aspect-ratio: 3.2 / 4.2;

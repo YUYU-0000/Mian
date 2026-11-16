@@ -1,6 +1,27 @@
 import { editableSelector } from "./inputFocus";
 import { getKeyboardViewport, onKeyboardViewportChange } from "./keyboardViewport";
 
+function visiblePaperBottom(surface: HTMLElement) {
+  let bottom = surface.getBoundingClientRect().bottom;
+  const visit = (element: Element, clipTop: number, clipBottom: number) => {
+    const style = getComputedStyle(element);
+    if (style.display === "none" || style.visibility !== "visible" || Number(style.opacity) === 0) return;
+    const rect = element.getBoundingClientRect();
+    const top = Math.max(rect.top, clipTop);
+    const edge = Math.min(rect.bottom, clipBottom);
+    if (edge > top) bottom = Math.max(bottom, edge);
+    // 滚动区里被裁掉的内容不属于可见纸层，不能把它算成额外下沿。
+    if (style.overflowY !== "visible") {
+      clipTop = top;
+      clipBottom = edge;
+    }
+    for (const child of element.children) visit(child, clipTop, clipBottom);
+  };
+  visit(surface, -Infinity, Infinity);
+  // 只补伪元素伸出的部分；真实子元素已包含在上面的并集中。
+  return bottom + (parseFloat(getComputedStyle(surface).getPropertyValue("--keyboard-extra")) || 0);
+}
+
 export function installKeyboardLift() {
   const positions = new Map<HTMLElement, number>();
   const motions = new WeakMap<HTMLElement, { y: number; animation: Animation }>();
@@ -39,7 +60,7 @@ export function installKeyboardLift() {
     restoreScroll();
     // 同时扣除根节点的视口抵消和纸片当前位移，始终按原纸片位置计算。
     const offset = viewport.offsetTop + currentY(surface);
-    const paperBottom = surface.getBoundingClientRect().bottom - offset;
+    const paperBottom = visiblePaperBottom(surface) - offset;
     let y = 0;
     if (paperBottom > viewport.height) {
       y = viewport.height - 6 - paperBottom;
