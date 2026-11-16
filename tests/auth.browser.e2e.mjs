@@ -53,6 +53,20 @@ try {
   assert.equal(spacing.top, spacing.decor);
   assert.ok(Math.abs(spacing.top - spacing.bottom) < 1);
   assert.equal(spacing.gap, 20);
+  const keyboardGate = await evaluate(`(async()=>{
+    const input=document.querySelector('.auth-password'), fish=document.querySelector('.auth-fish');
+    const before={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON()};
+    Object.defineProperty(visualViewport,'height',{configurable:true,value:480});
+    input.focus({preventScroll:true});visualViewport.dispatchEvent(new Event('resize'));
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const during={fish:fish.getBoundingClientRect().toJSON(),input:input.getBoundingClientRect().toJSON()};
+    delete visualViewport.height;input.blur();visualViewport.dispatchEvent(new Event('resize'));
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    return {before,during,after:input.getBoundingClientRect().toJSON()};
+  })()`);
+  assert.deepEqual(keyboardGate.before.fish, keyboardGate.during.fish, 'keyboard keeps the login fish fixed');
+  assert.ok(keyboardGate.during.input.bottom <= 469, 'login input scrolls above the keyboard');
+  assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, 'login line returns to its original position');
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
   };
@@ -72,6 +86,11 @@ try {
   assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我');
   await typePassword('abcdefghijklmnop');
   assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我聽見你來了，門就要開了我聽見你');
+  await evaluate('document.querySelector(".auth-password-toggle").click()');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "abcdefghijklmnop" && document.querySelector(".auth-password-toggle").textContent === "HIDE"'), 'show test password with text transition');
+  assert.equal(await evaluate('document.querySelector(".auth-password").type'), 'password');
+  await evaluate('document.querySelector(".auth-password-toggle").click()');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽見你來了，門就要開了我聽見你" && document.querySelector(".auth-password-toggle").textContent === "SHOW"'), 'hide restores the echo');
   await fillPassword();
   await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "再寫一次。"'), 'same line confirms the new password');
   await fillPassword('different-test-password');

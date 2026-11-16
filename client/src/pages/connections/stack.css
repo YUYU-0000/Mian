@@ -17,7 +17,7 @@
 /* 兩個袋子共用紙堆：底紙斜放，上層紙張以抽走與蓋回切換。 */
 .connections-page .stack {
   position: fixed;
-  top: 50%;
+  top: calc(var(--app-h, 100svh) * .5);
   left: 50%;
   z-index: 101;
   width: var(--sheet-w);

@@ -3,8 +3,8 @@
 .connections-page {
   --env-h: 440px;
   --base-gap: 25px;
-  --scale: 1.15;
-  --sheet-w: min(82vw, 340px, calc(80svh * 3.2 / 4.2));
+  --scale: var(--connection-scale, 1.15);
+  --sheet-w: min(82vw, 340px, calc(var(--app-h, 100svh) * .8 * 3.2 / 4.2));
   --ink: #3b4d5a;
   --btn: #5a7082;
   --env1: #6b8396;
@@ -18,7 +18,7 @@
   padding: 0 2vw 0 0;
   font-family: var(--font-main);
   width: 100%;
-  min-height: 100vh;
+  min-height: var(--app-h, 100svh);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -308,56 +308,4 @@
   letter-spacing: 2.5px;
   font-weight: 500;
   color: rgba(241, 239, 233, 0.55);
-}
-
-/* 按螢幕高度縮放檔案袋 */
-@media (max-height: 1080px) {
-  .connections-page {
-    --scale: 1.1;
-  }
-}
-@media (max-height: 1000px) {
-  .connections-page {
-    --scale: 1.02;
-  }
-}
-@media (max-height: 940px) {
-  .connections-page {
-    --scale: 0.96;
-  }
-}
-@media (max-height: 880px) {
-  .connections-page {
-    --scale: 0.9;
-  }
-}
-@media (max-height: 820px) {
-  .connections-page {
-    --scale: 0.84;
-  }
-}
-@media (max-height: 760px) {
-  .connections-page {
-    --scale: 0.77;
-  }
-}
-@media (max-height: 700px) {
-  .connections-page {
-    --scale: 0.71;
-  }
-}
-@media (max-height: 640px) {
-  .connections-page {
-    --scale: 0.65;
-  }
-}
-@media (max-height: 580px) {
-  .connections-page {
-    --scale: 0.59;
-  }
-}
-@media (max-height: 520px) {
-  .connections-page {
-    --scale: 0.53;
-  }
 }

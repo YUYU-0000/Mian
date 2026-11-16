@@ -1,7 +1,7 @@
 import { api } from "./api";
 import { loadAvatars } from "./avatars";
 import { homePhotoKeys } from "./homePhotos";
-import { readSettingsMedia } from "./mediaStorage";
+import { loadCachedMedia } from "./mediaStorage";
 import { pagePreloads } from "./pagePreloads";
 
 export const preloadHomePages = () => Promise.all(Object.values(pagePreloads).map(preload => preload()));
@@ -15,5 +15,5 @@ export const preloadHomeData = () => Promise.all([
   api.clues(),
   // 线索墙肖像共用 assistant 头像，在揭开首页前一起解码。
   loadAvatars(),
-  ...Object.values(homePhotoKeys).map(readSettingsMedia),
+  ...Object.values(homePhotoKeys).map(key => loadCachedMedia("LauncherDB", "mediaStore", `savedMediaFile_${key}`)),
 ]);

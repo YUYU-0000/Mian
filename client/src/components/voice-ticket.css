@@ -72,7 +72,10 @@
   transform: scaleY(var(--voice-static));
   transition: background 0.25s, transform 0.35s ease-in-out;
 }
-.voice-wave.is-playing i { transition: background 0.25s, transform 0.22s ease-out; }
+.voice-wave.is-playing i {
+  transform: scaleY(0.15);
+  transition: background 0.25s, transform 0.08s linear;
+}
 .voice-wave i.done {
   background: var(--ink);
 }

@@ -49,6 +49,7 @@ const PlaceholderIcon = ({ className }: { className: string }) => (
   />
 );
 export default function Home({
+  active = true,
   status,
   channelName,
   onChat,
@@ -56,6 +57,7 @@ export default function Home({
   onSettings,
   onClues,
 }: {
+  active?: boolean;
   status: ConnectionStatus;
   channelName: string;
   onChat: () => void;
@@ -137,18 +139,18 @@ export default function Home({
             <div className="home-label lbl-3">APP</div>
             <PlaceholderIcon className="icon-4 bg-4" />
             <div className="home-label lbl-4">APP</div>
-            <HomePhoto className="widget" photo="widget" active={page === 0} />
+            <HomePhoto className="widget" photo="widget" active={active && page === 0} />
             <div className="home-label widget-label">PHOTO</div>
           </div>
         </section>
         <section className="home-page">
           <div className="home-grid-2">
-            <HomePhoto className="wide" photo="wide" active={page === 1} />
+            <HomePhoto className="wide" photo="wide" active={active && page === 1} />
             <div className="home-label wide-label">PHOTO</div>
             <HomePhoto
               className="square-left"
               photo="left"
-              active={page === 1}
+              active={active && page === 1}
             />
             <div className="home-label square-left-label">PHOTO</div>
             {[1, 2, 3, 4].map((n) => (
@@ -170,7 +172,7 @@ export default function Home({
             <HomePhoto
               className="square-right"
               photo="right"
-              active={page === 1}
+              active={active && page === 1}
             />
             <div className="home-label square-right-label">PHOTO</div>
           </div>

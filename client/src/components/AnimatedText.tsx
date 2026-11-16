@@ -16,17 +16,22 @@ export default function AnimatedText({
   className = "",
   as: Tag = "span",
   revealCharacters = false,
+  transitionKey = "",
 }: {
   text: string;
   className?: string;
   as?: "span" | "tspan";
   revealCharacters?: boolean;
+  transitionKey?: string | boolean;
 }) {
   const ref = useRef<HTMLSpanElement | SVGTSpanElement>(null);
   const initial = useRef(text);
+  const previousKey = useRef(transitionKey);
   useLayoutEffect(() => {
     const element = ref.current!;
-    if (revealCharacters) {
+    const changedMode = previousKey.current !== transitionKey;
+    previousKey.current = transitionKey;
+    const writeCharacters = (animate: boolean) => {
       if (!element.hasAttribute("data-reveal-characters")) {
         element.replaceChildren();
         element.setAttribute("data-reveal-characters", "");
@@ -37,9 +42,14 @@ export default function AnimatedText({
         const character = document.createElement("span");
         character.textContent = characters[index];
         element.append(character);
-        const incoming = character.animate(textTransition.incoming.frames, textTransition.incoming.options);
-        incoming.onfinish = () => incoming.cancel();
+        if (animate) {
+          const incoming = character.animate(textTransition.incoming.frames, textTransition.incoming.options);
+          incoming.onfinish = () => incoming.cancel();
+        }
       }
+    };
+    if (revealCharacters && !changedMode) {
+      writeCharacters(true);
       return;
     }
     if (element.textContent === text) return;
@@ -50,6 +60,7 @@ export default function AnimatedText({
       out.cancel();
       element.textContent = text;
       element.removeAttribute("data-reveal-characters");
+      if (revealCharacters) writeCharacters(false);
     };
     out.oncancel = reveal;
     out.onfinish = () => {
@@ -65,7 +76,7 @@ export default function AnimatedText({
         incoming.cancel();
       }
     };
-  }, [text, revealCharacters]);
+  }, [text, revealCharacters, transitionKey]);
   return (
     <Tag ref={(node: HTMLSpanElement | SVGTSpanElement | null) => { ref.current = node; }} className={className}>
       {initial.current}

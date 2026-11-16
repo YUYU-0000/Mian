@@ -2,6 +2,9 @@ import type { VoiceClip, VoicePart } from "../../shared/voice.mjs";
 import { cachedFileUrl } from "./fileCache";
 
 export const VOICE_BAR_COUNT = 38;
+// 固定打散频段，邻条不按音高排列；所有票根和预览共用同一顺序。
+const BAND_ORDER = [33, 21, 17, 10, 25, 3, 23, 8, 6, 34, 0, 19, 32, 1, 7, 31, 22, 14, 5,
+  12, 15, 11, 35, 24, 27, 2, 13, 29, 36, 26, 37, 18, 9, 16, 4, 20, 28, 30];
 
 type Playback = {
   id: string;
@@ -24,6 +27,8 @@ class VoicePlayer {
   private analyser: AnalyserNode | null = null;
   private frequencies = new Uint8Array(1024);
   private spectrum = new Float32Array(VOICE_BAR_COUNT);
+  private bandPeaks = new Float32Array(VOICE_BAR_COUNT);
+  private spectrumTime = 0;
   private frequencyBands: [number, number][] = [];
   private playback: Playback | null = null;
   private state: PlayerState = { id: null, playing: false, duration: null, currentTime: 0 };
@@ -47,11 +52,11 @@ class VoicePlayer {
       this.analyser.fftSize = this.frequencies.length * 2;
       this.analyser.minDecibels = -85;
       this.analyser.maxDecibels = -25;
-      this.analyser.smoothingTimeConstant = 0.65;
+      this.analyser.smoothingTimeConstant = 0;
       // 按对数划分人声频段，避免把大部分条码分给几乎无声的高频。
       const binHz = this.context.sampleRate / this.analyser.fftSize;
       const range = Math.min(8000, this.context.sampleRate / 2) / 80;
-      this.frequencyBands = Array.from({ length: VOICE_BAR_COUNT }, (_, index) => [
+      this.frequencyBands = BAND_ORDER.map(index => [
         Math.floor(80 * range ** (index / VOICE_BAR_COUNT) / binHz),
         Math.ceil(80 * range ** ((index + 1) / VOICE_BAR_COUNT) / binHz),
       ]);
@@ -61,18 +66,32 @@ class VoicePlayer {
     return this.context.resume();
   }
 
-  readSpectrum() {
+  readSpectrum(time = performance.now()) {
+    // 同一帧只取样一次，票根和展开的台词预览不会互相加快平滑速度。
+    if (time === this.spectrumTime) return this.spectrum;
+    const elapsed = time - this.spectrumTime;
+    this.spectrumTime = time;
     this.analyser!.getByteFrequencyData(this.frequencies);
     this.frequencyBands.forEach(([start, end], index) => {
       let peak = 0;
       for (let bin = start; bin < end; bin++) peak = Math.max(peak, this.frequencies[bin]);
-      this.spectrum[index] = peak / 255;
+      const value = Math.max(0, peak / 255 - 0.08) / 0.92;
+      // 每段单独保留近期峰值，缓慢释放增益；底噪不放大成满高。
+      this.bandPeaks[index] = Math.max(value, this.bandPeaks[index] * Math.exp(-elapsed / 3000));
+      const normalized = Math.min(1, value / Math.max(0.12, this.bandPeaks[index]));
+      // 常态增益只占七成，剩下的幅度留给本身明显更响的频段。
+      const loudness = Math.max(0, (value - 0.72) / 0.28);
+      const target = normalized * (0.7 + 0.3 * loudness);
+      const response = target > this.spectrum[index] ? 45 : 160;
+      this.spectrum[index] += (target - this.spectrum[index]) * (1 - Math.exp(-elapsed / response));
     });
     return this.spectrum;
   }
 
   play(id: string, load: (signal: AbortSignal) => Promise<VoiceClip>, signal?: AbortSignal, onPlaying?: () => void, startAt = 0) {
     this.stop();
+    this.spectrum.fill(0);
+    this.bandPeaks.fill(0);
     let playback: Playback;
     const done = new Promise<void>((resolve, reject) => {
       playback = { id, controller: new AbortController(), parts: [], index: -1, offset: 0, seekTo: null, resolve, reject, detach: () => {}, onPlaying };
@@ -95,6 +114,7 @@ class VoicePlayer {
     const audio = this.audio!;
     audio.loop = false;
     audio.onplaying = () => {
+      this.spectrumTime = performance.now();
       this.update({ playing: true });
       playback.onPlaying?.();
     };

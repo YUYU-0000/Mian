@@ -14,10 +14,10 @@ export default function VoiceWave({ peaks = emptyPeaks, playing, progress, durat
     if (!element || !playing) return;
     const bars = [...element.querySelectorAll("i")];
     let frame: number;
-    const animate = () => {
-      const spectrum = voicePlayer.readSpectrum();
+    const animate = (time: number) => {
+      const spectrum = voicePlayer.readSpectrum(time);
       bars.forEach((bar, index) => {
-        bar.style.transform = `scaleY(${0.15 + spectrum[index] * 0.85})`;
+        bar.style.transform = `scaleY(${0.15 + spectrum[index] * 0.55})`;
       });
       frame = requestAnimationFrame(animate);
     };

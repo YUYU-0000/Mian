@@ -88,7 +88,7 @@
 }
 
 .settings-page .f1 {
-  height: 56vh;
+  height: calc(var(--app-h, 100svh) * 0.56);
   z-index: 1;
 }
 .settings-page .f1 .folder-body {
@@ -108,7 +108,7 @@
   padding-right: 6px;
 }
 .settings-page .f2 {
-  height: 44vh;
+  height: calc(var(--app-h, 100svh) * 0.44);
   z-index: 2;
 }
 .settings-page .f2 .folder-body {
@@ -129,7 +129,7 @@
   padding-left: 10px;
 }
 .settings-page .f3 {
-  height: 32vh;
+  height: calc(var(--app-h, 100svh) * 0.32);
   z-index: 3;
 }
 .settings-page .f3 .folder-body {
@@ -140,7 +140,7 @@
   clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
 }
 .settings-page .f4 {
-  height: 20vh;
+  height: calc(var(--app-h, 100svh) * 0.2);
   z-index: 4;
 }
 .settings-page .f4 .folder-body {
@@ -150,20 +150,19 @@
   background-color: var(--icon-bg-2);
   clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
 }
-@media (max-height: 640px) {
-  .settings-page .f1 {
-    height: 50vh;
+
+  :root[data-app-compact="true"] .settings-page .f1 {
+    height: calc(var(--app-h, 100svh) * 0.5);
   }
-  .settings-page .f2 {
-    height: 40vh;
+  :root[data-app-compact="true"] .settings-page .f2 {
+    height: calc(var(--app-h, 100svh) * 0.4);
   }
-  .settings-page .f3 {
-    height: 30vh;
+  :root[data-app-compact="true"] .settings-page .f3 {
+    height: calc(var(--app-h, 100svh) * 0.3);
   }
-  .settings-page .f4 {
-    height: 20vh;
+  :root[data-app-compact="true"] .settings-page .f4 {
+    height: calc(var(--app-h, 100svh) * 0.2);
   }
-}
 
 .settings-page .tab-wrapper {
   position: absolute;
@@ -224,6 +223,7 @@
 
 /* 弹出特效层 */
 .settings-page .paper-overlay {
+  height: var(--app-h, 100svh);
   position: fixed;
   inset: 0;
   z-index: 100;

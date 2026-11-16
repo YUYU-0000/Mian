@@ -4,12 +4,14 @@ import type { ClueWall } from "../client/src/clueTypes";
 import Clues from "../client/src/pages/Clues";
 import Home from "../client/src/pages/Home";
 import Media from "../client/src/components/Media";
+import { removeSettingsMedia } from "../client/src/mediaStorage";
 import Notify, { notify } from "../client/src/components/Notify";
 import "../client/src/theme.css";
 import "../client/src/components/scroll-text.css";
 import "../client/src/pages/settings.css";
 
 const fixture = window as any;
+fixture.removeHomePhoto = () => removeSettingsMedia("home_photo_widget");
 const root = createRoot(document.getElementById("root")!);
 let mount = 0;
 let wall: ClueWall = {

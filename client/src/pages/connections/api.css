@@ -205,18 +205,6 @@
 .connections-page .api-input::placeholder {
   color: rgba(114, 130, 142, 0.55);
 }
-.connections-page .api-mini {
-  all: unset;
-  flex-shrink: 0;
-  cursor: pointer;
-  padding: 2px 0 2px 8px;
-  font-size: 7.5px;
-  letter-spacing: 1.5px;
-  color: var(--muted);
-}
-.connections-page .api-mini:active {
-  opacity: 0.6;
-}
 .connections-page .api-pick {
   all: unset;
   flex: 1;

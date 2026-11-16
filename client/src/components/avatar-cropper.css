@@ -19,7 +19,7 @@
 }
 .avatar-cropper .hang-tag {
   /* 圆心居中，绳子再伸入距顶边 10px 的孔心。 */
-  --tag-string: calc(50svh - 100px + 10px);
+  --tag-string: calc(var(--app-h, 100svh) * .5 - 100px + 10px);
   width: 200px;
   margin-left: -100px;
 }

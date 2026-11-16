@@ -484,7 +484,7 @@
 .route-transition-frame {
   width: 100%;
   max-width: 480px;
-  height: 100dvh;
+  height: var(--app-h, 100svh);
   margin: 0 auto;
   position: relative;
   overflow: hidden;
@@ -509,6 +509,10 @@ body,
 }
 .route-layer-surface-connections {
   background-color: #e8e6df;
+}
+.home-route.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 .route-transition-press[data-transition-target="/chat"] .icon-1,
 .route-transition-press[data-transition-target="/clues"] .icon-2,

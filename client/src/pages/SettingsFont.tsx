@@ -1,3 +1,4 @@
+import KeyboardScroll from "../components/KeyboardScroll";
 import { pad2 } from "../format";
 import { useEffect, useState } from "react";
 import { installFont, INVALID_FONT, parseFontFace } from "../bubbleFont";
@@ -54,161 +55,163 @@ export default function FontPage({
   };
   return (
     <div className="api-page" data-id={id}>
-      <div className="paper-holes">
-        <div className="hole" />
-        <div className="hole" />
-        <div className="hole" />
-        <div className="hole" />
-      </div>
-      <div className="api-polaroid-container">
-        <div className="polaroid">
-          <div className="polaroid-img-placeholder">
-            <Media storageKey={`api_${id}`} active={active} />
-          </div>
-          <ScrollInput
-            type="text"
-            className="api-polaroid-input-main"
-            placeholder="UNNAMED"
-            value={name}
-            readOnly={fixed}
-            onChange={(e) => change({ name: e.target.value })}
-            onBlur={() => onChange(draft)}
-          />
+      <KeyboardScroll>
+        <div className="paper-holes">
+          <div className="hole" />
+          <div className="hole" />
+          <div className="hole" />
+          <div className="hole" />
         </div>
-      </div>
-      <div className="api-typography">
-        <div className="api-typo-title">
-          TYPE
-          <br />
-          LETTER
-          <br />
-          STYLE
-        </div>
-        <div className="api-typo-greeting">A Path to You</div>
-      </div>
-      <div className="api-custom-counter">
-        <svg className="acc-svg" viewBox="0 0 65 90">
-          <path
-            d="M 23 42 L 52 42 L 11 76 L 30 76"
-            fill="none"
-            stroke="#6b6256"
-            strokeWidth="0.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <div className="acc-num-top apiTotalPages">
-          {String(total).padStart(3, "0")}
-        </div>
-        <div className="apiBtnAdd" onClick={onAdd}>
-          ADD
-        </div>
-        <div
-          className={`apiBtnDel${fixed ? " disabled" : ""}`}
-          onClick={fixed ? undefined : onDelete}
-        >
-          DEL
-        </div>
-        <div className="acc-num-bot apiCurrentPage">{pad2(index + 1)}</div>
-      </div>
-      <div className="api-postcard-form">
-        <div className="api-field-row">
-          <div className="api-field-label">FACE</div>
-          <ScrollInput
-            type="text"
-            className="api-field-input"
-            placeholder={fixed ? "LXGW Heart Serif" : "@font-face { }"}
-            value={face}
-            readOnly={fixed}
-            onChange={(e) => change({ face: e.target.value })}
-            onBlur={() => onChange(draft)}
-          />
-        </div>
-        <div className="api-field-row">
-          <div className="api-field-label">VIEW</div>
-          <ScrollInput
-            type="text"
-            className="api-field-input"
-            placeholder="Still water."
-            value={view}
-            onChange={(e) => change({ view: e.target.value })}
-            onBlur={() => onChange(draft)}
-            style={{
-              fontFamily: `"${previewFamily}", "LXGW Heart Serif", sans-serif`,
-              fontSize: size,
-            }}
-          />
-        </div>
-        <div className="api-field-row">
-          <div className="api-field-label">SIZE</div>
-          <div className="fish-slider-container">
-            <input
-              type="range"
-              className="fish-slider timeout-slider"
-              min={minimum}
-              max={maximum}
-              step="1"
-              value={size}
-              onChange={(e) => {
-                const value = +e.target.value;
-                if (value !== size) setDirection(value > size ? -1 : 1);
-                change({ size: value });
-              }}
+        <div className="api-polaroid-container">
+          <div className="polaroid">
+            <div className="polaroid-img-placeholder">
+              <Media storageKey={`api_${id}`} active={active} />
+            </div>
+            <ScrollInput
+              type="text"
+              className="api-polaroid-input-main"
+              placeholder="UNNAMED"
+              value={name}
+              readOnly={fixed}
+              onChange={(e) => change({ name: e.target.value })}
               onBlur={() => onChange(draft)}
-              onPointerUp={() => onChange(draft)}
             />
-            <div
-              className="fish-thumb-wrapper"
+          </div>
+        </div>
+        <div className="api-typography">
+          <div className="api-typo-title">
+            TYPE
+            <br />
+            LETTER
+            <br />
+            STYLE
+          </div>
+          <div className="api-typo-greeting">A Path to You</div>
+        </div>
+        <div className="api-custom-counter">
+          <svg className="acc-svg" viewBox="0 0 65 90">
+            <path
+              d="M 23 42 L 52 42 L 11 76 L 30 76"
+              fill="none"
+              stroke="#6b6256"
+              strokeWidth="0.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="acc-num-top apiTotalPages">
+            {String(total).padStart(3, "0")}
+          </div>
+          <div className="apiBtnAdd" onClick={onAdd}>
+            ADD
+          </div>
+          <div
+            className={`apiBtnDel${fixed ? " disabled" : ""}`}
+            onClick={fixed ? undefined : onDelete}
+          >
+            DEL
+          </div>
+          <div className="acc-num-bot apiCurrentPage">{pad2(index + 1)}</div>
+        </div>
+        <div className="api-postcard-form">
+          <div className="api-field-row">
+            <div className="api-field-label">FACE</div>
+            <ScrollInput
+              type="text"
+              className="api-field-input"
+              placeholder={fixed ? "LXGW Heart Serif" : "@font-face { }"}
+              value={face}
+              readOnly={fixed}
+              onChange={(e) => change({ face: e.target.value })}
+              onBlur={() => onChange(draft)}
+            />
+          </div>
+          <div className="api-field-row">
+            <div className="api-field-label">VIEW</div>
+            <ScrollInput
+              type="text"
+              className="api-field-input"
+              placeholder="Still water."
+              value={view}
+              onChange={(e) => change({ view: e.target.value })}
+              onBlur={() => onChange(draft)}
               style={{
-                left: `${((size - minimum) / (maximum - minimum)) * 100}%`,
+                fontFamily: `"${previewFamily}", "LXGW Heart Serif", sans-serif`,
+                fontSize: size,
               }}
-            >
-              <div className="fish-value">{`${size} px`}</div>
-              <svg
-                className="fish-svg timeout-fish-svg"
-                style={{ transform: `scale(0.9) scaleX(${direction})` }}
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
+            />
+          </div>
+          <div className="api-field-row">
+            <div className="api-field-label">SIZE</div>
+            <div className="fish-slider-container">
+              <input
+                type="range"
+                className="fish-slider timeout-slider"
+                min={minimum}
+                max={maximum}
+                step="1"
+                value={size}
+                onChange={(e) => {
+                  const value = +e.target.value;
+                  if (value !== size) setDirection(value > size ? -1 : 1);
+                  change({ size: value });
+                }}
+                onBlur={() => onChange(draft)}
+                onPointerUp={() => onChange(draft)}
+              />
+              <div
+                className="fish-thumb-wrapper"
+                style={{
+                  left: `${((size - minimum) / (maximum - minimum)) * 100}%`,
+                }}
               >
-                <path
-                  d="M10 4L2 12L10 20"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="9" cy="12" r="1.4" />
-                <path
-                  d="M18 8.5L13.5 12L18 15.5"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+                <div className="fish-value">{`${size} px`}</div>
+                <svg
+                  className="fish-svg timeout-fish-svg"
+                  style={{ transform: `scale(0.9) scaleX(${direction})` }}
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M10 4L2 12L10 20"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="9" cy="12" r="1.4" />
+                  <path
+                    d="M18 8.5L13.5 12L18 15.5"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="api-actions">
-        <div
-          className="action-btn btnSaveStyle"
-          onClick={() => {
-            if (!preview()) return;
-            void onSave(draft)
-              .then((saved) => {
-                setDraft(saved);
-                notify.ok("已保存");
-              })
-              .catch((error) => notify.fail("保存失敗", error));
-          }}
-        >
-          <span className="btn-text">SAVE STYLE</span>
+        <div className="api-actions">
+          <div
+            className="action-btn btnSaveStyle"
+            onClick={() => {
+              if (!preview()) return;
+              void onSave(draft)
+                .then((saved) => {
+                  setDraft(saved);
+                  notify.ok("已保存");
+                })
+                .catch((error) => notify.fail("保存失敗", error));
+            }}
+          >
+            <span className="btn-text">SAVE STYLE</span>
+          </div>
+          <div className="action-btn btnTestStyle" onClick={preview}>
+            <span className="btn-text">TEST STYLE</span>
+          </div>
         </div>
-        <div className="action-btn btnTestStyle" onClick={preview}>
-          <span className="btn-text">TEST STYLE</span>
-        </div>
-      </div>
+      </KeyboardScroll>
     </div>
   );
 }

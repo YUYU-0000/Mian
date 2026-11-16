@@ -5,6 +5,8 @@ import { backendAvailable, BackendUnavailable, OFFLINE_MESSAGE, setBackendAuthor
 import { startOfflineSync } from "./offline";
 import Notify, { notify } from "./components/Notify";
 import AnimatedText from "./components/AnimatedText";
+import PasswordToggle from "./components/PasswordToggle";
+import KeyboardScroll from "./components/KeyboardScroll";
 import ScrollText from "./components/ScrollText";
 import AuthFish, { drawFish } from "./AuthFish";
 import { preloadHomeData, preloadHomePages } from "./homePreload";
@@ -23,6 +25,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const currentPhase = useRef<Phase>("checking");
   const [homeReady, setHomeReady] = useState(false);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [repeat, setRepeat] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -64,7 +67,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     drawing.current = run;
     try {
       await run.finished;
-      setPassword(""); setRepeat(""); setConfirming(false);
+      setPassword(""); setRepeat(""); setConfirming(false); setShowPassword(false);
       move("settled");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -148,7 +151,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const typing = phase === "locked" && !!value && !errorHint;
   const echoLength = Array.from(value).length;
   const echo = PASSWORD_ECHO.repeat(Math.ceil(echoLength / PASSWORD_ECHO.length)).slice(0, echoLength);
-  const hint = phase === "checking" ? "" : busy || access?.authenticated ? "門開著，進來。" : errorHint || (typing ? echo : offline ? OFFLINE_MESSAGE : setup
+  const hint = phase === "checking" ? "" : busy || access?.authenticated ? "門開著，進來。" : errorHint || (typing ? showPassword ? value : echo : offline ? OFFLINE_MESSAGE : setup
     ? access.canSetup ? confirming ? "再寫一次。" : "先把門鎖好。至少十個字。" : "先在這台電腦上把門鎖好。"
     : "密碼給門，不用給我");
   useLayoutEffect(() => {
@@ -180,15 +183,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           <h1 className="auth-cn">敲門</h1>
         </header>
         <AuthFish svgRef={fish} />
-        <form className="auth-keyrow" aria-busy={busy} onSubmit={submit}>
-          <span ref={hintLine} className="auth-hint" id="auth-hint" aria-live="polite"><ScrollText><AnimatedText text={hint} revealCharacters={typing} /></ScrollText></span>
-          <input ref={input} className="auth-password" type="password" aria-label={confirming ? "再次確認密碼" : "密碼"}
-            aria-describedby="auth-hint" autoComplete={setup ? "new-password" : "current-password"} enterKeyHint={setup && !confirming ? "next" : "go"}
-            minLength={setup ? 10 : undefined} required disabled={!canEnter} readOnly={phase !== "locked"} value={value}
-            onChange={event => { setErrorHint(""); if (confirming) setRepeat(event.target.value); else setPassword(event.target.value); }} />
-          <button className="auth-submit" type="submit" aria-label="敲門" disabled={!canEnter || phase !== "locked" || !value} />
-        </form>
-        <div className="auth-foot">SINCE  10.15</div>
+        <KeyboardScroll>
+          <form className="auth-keyrow" aria-busy={busy} onSubmit={submit}>
+            <span ref={hintLine} className={`auth-hint${typing ? " is-typing" : ""}`} id="auth-hint" aria-live="polite"><ScrollText><AnimatedText text={hint} revealCharacters={typing && !showPassword} transitionKey={showPassword} /></ScrollText></span>
+            <input ref={input} className="auth-password" type="password" aria-label={confirming ? "再次確認密碼" : "密碼"}
+              aria-describedby="auth-hint" autoComplete={setup ? "new-password" : "current-password"} enterKeyHint={setup && !confirming ? "next" : "go"}
+              minLength={setup ? 10 : undefined} required disabled={!canEnter} readOnly={phase !== "locked"} value={value}
+              onChange={event => { setErrorHint(""); if (confirming) setRepeat(event.target.value); else setPassword(event.target.value); }} />
+            {canEnter && phase === "locked" && <PasswordToggle className="auth-password-toggle" visible={showPassword} onToggle={() => setShowPassword(value => !value)} />}
+            <button className="auth-submit" type="submit" aria-label="敲門" disabled={!canEnter || phase !== "locked" || !value} />
+          </form>
+          <div className="auth-foot">SINCE  10.15</div>
+        </KeyboardScroll>
       </div>
       {!homeReady && <Notify page="/login" />}
     </main>}

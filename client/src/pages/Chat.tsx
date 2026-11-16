@@ -205,6 +205,9 @@ export default function Chat({
       contentElement.style.removeProperty("will-change");
     };
     const updateNow = (forceBottom = false, animateAttachments = true) => {
+      const viewport = window.visualViewport;
+      const chat = inputElement.closest<HTMLElement>(".archive-chat")!;
+      chat.style.height = `${viewport?.height ?? window.innerHeight}px`;
       const streamRect = streamElement.getBoundingClientRect();
       const inputRect = inputElement.getBoundingClientRect();
       const drafts = inputElement.querySelector(".file-drafts");
@@ -241,7 +244,6 @@ export default function Chat({
           attachmentAnimation.onfinish = clearAttachmentAnimation;
         }
       }
-      const viewport = window.visualViewport;
       return [
         viewport?.height ?? window.innerHeight,
         viewport?.offsetTop ?? 0,
