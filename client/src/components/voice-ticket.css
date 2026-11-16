@@ -66,11 +66,13 @@
 .voice-wave i {
   display: block;
   width: 1.3px;
+  height: 20px;
   background: rgba(59, 77, 90, 0.26);
   transform-origin: center;
-  transition: background 0.25s, transform 0.3s ease-out;
+  transform: scaleY(var(--voice-static));
+  transition: background 0.25s, transform 0.35s ease-in-out;
 }
-.voice-wave.is-playing i { transition: background 0.25s, transform 0.16s ease-out; }
+.voice-wave.is-playing i { transition: background 0.25s, transform 0.22s ease-out; }
 .voice-wave i.done {
   background: var(--ink);
 }
@@ -78,6 +80,13 @@
   font: 10px "LXGW Heart Serif", serif;
   letter-spacing: 1.2px;
   color: var(--muted);
+}
+.voice-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 20px;
 }
 .voice-play:disabled,
 .voice-wave:disabled {
