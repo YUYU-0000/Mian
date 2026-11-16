@@ -64,6 +64,9 @@
   inset: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 与首页共用浏览器的阻尼、惯性和回弹，滚动链不传给外层页面。 */
+  overscroll-behavior: none contain;
+  touch-action: pan-y;
   scrollbar-width: none;
 }
 .clues-page .wall::-webkit-scrollbar {
