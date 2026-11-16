@@ -60,7 +60,7 @@
   position: absolute;
   left: 50%;
   bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px) + 20px);
-  width: 196px;
+  width: 64vw;
   transform: translateX(-50%);
   transition: opacity .3s;
   opacity: 0;
