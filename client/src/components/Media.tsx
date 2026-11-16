@@ -1,4 +1,4 @@
-import { readMedia, writeMedia } from "../mediaStorage";
+import { getCachedMedia, loadCachedMedia, watchMedia, writeMedia, type CachedMedia } from "../mediaStorage";
 import { compressImage } from "../imageCompression";
 import {
   INITIAL_AVATAR_CROP,
@@ -12,7 +12,7 @@ import { notify } from "./Notify";
 import AvatarCropper from "./AvatarCropper";
 import "./media.css";
 
-type Picture = { url: string; video: boolean; developing: boolean };
+type Picture = CachedMedia & { developing: boolean };
 export default function Media({
   storageKey,
   cover = false,
@@ -24,50 +24,44 @@ export default function Media({
   active?: boolean;
   avatar?: AvatarRole;
 }) {
-  const [pictures, setPictures] = useState<Picture[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [icon, setIcon] = useState(true);
-  const [playButton, setPlayButton] = useState(false);
-  const [editor, setEditor] = useState<AvatarEditor | null>(null);
-  const container = useRef<HTMLSpanElement>(null);
-  const urls = useRef(new Set<string>());
-  const timers = useRef<number[]>([]);
-  const frames = useRef<number[]>([]);
   const name = cover ? "mian_connections" : "LauncherDB";
   const store = cover ? "media" : "mediaStore";
   const key = cover ? `${storageKey}_cover` : `savedMediaFile_${storageKey}`;
-  const show = (file: Blob, animate: boolean) => {
-    const url = URL.createObjectURL(file);
-    urls.current.add(url);
+  const cached = getCachedMedia(name, store, key);
+  const [pictures, setPictures] = useState<Picture[]>(() => cached ? [{ ...cached, developing: false }] : []);
+  const [loading, setLoading] = useState(cached === undefined);
+  const [icon, setIcon] = useState(!cached);
+  const [playButton, setPlayButton] = useState(false);
+  const [editor, setEditor] = useState<AvatarEditor | null>(null);
+  const container = useRef<HTMLSpanElement>(null);
+  const uploading = useRef(false);
+  const timers = useRef<number[]>([]);
+  const frames = useRef<number[]>([]);
+  const show = (picture: CachedMedia | null, animate: boolean) => {
     setPictures((current) =>
-      animate
-        ? [
-            ...current,
-            { url, video: file.type.startsWith("video/"), developing: true },
-          ]
-        : [{ url, video: file.type.startsWith("video/"), developing: false }],
+      picture ? animate ? [...current, { ...picture, developing: true }]
+        : [{ ...picture, developing: false }] : [],
     );
     setLoading(false);
-    if (!animate) setIcon(false);
+    if (!animate) setIcon(!picture);
   };
   useEffect(() => {
     let mounted = true;
-    readMedia(name, store, key)
-      .then((file) => {
-        if (!mounted) return;
-        if (file) show(file, false);
-        else setLoading(false);
-      })
-      .catch((error) => {
-        if (mounted) {
-          setLoading(false);
-          notify.fail("資料庫出錯", error);
-        }
-      });
+    const unwatch = watchMedia(name, store, key, () => {
+      show(getCachedMedia(name, store, key)!, uploading.current);
+      uploading.current = false;
+    });
+    const current = getCachedMedia(name, store, key);
+    if (current !== undefined) show(current, false);
+    else void loadCachedMedia(name, store, key).catch((error) => {
+      if (mounted) {
+        setLoading(false);
+        notify.fail("資料庫出錯", error);
+      }
+    });
     return () => {
       mounted = false;
-      urls.current.forEach((url) => URL.revokeObjectURL(url));
-      urls.current.clear();
+      unwatch();
       timers.current.forEach(window.clearTimeout);
       frames.current.forEach(cancelAnimationFrame);
     };
@@ -105,10 +99,6 @@ export default function Media({
       window.setTimeout(() => {
         setPictures((current) => {
           const index = current.findIndex((item) => item.url === picture.url);
-          current.slice(0, index).forEach((item) => {
-            URL.revokeObjectURL(item.url);
-            urls.current.delete(item.url);
-          });
           return current.slice(index);
         });
       }, 900),
@@ -163,9 +153,10 @@ export default function Media({
               notify.fail("文件太大", "請選擇小於 5MB 的文件。");
               return;
             }
-            show(media, true);
+            uploading.current = true;
             await writeMedia(name, store, key, media);
           } catch (error) {
+            uploading.current = false;
             notify.fail(cover ? "封面存失敗" : "保存失敗", error);
           }
         }}
@@ -176,7 +167,9 @@ export default function Media({
           role={avatar}
           onClose={() => setEditor(null)}
           onSave={async (next) => {
-            show(await saveAvatar(avatar, next), true);
+            uploading.current = true;
+            try { await saveAvatar(avatar, next); }
+            finally { uploading.current = false; }
             notify.ok("已更換");
           }}
         />
@@ -192,6 +185,11 @@ export default function Media({
             loop
             muted
             playsInline
+            onLoadedMetadata={event => { event.currentTarget.currentTime = picture.time; }}
+            onTimeUpdate={event => {
+              const current = getCachedMedia(name, store, key);
+              if (current?.url === picture.url) current.time = event.currentTarget.currentTime;
+            }}
             onLoadedData={() => developed(picture)}
           />
         ) : (

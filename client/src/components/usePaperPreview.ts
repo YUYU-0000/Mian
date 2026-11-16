@@ -1,3 +1,4 @@
+import { getAppViewport } from "../appViewport";
 import {
   useLayoutEffect,
   useRef,
@@ -245,7 +246,7 @@ export function usePaperPreview(
       };
     } else {
       pose.current.y = Math.max(0, point.y - start.point.y);
-      opacity(Math.max(0, 1 - pose.current.y / (window.innerHeight * 0.65)));
+      opacity(Math.max(0, 1 - pose.current.y / (getAppViewport().height * 0.65)));
     }
     draw();
   };

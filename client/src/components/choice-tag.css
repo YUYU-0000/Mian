@@ -5,7 +5,7 @@
 }
 /* ================= 吊牌（小房子） ================= */
 .choice-tag .hang-tag {
-  --tag-string: 30svh;
+  --tag-string: calc(var(--app-h, 100svh) * .3);
   width: 188px;
   margin-left: -94px;
 }
@@ -15,7 +15,22 @@
 .choice-tag .tag-card {
   position: relative;
   width: 188px;
+  height: 225px;
 }
+.choice-tag .tag-card::before,
+.choice-tag .tag-card::after {
+  content: "";
+  position: absolute;
+  top: 144px;
+  left: 8px;
+  right: 8px;
+  height: 81px;
+  border-radius: 0 0 10px 10px;
+  pointer-events: none;
+}
+.choice-tag .tag-card::before { background: var(--sheet); }
+.choice-tag .tag-card::after { background: url("/grain.png"); mix-blend-mode: multiply; }
+.choice-tag .tag-card > .keyboard-scroll { z-index: 1; }
 
 /* 上半部：屋頂、標題與操作文字 */
 .choice-tag .tag-roof {
@@ -46,17 +61,6 @@
   padding: 5px 14px 10px;
   display: flex;
   flex-direction: column;
-  background: var(--sheet);
-  border-radius: 0 0 10px 10px;
-}
-.choice-tag .tag-walls::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: url("/grain.png");
-  mix-blend-mode: multiply;
 }
 .choice-tag .tag-kicker {
   font-size: 7.5px;

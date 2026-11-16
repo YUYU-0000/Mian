@@ -7,7 +7,7 @@
   position: fixed;
   inset: 0;
   width: 100%;
-  height: 100%;
+  height: var(--app-h, 100svh);
   max-width: none;
   max-height: none;
   margin: 0;
@@ -37,7 +37,7 @@
 .pv {
   position: fixed;
   left: 50%;
-  top: 46%;
+  top: calc(var(--app-h, 100svh) * .46);
   width: fit-content;
   transform: translate(-50%, -50%);
 }
@@ -70,7 +70,7 @@
 .pv-photo {
   display: block;
   max-width: calc(78vw - 32px);
-  max-height: 60vh;
+  max-height: calc(var(--app-h, 100svh) * .6);
   width: var(--w);
   aspect-ratio: var(--r);
   background: linear-gradient(
@@ -226,7 +226,7 @@ img.pv-photo {
     monospace;
 }
 .pv-document:has(.pv-file-frame) {
-  height: 60vh;
+  height: calc(var(--app-h, 100svh) * .6);
 }
 .pv-document:has(.pv-file-frame) .pv-file-content {
   flex: 1;

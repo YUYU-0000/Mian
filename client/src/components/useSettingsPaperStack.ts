@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { makeStack, type PaperStack } from "./paperStack";
 import { isScrollingText } from "./ScrollText";
+import { onAppResize } from "../appViewport";
 
 // 设置页只管理页数与选中页，拖动和翻页交给共用纸堆。
 export function useSettingsPaperStack(count: number, open: boolean) {
@@ -27,14 +28,15 @@ export function useSettingsPaperStack(count: number, open: boolean) {
         !isScrollingText(event.target)
       ) {
         controller.dragged = false;
+        if ((event.target as Element).closest(".password-toggle")) event.preventDefault();
         event.stopPropagation();
       }
     };
     viewport.addEventListener("pointerdown", controlPointer, true);
-    window.addEventListener("resize", controller.update);
+    const unsubscribe = onAppResize(controller.update);
     return () => {
       viewport.removeEventListener("pointerdown", controlPointer, true);
-      window.removeEventListener("resize", controller.update);
+      unsubscribe();
       controller.destroy();
     };
   }, []);

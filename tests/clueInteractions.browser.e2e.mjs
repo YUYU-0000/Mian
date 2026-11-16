@@ -7,7 +7,6 @@ import path from "node:path";
 import express from "express";
 import { build } from "esbuild";
 import { WebSocket } from "ws";
-import { imageBytes } from "./fileTickets.server.mjs";
 
 const directory = await mkdtemp(path.join(tmpdir(), "mian-clue-interactions-"));
 const bundle = await build({
@@ -169,20 +168,37 @@ try {
   await visible(".home-photo.widget .file-input");
   await sleep(150);
   const imagePath = path.join(directory, "photo.png");
-  await writeFile(imagePath, imageBytes);
+  const png = await evaluate(`(()=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=16;canvas.getContext('2d').fillRect(0,0,16,16);return canvas.toDataURL().split(',')[1]})()`);
+  await writeFile(imagePath, Buffer.from(png, 'base64'));
   await evaluate("window.savedRaf=requestAnimationFrame; window.mediaFrames=[]; window.requestAnimationFrame=callback=>mediaFrames.push(callback)");
   for (const selector of [".home-photo.widget .file-input", ".settings-page .file-input"]) {
     const { root } = await call("DOM.getDocument");
     const { nodeId } = await call("DOM.querySelector", { nodeId: root.nodeId, selector });
     await call("DOM.setFileInputFiles", { nodeId, files: [imagePath] });
   }
-  await visible(".home-photo .developing");
+  await visible(".home-photo .developing").catch(async error => {
+    throw new Error(error.message + ' ' + JSON.stringify(await evaluate(`({images:[...document.querySelectorAll('.uploaded-media')].map(image=>({class:image.className,complete:image.complete})),notices:document.querySelector('.mail')?.textContent,errors:${JSON.stringify(errors)}})`)));
+  });
   await visible(".settings-page .developing");
   const effect = (selector) => evaluate(`(() => {const s=getComputedStyle(document.querySelector(${JSON.stringify(selector)}));return [s.transitionProperty,s.transitionDuration,s.transitionTimingFunction,s.filter,s.transform,s.opacity]})()`);
   assert.deepEqual(await effect(".home-photo .developing"), await effect(".settings-page .developing"));
   assert.equal((await effect(".home-photo .developing"))[1], "0.5s, 0.8s, 0.75s");
   await evaluate("window.requestAnimationFrame=savedRaf; mediaFrames.forEach(callback=>callback(performance.now()))");
   await waitFor(async () => !(await exists(".developing")), "shared developing effect settles");
+  await evaluate(`window.cachedPhoto=document.querySelector('.home-photo.widget img').src;
+    window.homeReads=0;window.revokedMedia=[];const get=IDBObjectStore.prototype.get,revoke=URL.revokeObjectURL;
+    IDBObjectStore.prototype.get=function(key){if(String(key).includes('savedMediaFile_home_photo'))homeReads++;return get.call(this,key)};
+    URL.revokeObjectURL=function(url){revokedMedia.push(url);revoke.call(URL,url)};
+    renderClues();`);
+  await visible('.clues-page');
+  await evaluate('renderHome()');
+  await visible('.home-screen');
+  assert.equal(await evaluate(`document.querySelector('.home-photo.widget img')?.src===cachedPhoto && !document.querySelector('.home-photo.widget .developing') && getComputedStyle(document.querySelector('.home-photo.widget .loading-text')).display==='none'`), true, 'cached media is present at remount without development or loading');
+  assert.equal(await evaluate('homeReads'), 0, 'returning does not reread IndexedDB');
+  assert.equal(await evaluate('revokedMedia.includes(cachedPhoto)'), false, 'unmount keeps the URL');
+  await evaluate('removeHomePhoto()');
+  await waitFor(async () => !(await exists('.home-photo.widget img')), 'deletion updates the mounted media');
+  assert.equal(await evaluate('revokedMedia.includes(cachedPhoto)'), true, 'deletion releases the URL');
   assert.deepEqual(errors, []);
   console.log("PASS clue paper mouse/touch clicks, front-card selection, no automatic editor, animated sheet text, notice swipe/rebound/auto-dismiss, and shared home media development.");
 } finally {

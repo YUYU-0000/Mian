@@ -1,4 +1,4 @@
-import { openMediaDatabase, readSettingsMedia } from "./mediaStorage";
+import { cacheMedia, openMediaDatabase, readSettingsMedia } from "./mediaStorage";
 
 export type AvatarRole = "assistant" | "user";
 export type AvatarCrop = { x: number; y: number; zoom: number };
@@ -23,6 +23,7 @@ async function applyAvatar(role: AvatarRole, file: Blob) {
 export async function loadAvatars() {
   await Promise.all(
     (["assistant", "user"] as const).map(async (role) => {
+      if (images.has(role)) return;
       const file = await readSettingsMedia(`avatar_${role}`);
       if (file) await applyAvatar(role, file);
     }),
@@ -63,6 +64,7 @@ export async function saveAvatar(role: AvatarRole, editor: AvatarEditor) {
     transaction.onerror = () => reject(transaction.error);
   });
   await applyAvatar(role, picture);
+  cacheMedia("LauncherDB", "mediaStore", `savedMediaFile_avatar_${role}`, picture);
   return picture;
 }
 

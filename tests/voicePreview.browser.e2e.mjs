@@ -199,11 +199,11 @@ try {
       if(performance.now()-start<1750) requestAnimationFrame(sample); else resolve(samples);
     };sample();
   })`);
-  assert.ok(Math.max(...wave.map(s=>s.levels[18]))>0.65, 'a silent static bar rises independently with live audio');
+  assert.ok(Math.max(...wave.map(s=>s.levels[18]))>0.45, 'a silent static bar rises independently with live audio');
   const rowAverage = sample => sample.levels.reduce((sum,level)=>sum+level,0)/38;
-  assert.ok(Math.max(...wave.map(rowAverage))-Math.min(...wave.map(rowAverage))>0.4, 'the whole row rises with sound and falls during a pause');
+  assert.ok(Math.max(...wave.map(rowAverage))-Math.min(...wave.map(rowAverage))>0.25, 'the whole row rises with sound and falls during a pause');
   assert.ok(wave.some(s=>s.levels.some((level,i)=>i>0 && Math.abs(level-s.levels[i-1])>0.06)), 'frequency bands have distinct levels');
-  assert.ok(wave.every(s=>s.heights.every(height=>height==='20px') && s.levels.every(level=>level>=0.149 && level<=1.001)), 'only transforms change the visible heights');
+  assert.ok(wave.every(s=>s.heights.every(height=>height==='20px') && s.levels.every(level=>level>=0.149 && (s.time<350 || level<=0.701))), 'live bars stay within 15–70% after the static-to-live transition');
   assert.ok(wave.every(s=>s.preview.every((level,i)=>Math.abs(level-s.levels[i])<0.05)), 'preview and ticket follow the same spectrum');
   assert.ok(await evaluate('document.querySelectorAll(".voice-wave i.done").length>0'), 'played bars stay dark');
   await click('.pv-foot .voice-play');

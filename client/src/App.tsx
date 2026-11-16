@@ -527,25 +527,7 @@ export default function App() {
 
   const renderRoutes = (routeLocation: ReturnType<typeof useLocation>) => (
     <Routes location={routeLocation}>
-      <Route
-        path="/"
-        element={
-          <ErrorBoundary>
-            <Home
-              status={
-                channel.kind === "api"
-                  ? { state: "ready", message: channel.name }
-                  : status
-              }
-              channelName={channel.name}
-              onChat={() => navigateWithTransition("/chat")}
-              onConnections={() => navigateWithTransition("/connections")}
-              onSettings={() => navigateWithTransition("/settings")}
-              onClues={() => navigateWithTransition("/clues")}
-            />
-          </ErrorBoundary>
-        }
-      />
+      <Route path="/" element={null} />
       <Route
         path="/chat"
         element={
@@ -611,9 +593,10 @@ export default function App() {
     </Routes>
   );
 
+  const homeVisible = location.pathname === "/" || (crossfadeReady && transition.fromLocation.pathname === "/");
   const routeLayers = crossfadeReady
     ? [
-        <div
+        transition.fromLocation.pathname !== "/" && <div
           className={`route-transition-layer route-layer-surface-${
             transition.fromLocation.pathname === "/connections"
               ? "connections"
@@ -625,7 +608,7 @@ export default function App() {
         >
           {renderRoutes(transition.fromLocation)}
         </div>,
-        <div
+        location.pathname !== "/" && <div
           className={`route-transition-layer route-layer-surface-${surface} route-transition-incoming`}
           key={location.key}
         >
@@ -633,7 +616,7 @@ export default function App() {
         </div>,
       ]
     : [
-        <div
+        location.pathname !== "/" && <div
           className={`route-transition-layer route-layer-surface-${surface}`}
           key={location.key}
         >
@@ -648,6 +631,18 @@ export default function App() {
       data-transition-active={transition ? "true" : "false"}
       onAnimationEnd={handleTransitionEnd}
     >
+      <div className={`route-transition-layer home-route${!homeVisible ? " is-hidden" : crossfadeReady ? location.pathname === "/" ? " route-transition-incoming" : " route-transition-outgoing" : ""}`}
+        inert={location.pathname !== "/"} aria-hidden={!homeVisible}>
+        <ErrorBoundary>
+          <Home active={location.pathname === "/"}
+            status={channel.kind === "api" ? { state: "ready", message: channel.name } : status}
+            channelName={channel.name}
+            onChat={() => navigateWithTransition("/chat")}
+            onConnections={() => navigateWithTransition("/connections")}
+            onSettings={() => navigateWithTransition("/settings")}
+            onClues={() => navigateWithTransition("/clues")} />
+        </ErrorBoundary>
+      </div>
       <Suspense fallback={null}>{routeLayers}</Suspense>
       <Notify page={location.pathname} />
     </div>

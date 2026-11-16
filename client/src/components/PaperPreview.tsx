@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { fitPhoto } from "../filePreview";
+import { getAppViewport, onAppResize } from "../appViewport";
 import { notify } from "./Notify";
 import { cachedFileUrl } from "../fileCache";
 import { usePaperPreview } from "./usePaperPreview";
@@ -24,7 +25,7 @@ export default function PaperPreview({
   onClose: () => void;
 }) {
   const image = photo !== undefined;
-  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [viewport, setViewport] = useState(getAppViewport);
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
   const ready = loaded && availableHeight !== null;
   const downloadLink = useRef<HTMLAnchorElement>(null);
@@ -68,18 +69,14 @@ export default function PaperPreview({
         - padding - footer.offsetHeight));
   }, [loaded, viewport.width, viewport.height]);
 
-  useEffect(() => {
-    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+  useEffect(() => onAppResize(() => setViewport(getAppViewport())), []);
 
   const size = photo && fitPhoto(photo.width, photo.height, viewport.width, viewport.height,
     availableHeight ?? viewport.height * 0.6);
   const style = {
     "--w": image && size ? `${size.width}px` : "calc(78vw - 32px)",
     "--r": photo ? `${photo.width} / ${photo.height}` : undefined,
-    "--preview-height": availableHeight === null ? "60vh" : `${availableHeight}px`,
+    "--preview-height": availableHeight === null ? "calc(var(--app-h, 100svh) * .6)" : `${availableHeight}px`,
   } as CSSProperties;
 
   return createPortal(

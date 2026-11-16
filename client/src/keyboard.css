@@ -1,0 +1,24 @@
+.keyboard-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+}
+.keyboard-scroll::-webkit-scrollbar { display: none; }
+[data-keyboard-active] { overflow-x: hidden; overflow-y: auto; }
+.keyboard-content {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+}
+.keyboard-scroll::after,
+[data-keyboard-scroll]::after {
+  content: "";
+  display: block;
+  height: var(--keyboard-room, 0px);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.auth-gate > .keyboard-scroll { pointer-events: none; }

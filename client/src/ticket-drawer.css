@@ -185,6 +185,7 @@
 }
 
 .ticket-drawer {
+  height: var(--app-h, 100svh);
   --bg-ticket-base: rgb(245, 245, 245);
   --border-color: rgba(0, 0, 0, 0.5);
   --color-mini-text: #4e342e;
