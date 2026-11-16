@@ -1,3 +1,4 @@
+// 验证图片显影层内的原始比例，以及文件预览、保存和关闭手势。
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
@@ -129,7 +130,12 @@ try {
     await waitFor(
       () => evaluate(`!!document.querySelector('.pv.is-ready')`),
       `预览 ${name}`,
-    );
+    ).catch(async error => {
+      const state = await evaluate(`({viewer:!!document.querySelector('.pv-viewer'),preview:document.querySelector('.pv')?.className,
+        images:[...document.querySelectorAll('.pv-photo img')].map(image=>({complete:image.complete,width:image.naturalWidth,height:image.naturalHeight})),
+        notice:document.querySelector('.mail')?.textContent})`);
+      throw new Error(error.message + " " + JSON.stringify({ state, errors }));
+    });
   };
   const close = async () => {
     await evaluate(`document.querySelector('.pv-mask').click()`);
@@ -250,13 +256,24 @@ try {
     files: attachments,
   };
   await call("Page.addScriptToEvaluateOnNewDocument", {
-    source: `if(location.origin===${JSON.stringify(backend.base)}){localStorage.setItem('mian.conversation.c1.mian.chat-groups.v2',${JSON.stringify(JSON.stringify([group]))});window.previewMessages=[];addEventListener('message',event=>{if(event.data?.fixture)window.previewMessages.push(event.data.fixture)});}`,
+    source: `if(location.origin===${JSON.stringify(backend.base)}){
+      localStorage.setItem('mian.conversation.c1.mian.chat-groups.v2',${JSON.stringify(JSON.stringify([group]))});
+      window.previewMessages=[];addEventListener('message',event=>{if(event.data?.fixture)window.previewMessages.push(event.data.fixture)});
+      // 模拟旧版本留下的二进制类型缓存，图片必须按附件元数据恢复正确类型。
+      const fetchFile=window.fetch;
+      window.fetch=async(...args)=>{
+        const response=await fetchFile(...args);
+        if(!String(args[0]).endsWith('/files/${attachments[1].id}')) return response;
+        const headers=new Headers(response.headers);headers.set('Content-Type','application/octet-stream');
+        return new Response(await response.blob(),{status:response.status,headers});
+      };
+    }`,
   });
   await call("Page.navigate", { url: backend.base + "/chat" });
   await waitFor(
     () =>
       evaluate(
-        `document.querySelectorAll('.ft').length===${attachments.length}`,
+        `document.querySelectorAll('.ft').length===${attachments.length} && !document.querySelector('.auth-page')`,
       ),
     "载入附件记录",
   );
@@ -275,9 +292,9 @@ try {
   await settle();
   await evaluate("document.fonts.ready");
   const appearance = await evaluate(`(() => {
-    const css=selector=>getComputedStyle(document.querySelector(selector)), image=document.querySelector('img.pv-photo');
+    const css=selector=>getComputedStyle(document.querySelector(selector)), image=document.querySelector('.pv-photo img');
     const download=document.querySelector('.pv-download');
-    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveHidden:css('.pv-download').visibility==='hidden'&&download.tabIndex===-1&&download.getAttribute('aria-hidden')==='true',removed:!document.querySelector('.pv-clip,.pv-acts'),photo:[parseFloat(css('img.pv-photo').width),parseFloat(css('img.pv-photo').height),image.naturalWidth,image.naturalHeight],fit:css('img.pv-photo').objectFit};
+    return {mask:css('.pv-mask').backgroundColor,paper:css('.pv-card').backgroundColor,padding:css('.pv-card').padding,angle:Math.atan2(new DOMMatrix(css('.pv-card').transform).b,new DOMMatrix(css('.pv-card').transform).a)*180/Math.PI,saveHidden:css('.pv-download').visibility==='hidden'&&download.tabIndex===-1&&download.getAttribute('aria-hidden')==='true',removed:!document.querySelector('.pv-clip,.pv-acts'),photo:[parseFloat(css('.pv-photo img').width),parseFloat(css('.pv-photo img').height),image.naturalWidth,image.naturalHeight],fit:css('.pv-photo img').objectFit};
   })()`);
   assert.equal(appearance.mask, "rgba(59, 77, 90, 0.42)");
   assert.equal(appearance.paper, "rgb(251, 250, 246)");
@@ -454,7 +471,7 @@ try {
     await open(name);
     await settle();
     const dimensions = await evaluate(
-      `(() => { const style=getComputedStyle(document.querySelector('img.pv-photo')); return [parseFloat(style.width),parseFloat(style.height)]; })()`,
+      `(() => { const style=getComputedStyle(document.querySelector('.pv-photo img')); return [parseFloat(style.width),parseFloat(style.height)]; })()`,
     );
     assert.ok(
       dimensions[0] <= 390 * 0.78 - 32 + 1 && dimensions[1] <= 844 * 0.6 + 1,
@@ -604,11 +621,11 @@ try {
   assert.equal(await evaluate(`navigator.pdfViewerEnabled`), true);
   await open("document.pdf");
   await settle();
-  assert.ok(
-    await evaluate(
-      `document.querySelector('.pv-file-frame').src.endsWith('?inline=1')`,
-    ),
-  );
+  assert.deepEqual(await evaluate(`(async()=>{
+    const src=document.querySelector('.pv-file-frame').src;
+    const response=await fetch(src);
+    return {cached:src.startsWith('blob:'),type:response.headers.get('Content-Type')};
+  })()`), { cached: true, type: "application/pdf" });
   await close();
 
   await call("Page.addScriptToEvaluateOnNewDocument", {

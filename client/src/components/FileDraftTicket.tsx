@@ -1,29 +1,16 @@
 // 连接待发送附件票根与上传状态、拖动及删除交互。
-import { useRef } from "react";
-import { flushSync } from "react-dom";
+import { memo, useRef } from "react";
 import type { FileDraft } from "../fileDrafts";
 import { useTicketSwipe } from "../useTicketSwipe";
 import FileTicket from "./FileTicket";
 
-export default function FileDraftTicket({ draft, conversationId, onRemove, onExitStart }: {
+export default memo(function FileDraftTicket({ draft, conversationId, onRemove, onExitStart }: {
   draft: FileDraft;
   conversationId: string;
-  onRemove: () => void;
+  onRemove: (draftId: string) => void;
   onExitStart?: () => void;
 }) {
   const slot = useRef<HTMLDivElement>(null);
-  const remove = () => {
-    const siblings = [...slot.current!.parentElement!.children].filter(item => item !== slot.current);
-    const positions = siblings.map(item => item.getBoundingClientRect().left);
-    flushSync(onRemove);
-    siblings.forEach((item, index) => {
-      const distance = positions[index] - item.getBoundingClientRect().left;
-      item.animate([
-        { transform: `translateX(${distance}px)` },
-        { transform: "translateX(0)" },
-      ], { duration: 200, easing: "ease-out" });
-    });
-  };
   const { motionRef, acceptClick, onPointerDown, ...gesture } = useTicketSwipe({
     direction: "down",
     onDragStart: () => {
@@ -45,10 +32,10 @@ export default function FileDraftTicket({ draft, conversationId, onRemove, onExi
       slot.current!.dataset.exiting = "true";
       onExitStart?.();
     },
-    onExitComplete: remove,
+    onExitComplete: () => onRemove(draft.draftId),
   });
   return (
-    <div className="file-draft" ref={slot} {...gesture} onPointerDownCapture={onPointerDown} onClickCapture={event => {
+    <div className="file-draft" data-id={draft.draftId} ref={slot} {...gesture} onPointerDownCapture={onPointerDown} onClickCapture={event => {
       if (!acceptClick()) { event.preventDefault(); event.stopPropagation(); }
     }}>
       <div ref={motionRef}>
@@ -57,4 +44,4 @@ export default function FileDraftTicket({ draft, conversationId, onRemove, onExi
       </div>
     </div>
   );
-}
+});

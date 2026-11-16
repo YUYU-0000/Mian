@@ -28,21 +28,24 @@ export function onBackendRecovery(listener: () => void) {
   return () => { listeners.delete(listener); };
 }
 
-export async function backendFetch(url: string, init?: RequestInit) {
+type RequestPolicy = { timeoutMs?: number; detailedErrors?: boolean };
+export async function backendFetch(url: string, init?: RequestInit, policy: RequestPolicy = {}) {
   if (!authorized && !url.startsWith("/api/auth/")) throw new LoginRequired();
   let response: Response;
   try {
     response = await fetch(url, {
       ...init,
-      signal: AbortSignal.any([AbortSignal.timeout(init?.method && init.method !== "GET" ? 120000 : 10000), ...(init?.signal ? [init.signal] : [])]),
+      signal: AbortSignal.any([AbortSignal.timeout(policy.timeoutMs ?? (init?.method && init.method !== "GET" ? 120000 : 10000)), ...(init?.signal ? [init.signal] : [])]),
     });
   } catch (error) {
     if (init?.signal?.aborted) throw error;
     setBackendAvailable(false);
+    if (policy.detailedErrors) throw error;
     throw new BackendUnavailable();
   }
   if (response.status >= 500) {
     setBackendAvailable(false);
+    if (policy.detailedErrors) return response;
     throw new BackendUnavailable();
   }
   if (response.status === 401 && url !== "/api/auth/login") {
@@ -71,9 +74,9 @@ export async function readResponse<T>(response: Response): Promise<T> {
   return parsed as T;
 }
 
-export async function request<T>(url: string, init?: RequestInit): Promise<T> {
+export async function request<T>(url: string, init?: RequestInit, policy?: RequestPolicy): Promise<T> {
   return readResponse<T>(await backendFetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
-  }));
+  }, policy));
 }

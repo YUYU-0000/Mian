@@ -1,3 +1,5 @@
+// 在吊牌取景框中裁切头像，替换预览时保留旧图并统一显影。
+import DevelopingMedia from "./DevelopingMedia";
 import {
   useEffect,
   useId,
@@ -213,20 +215,20 @@ export default function AvatarCropper({
             onLostPointerCapture={end}
           >
             {url && (
-              <img
+              <DevelopingMedia
+                className="avatar-crop-image"
                 src={url}
                 alt="頭像裁切預覽"
-                draggable={false}
                 style={{
                   width: `${((size?.width ?? 1) / short) * crop.zoom * 100}%`,
                   height: `${((size?.height ?? 1) / short) * crop.zoom * 100}%`,
                   left: `${50 + crop.x * 100}%`,
                   top: `${50 + crop.y * 100}%`,
                 }}
-                onLoad={(event) =>
+                onReady={(image) =>
                   setSize({
-                    width: event.currentTarget.naturalWidth,
-                    height: event.currentTarget.naturalHeight,
+                    width: image.naturalWidth,
+                    height: image.naturalHeight,
                   })
                 }
                 onError={() => {

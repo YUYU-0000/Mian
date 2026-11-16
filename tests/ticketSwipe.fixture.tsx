@@ -1,4 +1,6 @@
-import { useState } from "react";
+// 挂载票根列表，验证真实手势和增删补位共用的布局动画。
+import { useRef, useState } from "react";
+import { useTicketLayout } from "../client/src/useTicketLayout";
 import { createRoot } from "react-dom/client";
 import FileDraftTicket from "../client/src/components/FileDraftTicket";
 import MiniTicket from "../client/src/components/MiniTicket";
@@ -12,10 +14,12 @@ Object.assign(window, { result });
 function Fixture() {
   const [ids, setIds] = useState([0, 1, 2, 3]);
   const [mini, setMini] = useState(true);
+  const drafts = useRef<HTMLDivElement>(null);
+  useTicketLayout(drafts, ids.join("|"));
   return <>
     <div className="ticket-drawer is-open" style={{ position: "absolute", left: 90, top: 40, width: 100, height: 200, opacity: 1, transform: "none" }}>
       {mini && <MiniTicket conversation={{ conversationId: "a", abbr: "C-01", title: "test", image: "" } as ConversationRecord}
-        active={false} entering={false} onActivate={() => { result.activated++; }} onImage={() => { result.activated++; }}
+        active={false} onActivate={() => { result.activated++; }} onImage={() => { result.activated++; }}
         canArchive={() => true} onArchive={async () => { result.archived++; }}
         onExitComplete={() => {
           result.miniExitWillChange = document.querySelector<HTMLElement>('.mini-ticket-motion')!.style.willChange;
@@ -23,7 +27,7 @@ function Fixture() {
         }} />}
     </div>
     <div className="archive-input" style={{ position: "absolute", top: 500, bottom: "auto", height: 40 }}>
-      <div className="file-drafts">{ids.map(id => <FileDraftTicket key={id} conversationId="a"
+      <div className="file-drafts" ref={drafts}>{ids.map(id => <FileDraftTicket key={id} conversationId="a"
         draft={{ draftId: String(id), file: { id: String(id), name: id === 1 ? "note.txt" : `image-${id}.png`, size: 1, mimeType: id === 1 ? "text/plain" : "image/png", createdAt: "2026-11-16" }, progress: 100, uploaded: true,
           previewUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" }}
         onRemove={() => {

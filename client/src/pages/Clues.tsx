@@ -12,6 +12,7 @@ import { notify } from "../components/Notify";
 import { ArchiveTitle, BackFish } from "../components/ArchiveHeader";
 import CluePaper from "./clues/CluePaper";
 import PortraitCaption from "./clues/PortraitCaption";
+import AvatarImage from "../components/AvatarImage";
 import ClueEnvelope from "./clues/ClueEnvelope";
 import ClueSheet from "./clues/ClueSheet";
 import { useClueWall } from "./clues/useClueWall";
@@ -192,7 +193,7 @@ export default function Clues({ onBack }: { onBack: () => void; }) {
                       <div className="in">
                         {portrait ? (
                           <>
-                            <div className="ph" />
+                            <div className="ph"><AvatarImage role="assistant" /></div>
                             <PortraitCaption width={item.w} height={item.h} />
                           </>
                         ) : (

@@ -1,3 +1,4 @@
+// 提供聊天附件上传、预览和下载，保留原文件类型以支持离线媒体解码。
 import express from "express";
 import { ChatFiles, FILE_TOO_LARGE, MAX_FILE_SIZE } from "./chatFiles.js";
 
@@ -53,7 +54,7 @@ export function fileRoutes(
           .type(stored.file.mimeType)
           .sendFile(stored.path, { dotfiles: "allow" });
       } else
-        response.download(stored.path, stored.file.name, { dotfiles: "allow" });
+        response.type(stored.file.mimeType).download(stored.path, stored.file.name, { dotfiles: "allow" });
     } catch (error) {
       response.status(404).json({ error: (error as Error).message });
     }

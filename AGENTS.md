@@ -69,6 +69,8 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 排版紧凑，字距和间距不要留太宽。
 - 动画安静克制，不要晃动和弹跳；会变化的文字统一用 AnimatedText 过渡；新出现的气泡和票根用 archive-pop-in。
 - 动画只动 transform 和 opacity，不要逐帧改布局，不要在动画里用 blur 和实时滤镜；纸张颗粒用 /grain.png。
+- 图片出现和切换统一用 `DevelopingMedia` 与 `components/media.css` 的首页显影参数（这是图片 filter 过渡的特例）；先 `img.decode()`，旧图留到显影结束，首次显示纸色占位，原图未变或返回页面不重播。头像通过 `AvatarImage` 订阅同一来源，新加图片也必须接入。
+- 附件下载响应保留文件的 MIME 类型；读取旧 Blob 缓存时按附件元数据恢复类型，不能将 SVG、PDF 一律当作二进制再交给预览。
 - 同类组件复用现有的，不要另写一套：吊牌用 ChoiceTag，票根用 FileTicket 那套，预览用 FilePreview，左滑/下拖删除用 useTicketSwipe。
 
 ## 五、常见坑
@@ -94,6 +96,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - Codex 的 `baseInstructions` 保持固定，时间和线索走每轮 `additionalContext`；正式会话复用原线程，临时线索挑选线程不能替换它。
 - 新消息动画接入 `replyTimeline` / `visualPlayback` 并沿用 `historicalAnimationIds`；刷新、切换会话和重渲染不能重播旧消息，也不能重新生成或自动播放语音。
 - 附件空间变化用内容层 FLIP：布局一次到位，原本贴底时只同步一次滚动，再过渡 transform；拖动移动原票根并留等宽占位，避免复制节点、图片重解码和逐帧 React 更新。
+- 附件行和票根抽屉的增删、重排共用 `useTicketLayout`，先批量读取位置再写动画；子项用稳定回调和 `memo` 保留原节点。退出只播放 transform/opacity，`will-change` 在结束和卸载时释放，不给纸片阴影加实时过渡。
 - 快速切换文字要清理旧动画，不能留下 opacity 0；关闭纸堆后迟到的请求不能重新打开吊牌，ChoiceTag 的 SVG id 和元素引用必须按实例隔离。
 - 删卡片、拔图钉要同步清掉连线；旧数据在 `migrateClues` 清理，绘线时缺少任一端点就跳过，避免整页崩溃。
 - 语音试听点 Play 先进入 out，真正出声才进入 playing，结束、停止或失败时一起收回；播放 Promise 等音频播完，所有入口共用 `voicePlayer`。
@@ -101,6 +104,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 数据路径统一引用 `config.ts` 的 `dataDirectory`，不要拼接 `process.cwd()`；历史错位目录 `server/server/data-迁移前` 只留作还原，不再写入。Codex 工作目录在项目外，默认是用户目录下的 `MianWorkspace`，每个会话独立子目录。
 - 登录状态不放进离线读取队列；收到 401 或 WebSocket 4001 必须收起应用并停止保存和消息重试，重新登录后才续传。离线只能展示这个浏览器此前已获准且未到期的缓存；退出后不能凭数据缓存自动进入。恢复网络会重新校验会话。
 - 测试服务必须显式传 `MIAN_DATA_DIR` 和 `MIAN_WORKSPACE_DIR` 指向项目外的临时目录；切换 cwd 不再隔离数据，不能让测试接触真实 `server/data`。需要固定启动约定的用例还要显式传端口，避免继承本机 `.env`。
+- 界面完整备份仍是 `mian-backup` v1 JSON，服务端包含聊天、文件/语音、线索、预设、设置及票根封面；浏览器补充 `homePhotos` 和可选 `media`（头像、裁切原图、字体页照片、订阅封面）。凭据不导出，导入保留本机原有金钥和服务器权限。完整包独立使用五分钟传输期限，导入上限 256 MB；导出错误返回 JSON 原因，下载链接等浏览器接手后才释放。`tests/backupRoundTrip.test.mjs` 覆盖超过旧 64 MB 上限的完整往返。
 - 登录与预加载看 `auth.browser.e2e.mjs`，键盘与首页媒体看 `mobileNavigation.browser.e2e.mjs`，上传和占位看 `sendFeedback.browser.e2e.mjs`，缓存与重连看 `offline.browser.e2e.mjs`，语音看 `voicePlayback.test.ts` / `voicePreview.browser.e2e.mjs`。回合与鉴权竞态的不同触发顺序各有用例，不要当成重复删除；500 会进入离线队列，拒绝保存并保留草稿的用例用 400。
 - 当前公网地址是 `https://mian.crab-bless.com`，Cloudflare Tunnel `mian` 指向 `http://127.0.0.1:5173`，配置在用户目录 `.cloudflared/mian.yml`。隧道必须保留公网 Host；转发头不能把外网连接伪装成本机免登录。配置和凭据都不进 Git。
 - Windows 任务 `Mian-Service` / `Mian-Tunnel` 在 ASUS 登录后自动运行，沿用该用户 Codex 登录；不是登录前启动。任务不弹窗口、不因切换电池而停止，异常退出后每分钟重试，后端自身崩溃由守护进程 5 秒重启。安装命令为 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-tasks.ps1`。任务运行时阻止闲置睡眠，手动休眠、关机或合盖睡眠仍会中断外网服务。

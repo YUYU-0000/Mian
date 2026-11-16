@@ -66,7 +66,7 @@ try {
     window.replyNode = document.querySelector('[data-role=assistant]');
     window.headNode = replyNode.querySelector('.archive-reply-head');
     window.glassNode = headNode.querySelector('.hourglass');
-    return { time: headNode.querySelector('time').textContent, title: headNode.querySelector('.archive-module-title').textContent, animation: getComputedStyle(glassNode).animationName, entry: getComputedStyle(headNode).animationName, avatar: getComputedStyle(headNode.querySelector('.archive-avatar')).backgroundImage };
+    return { time: headNode.querySelector('time').textContent, title: headNode.querySelector('.archive-module-title').textContent, animation: getComputedStyle(glassNode).animationName, entry: getComputedStyle(headNode).animationName, avatar: headNode.querySelector('.archive-avatar img')?.src };
   })()`);
   assert.equal(initial.time, "10:20");
   assert.equal(initial.title, "THINKING");

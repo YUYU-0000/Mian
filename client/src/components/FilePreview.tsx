@@ -1,3 +1,5 @@
+// 在相纸中预览附件，图片解码和换图使用共用显影层。
+import DevelopingMedia from "./DevelopingMedia";
 import {
   lazy,
   Suspense,
@@ -70,11 +72,11 @@ export default function FilePreview({
   useEffect(() => {
     if (previewUrl) return;
     const controller = new AbortController();
-    void cachedFileUrl(api.fileUrl(conversationId, file.id), controller.signal).then(setCachedUrl).catch(error => {
+    void cachedFileUrl(api.fileUrl(conversationId, file.id), controller.signal, kind === "pdf" ? "application/pdf" : file.mimeType).then(setCachedUrl).catch(error => {
       if (!controller.signal.aborted) { notify.fail("文件讀取失敗", error); onClose(); }
     });
     return () => controller.abort();
-  }, [conversationId, file.id, previewUrl, onClose]);
+  }, [conversationId, file.id, file.mimeType, kind, previewUrl, onClose]);
 
   const date = new Date(file.createdAt);
   const label = image ? "IMAGE  圖片" : "FILE  檔案";
@@ -93,16 +95,15 @@ export default function FilePreview({
         <div className="pv-hand">{pad2(date.getMonth() + 1)}.{pad2(date.getDate())}</div>
       </>}>
       {image ? (
-        <img
+        <DevelopingMedia
           className="pv-photo"
           src={displayUrl}
           referrerPolicy="no-referrer"
           alt={file.name}
-          draggable={false}
-          onLoad={(event) =>
+          onReady={(image) =>
             setPhoto({
-              width: event.currentTarget.naturalWidth,
-              height: event.currentTarget.naturalHeight,
+              width: image.naturalWidth,
+              height: image.naturalHeight,
             })
           }
           onError={() => {

@@ -1,11 +1,13 @@
+// 显示抽屉中的单张票根，复用图片显影与票根删除手势。
+import DevelopingMedia from "./DevelopingMedia";
+import { memo } from "react";
 import type { ConversationRecord } from "../types";
 import ScrollText from "./ScrollText";
 import { useTicketSwipe } from "../useTicketSwipe";
 
-export default function MiniTicket({
+export default memo(function MiniTicket({
   conversation,
   active,
-  entering,
   onActivate,
   onImage,
   canArchive,
@@ -14,12 +16,11 @@ export default function MiniTicket({
 }: {
   conversation: ConversationRecord;
   active: boolean;
-  entering: boolean;
-  onActivate: () => void;
-  onImage: () => void;
-  canArchive: () => boolean;
-  onArchive: () => Promise<void>;
-  onExitComplete: () => void;
+  onActivate: (id: string) => void;
+  onImage: (id: string) => void;
+  canArchive: (id: string) => boolean;
+  onArchive: (id: string) => Promise<void>;
+  onExitComplete: (id: string) => void;
 }) {
   const fontSize = Math.max(
     9,
@@ -27,14 +28,14 @@ export default function MiniTicket({
   );
   const { motionRef, acceptClick, ...gesture } = useTicketSwipe({
     direction: "left",
-    canDismiss: canArchive,
-    beforeDismiss: onArchive,
-    onExitComplete,
+    canDismiss: () => canArchive(conversation.conversationId),
+    beforeDismiss: () => onArchive(conversation.conversationId),
+    onExitComplete: () => onExitComplete(conversation.conversationId),
   });
 
   return (
     <div
-      className={`mini-ticket-container ${active ? "active" : ""} ${entering ? "entering" : ""}`}
+      className={`mini-ticket-container ${active ? "active" : ""}`}
       data-id={conversation.conversationId}
       {...gesture}
     >
@@ -44,11 +45,6 @@ export default function MiniTicket({
             <button
               type="button"
               className="mini-box"
-              style={{
-                backgroundImage: conversation.image
-                  ? `url("${conversation.image}")`
-                  : "none",
-              }}
               aria-label={`为 ${conversation.abbr} 导入图片`}
               onClick={(event) => {
                 if (!acceptClick()) {
@@ -57,10 +53,12 @@ export default function MiniTicket({
                   return;
                 }
                 event.stopPropagation();
-                onActivate();
-                onImage();
+                onActivate(conversation.conversationId);
+                onImage(conversation.conversationId);
               }}
-            />
+            >
+              {conversation.image && <DevelopingMedia src={conversation.image} className="mini-photo" />}
+            </button>
           </div>
           <button
             type="button"
@@ -71,7 +69,7 @@ export default function MiniTicket({
                 event.preventDefault();
                 return;
               }
-              onActivate();
+              onActivate(conversation.conversationId);
             }}
           >
             <ScrollText
@@ -88,4 +86,4 @@ export default function MiniTicket({
       </div>
     </div>
   );
-}
+});

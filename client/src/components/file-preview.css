@@ -182,7 +182,7 @@
   touch-action: none;
 }
 
-img.pv-photo {
+.developing-media.pv-photo {
   height: auto;
   object-fit: contain;
   user-select: none;
