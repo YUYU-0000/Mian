@@ -23,7 +23,7 @@ A mobile-first chat UI backed by a local Node bridge to `codex app-server` over 
 ## 还没做完的 / What's missing
 
 - **连接中心页面**：已经能保存工作目录、sandbox、模型，也能测试连接；但“可执行文件”固定写死成 `codex`，“超时”还是灰的不能填。设计稿在 `design-reference/连接中心维护中.html`
-- **设置界面**：`design-reference/设置界面维护中.html` 是一张能点的设计稿，有字体、壁纸、语音、存储四个档案袋。壁纸能上传并存在浏览器里；字体的保存/测试、语音试听（预留给 ElevenLabs）都还是空接口，存储那一格还没有内容，也还没接进正式的 React 前端
+- **设置界面**：`design-reference/设置界面维护中.html` 是一张能点的设计稿，有字体、壁纸、语音、存储四个档案袋，四个都画好了（存储页可以导出 / 导入）。壁纸能上传并存在浏览器里；字体的保存/测试、语音试听（预留给 ElevenLabs）、导出导入都还是空接口，也还没接进正式的 React 前端。接入说明见 `docs/设置界面接入说明.md`
 - **只支持 Codex**：现在后端只接了 `codex app-server`，没有接别的模型或 API
 - **只在 Windows 上测过**：启动脚本是 `.cmd`，macOS / Linux 需要自己 `npm run dev`
 - **局域网访问没有登录验证**：只适合在自己家的网络里用
