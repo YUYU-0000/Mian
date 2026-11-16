@@ -20,6 +20,7 @@ const conversation = { conversationId: "c1", threadId: null, parentConversationI
 const file = { id: "note", name: "離線.txt", size: 15, mimeType: "text/plain", createdAt: now };
 const voice = { url: "/api/voice-audio/old.mp3", text: "留下的聲音", duration: 0.4 };
 const data = {
+  "/api/auth/status": { configured: true, authenticated: true, canSetup: true, local: true, localBypass: true, expiresAt: Date.now() + 30 * 86400000 },
   "/api/config": { workingDirectory: "workspace", sandbox: "workspace-write", model: "cached-model", channel: { kind: "api", presetId: "p1" } },
   "/api/conversations": { defaultConversationId: "c1", conversations: [conversation] },
   "/api/conversations/c1/messages": { exists: true, eventSeq: 0, streamId: "test", groups: [{ role: "user", groupId: "u1", pending: false, time: "12:00", records: [{ messageId: "m1", text: "上次的內容", time: "12:00", files: [file] }] }] },

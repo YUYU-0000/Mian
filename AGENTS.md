@@ -6,9 +6,11 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 
 聊天有两条通道：Codex 订阅通道通过本地 `codex app-server` 通信，需要先登录 Codex CLI；OpenAI 兼容 API 通道使用连接中心保存的服务商预设。两条通道共用聊天记录和回复展示。
 
-从仓库根目录启动。首次安装依赖用 `npm.cmd ci`；Windows 双击 `启动Mian.cmd`，脚本通过 `npm.cmd run lan` 重新打包，再提供前端、API 和 WebSocket，手机访问窗口中显示的局域网地址。旧服务还在运行时不会重新打包；改完代码要先关掉旧窗口，再重新启动，手机刷新后才生效。开发时可用 `npm.cmd run dev` 启动热更新。
+使用 Node 24 或更新的 LTS 版本。首次安装依赖用 `npm.cmd ci`；Windows 双击 `启动Mian.cmd`，未运行时打包并启动后台服务，已经运行时复用现有服务。改完代码双击 `重启Mian.cmd`，会暂停后端、重新打包并恢复，不必关窗口找进程。后台服务由 `scripts/service.mjs` 管理；`npm start` 前台运行守护进程，`npm run lan` 后台启动，`npm run restart` 重新打包并重启。开发用 `npm run dev`。
 
-聊天记录、附件、语音文件、预设和服务器配置保存在 `server/data/`，不进仓库；浏览器另存部分界面偏好和草稿。
+聊天记录、附件、语音文件、预设和服务器配置固定保存在仓库的 `server/data/`，不依赖启动工作目录；可用 `MIAN_DATA_DIR` 覆盖（相对路径按仓库根目录解析）。这些数据不进仓库；浏览器另存部分界面偏好和草稿。
+
+部署配置从仓库 `.env` 读取，进程环境变量优先；模板见 `.env.example`。`MIAN_WORKSPACE_DIR` 控制 Codex 工作目录，`MIAN_CODEX_BIN` / `MIAN_CODEX_HOME` 控制 CLI 和登录目录，`MIAN_HOST` / `MIAN_PORT` 控制监听地址，`MIAN_PUBLIC_ORIGIN` 是公网 HTTPS 地址。Windows 和 Linux 共用 `shared/deployment.mjs`，禁止再写死本机用户名或依赖 cwd。
 
 ## 二、目录结构
 
@@ -32,6 +34,11 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - `server/src/chatFiles.ts`、`workspaceFiles.ts`、`fileRoutes.ts`：聊天附件存储、Codex 工作目录文件捕获和文件读取下载。
 - `server/src/voicePresets.ts`、`elevenLabs.ts`、`voiceGeneration.ts`、`voiceReplies.ts`、`voiceWaveform.ts`：语音预设、ElevenLabs 调用、生成缓存、回复音频和波形。
 - `server/src/config.ts`、`apiPresets.ts`、`connections.ts`、`settingsRoutes.ts`：服务器配置、API 预设、连接管理和备份导入导出。
+- `server/src/auth.ts`、`client/src/AuthGate.tsx`、`pages/SettingsSecurity.tsx`：登录、会话、门锁设置与退出所有设备。
+- `server/src/codexSecurity.ts`、`scripts/check-codex-sandbox.mjs`：Codex 权限和实际隔离检查。
+- `shared/deployment.mjs`、`scripts/service.mjs`、`control.mjs`、`launch.mjs`：跨平台部署配置、后台运行、重启和本机控制通道。
+- `scripts/backup.mjs`、`windows-task.ps1`、`install-windows-tasks.ps1`、`tunnel.mjs`：每日备份、Windows 任务计划和隧道启动；运行日志与控制文件在 `.mian-runtime/`，不进 Git。
+- `docs/搬到VPS.md`：Linux 安装、数据和 Codex 线程迁移、systemd、每日备份及隧道切换。
 - `server/src/publicReplyProtocol.ts`、`shared/replyProtocol.mjs`：发给模型的回复约定，以及思绪、气泡、语音、文件标签解析。
 - `shared/chatModel.mjs`、`clues.mjs`、`voice.mjs`、`*.d.mts`：共用消息状态、线索/语音规则和类型声明，改模块导出时同步声明。
 - `tests/`：单元测试、浏览器端到端测试和测试夹具；按改动选择相关用例，避免重复跑整套。
@@ -45,6 +52,8 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 不新增依赖，除非明确要求。
 - design-reference 文件夹是设计稿，不要改动；有设计稿的界面照设计稿做。
 - server/data 里的用户数据不要提交。
+- 外网开放前必须先完成本机密码设置。`/api/auth` 的状态、首次设置和登录是公开入口，其余 `/api`（含文件、图片和语音）及 `/ws` 都经服务端鉴权。Cookie 固定为 HttpOnly、Secure、SameSite=Strict，30 天到期；首次设置只允许直连本机，隧道回环连接不享受本机免登录。
+- Codex 只使用 `codexSecurity.ts` 生成的 `mian-workspace` / `mian-read` 权限，禁止联网与提权，关闭宿主 MCP、插件、浏览器和额外文件工具。Windows 使用 MXC，不能退回 `unelevated`；工作目录只由 `MIAN_WORKSPACE_DIR` 控制，网页和导入备份不得扩大权限。
 
 ## 四、界面规则
 
@@ -72,4 +81,11 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 删卡片、拔图钉要同步清掉连线；旧数据在 `migrateClues` 清理，绘线时缺少任一端点就跳过，避免整页崩溃。
 - 语音试听点 Play 先进入 out，真正出声才进入 playing，结束、停止或失败时一起收回；播放 Promise 等音频播完，所有入口共用 `voicePlayer`。
 - 发文件不能编 Markdown、sandbox: 或 file: 链接；API 用 `<mian-file name="文件名.txt">完整内容</mian-file>`，Codex 真正写入当前会话工作目录，文件正文里的空白和标签须原样保留。
-- `server/data` 按进程工作目录定位，服务从仓库根目录启动；Codex 工作目录在项目外，默认是用户目录下的 `MianWorkspace`，每个会话独立子目录。
+- 数据路径统一引用 `config.ts` 的 `dataDirectory`，不要拼接 `process.cwd()`；历史错位目录 `server/server/data-迁移前` 只留作还原，不再写入。Codex 工作目录在项目外，默认是用户目录下的 `MianWorkspace`，每个会话独立子目录。
+- 登录状态不放进离线读取队列；收到 401 或 WebSocket 4001 必须收起应用并停止同步。离线只能展示这个浏览器此前已获准且未到期的缓存；退出后不能凭数据缓存自动进入。恢复网络会重新校验会话。
+- 测试服务必须显式传 `MIAN_DATA_DIR` 和 `MIAN_WORKSPACE_DIR` 指向临时目录；切换 cwd 不再隔离数据，不能让测试接触真实 `server/data`。
+- 当前公网地址是 `https://mian.crab-bless.com`，Cloudflare Tunnel `mian` 指向 `http://127.0.0.1:5173`，配置在用户目录 `.cloudflared/mian.yml`。隧道必须保留公网 Host；转发头不能把外网连接伪装成本机免登录。配置和凭据都不进 Git。
+- Windows 任务 `Mian-Service` / `Mian-Tunnel` 在 ASUS 登录后自动运行，沿用该用户 Codex 登录；不是登录前启动。任务不弹窗口、不因切换电池而停止，异常退出后每分钟重试，后端自身崩溃由守护进程 5 秒重启。安装命令为 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-tasks.ps1`。任务运行时阻止闲置睡眠，手动休眠、关机或合盖睡眠仍会中断外网服务。
+- `Mian-Backup` 每天本机时间 02:00 运行，允许唤醒、错过后补跑。Windows 默认备份到用户桌面 `Mian备份/每日/YYYY-MM-DD`，Linux 默认 `~/MianBackups/daily`，可用 `MIAN_BACKUP_DIR` 覆盖。只保留最近 14 天内的日期目录，同日不覆盖已有完整备份；旧手工备份不参与清理。备份通过本机控制通道等回复结束、暂停并落盘、完整复制，再恢复服务；不要绕过这个流程直接复制运行中的数据。关机期间不能备份，当前 Windows 任务须用户已登录。
+- 本机控制通道只用于启动、重启和备份，不是 HTTP 接口；Linux socket 权限为 0600，控制凭据在 `.mian-runtime`，不能放进前端或 API。测试守护进程还须指定独立 `MIAN_RUNTIME_DIR`、`MIAN_BACKUP_DIR` 和空闲端口。
+- 搬家时先停旧机器再复制最终数据和 Codex 线程历史，只让一台机器连接隧道提供聊天。`before-online` 标签的旧代码没有登录保护、使用旧数据路径；恢复该版本必须先关隧道，按外部备份 `说明.txt` 还原。

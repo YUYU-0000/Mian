@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
+import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -12,7 +13,7 @@ test(
   { timeout: 15_000 },
   async () => {
     const workspace = process.cwd();
-    const directory = await mkdtemp(path.join(workspace, ".tmp-lan-test-"));
+    const directory = await mkdtemp(path.join(tmpdir(), "mian-lan-test-"));
     // 用空闲端口运行正式构建，不占用正在使用的局域网服务。
     const bootstrap = `
     import { Server } from 'node:http';
@@ -29,6 +30,7 @@ test(
       ["--input-type=module", "--eval", bootstrap],
       {
         cwd: directory,
+        env: { ...process.env, MIAN_DATA_DIR: path.join(directory, "server/data"), MIAN_WORKSPACE_DIR: path.join(directory, "workspace") },
         windowsHide: true,
         stdio: ["ignore", "ignore", "pipe", "ipc"],
       },
@@ -50,6 +52,7 @@ test(
       assert.equal(requestedPort, 5173);
       assert.equal(host, "0.0.0.0");
       const base = `http://127.0.0.1:${port}`;
+      await fetch(base + "/api/auth/setup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "fixture-password-only" }) });
       const page = await fetch(base + "/connections");
       assert.equal(page.status, 200);
       const html = await page.text();
@@ -68,15 +71,17 @@ test(
       assert.equal(JSON.parse(String(message)).kind, "session");
     } finally {
       socket?.terminate();
-      const exited = once(backend, "exit");
-      if (process.platform === "win32")
-        spawnSync("taskkill.exe", ["/PID", String(backend.pid), "/T", "/F"], {
-          windowsHide: true,
-          stdio: "ignore",
-        });
-      else backend.kill("SIGKILL");
-      await exited;
-      assert.equal(path.dirname(directory), workspace);
+      if (backend.exitCode === null && backend.signalCode === null) {
+        const exited = once(backend, "exit");
+        if (process.platform === "win32")
+          spawnSync("taskkill.exe", ["/PID", String(backend.pid), "/T", "/F"], {
+            windowsHide: true,
+            stdio: "ignore",
+          });
+        else backend.kill("SIGKILL");
+        await exited;
+      }
+      assert.equal(path.dirname(directory), tmpdir());
       await rm(directory, { recursive: true });
     }
   },

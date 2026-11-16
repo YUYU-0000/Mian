@@ -15,6 +15,8 @@ type Props = {
   fontPages: ReactNode;
   avatarPages: ReactNode;
   voicePages: ReactNode;
+  securityPage: ReactNode;
+  onSecurity: () => void;
   overlay?: ReactNode;
   storageRef: RefObject<HTMLDivElement | null>;
   importRef: RefObject<HTMLInputElement | null>;
@@ -34,6 +36,8 @@ export default function SettingsLayout({
   fontPages,
   avatarPages,
   voicePages,
+  securityPage,
+  onSecurity,
   overlay,
   storageRef,
   importRef,
@@ -114,7 +118,7 @@ export default function SettingsLayout({
           <div className="folder-body"></div>
         </div>
         <div
-          className={`folder f4${active === 4 ? " active" : ""}`}
+          className={`folder f4${active === 4 || active === 5 ? " active" : ""}`}
           id="folderStorageSettings"
           onClick={() => onFolder(4)}
         >
@@ -205,7 +209,11 @@ export default function SettingsLayout({
                     style={{ display: "none" } as CSSProperties}
                   />
                 </div>
+                <button type="button" className="st-btn st-security" onClick={onSecurity}>門鎖</button>
               </div>
+            </div>
+            <div style={{ display: active === 5 ? "block" : "none", height: "100%" }}>
+              {securityPage}
             </div>
 
             <div

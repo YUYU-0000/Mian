@@ -4,8 +4,9 @@ import { createServer } from "node:http";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket } from "ws";
 import { readConfig, saveConfig } from "./config.js";
+import { Auth, authenticatedSockets } from "./auth.js";
 import { connectionRoutes } from "./connections.js";
 import { ApiChat } from "./apiChat.js";
 import { ChatFiles } from "./chatFiles.js";
@@ -39,7 +40,8 @@ type BufferedEvent = {
 
 const app = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server, path: "/ws" });
+const auth = await new Auth().load();
+const wss = authenticatedSockets(server, auth);
 const bridge = new CodexBridge();
 const conversations = await ConversationRegistry.load();
 const files = new ChatFiles();
@@ -55,6 +57,9 @@ let nextEventSeq = 1;
 let conversationWriteQueue: Promise<void> = Promise.resolve();
 const activityTimers = new Map<string, NodeJS.Timeout>();
 
+app.disable("x-powered-by");
+app.use("/api/auth", auth.router());
+app.use("/api", auth.protect);
 app.use(
   "/api",
   fileRoutes(files, (id) => conversations.require(id)),
@@ -351,8 +356,9 @@ app.get("*splat", (_request, response) =>
 );
 
 const lan = process.argv.includes("--lan");
-const port = lan ? 5173 : 8787;
-server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
+const port = Number(process.env.MIAN_PORT || (lan ? 5173 : 8787));
+const host = process.env.MIAN_HOST || (lan ? "0.0.0.0" : "127.0.0.1");
+server.listen(port, host, () => {
   console.log(`Mian: http://127.0.0.1:${port}`);
   if (lan)
     for (const address of Object.values(networkInterfaces()).flat())
@@ -360,11 +366,29 @@ server.listen(port, lan ? "0.0.0.0" : "127.0.0.1", () => {
         console.log(`Mian LAN: http://${address.address}:${port}`);
 });
 const shutdown = async () => {
+  for (const ws of wss.clients) ws.terminate();
+  const closed = new Promise<void>(resolve => server.close(() => resolve()));
   apiChat.close();
   bridge.close();
+  for (const timer of activityTimers.values()) clearTimeout(timer);
+  activityTimers.clear();
   await voiceReplies.close();
+  await closed;
+  await conversationWriteQueue;
   await messages.close();
-  server.close();
+  if (process.connected) process.disconnect();
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+process.on("message", (message: { type?: string }) => {
+  if (message.type === "shutdown") void shutdown();
+  if (message.type === "shutdown-when-idle") {
+    const check = () => {
+      if (conversations.list().some(record => bridge.isConversationBusy(record.conversationId) || apiChat.isBusy(record.conversationId)) || Object.keys(voiceReplies.getActiveTurns()).length) return;
+      clearInterval(timer);
+      void shutdown();
+    };
+    const timer = setInterval(check, 1000);
+    check();
+  }
+});

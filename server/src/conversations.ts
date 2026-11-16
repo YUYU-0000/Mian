@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { dataDirectory } from "./config.js";
 import type {
   ConversationRecord,
   ConversationRuntimeMetadata,
   ConversationThreadBinding,
 } from "./types.js";
 
-const root = path.resolve(process.cwd(), "server", "data");
+const root = dataDirectory;
 const file = path.join(root, "conversations.json");
 export const DEFAULT_CONVERSATION_ID = "c1";
 

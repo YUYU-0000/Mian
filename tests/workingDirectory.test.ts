@@ -8,13 +8,15 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-test("Codex defaults outside Mian, migrates old directories and rejects project paths without saving", async () => {
+test("data path ignores cwd and browser settings cannot expand Codex access", async () => {
   const original = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-config-"));
   process.chdir(directory);
+  process.env.MIAN_DATA_DIR = path.join(directory, "server/data");
+  process.env.MIAN_WORKSPACE_DIR = path.join(directory, "workspace");
   try {
     const {
       readConfig,
@@ -23,11 +25,15 @@ test("Codex defaults outside Mian, migrates old directories and rejects project 
       projectDirectory,
       defaultWorkingDirectory,
       PROJECT_DIRECTORY_ERROR,
+      dataDirectory,
     } = await import("../server/src/config.ts");
     assert.equal(
       defaultWorkingDirectory,
-      path.join(homedir(), "MianWorkspace"),
+      path.join(directory, "workspace"),
     );
+    assert.equal(dataDirectory, path.join(directory, "server/data"));
+    process.chdir(original);
+    assert.equal(dataDirectory, path.join(directory, "server/data"));
     assert.equal(
       (await readConfig()).workingDirectory,
       defaultWorkingDirectory,
@@ -51,8 +57,10 @@ test("Codex defaults outside Mian, migrates old directories and rejects project 
     assert.deepEqual(migrated, {
       ...legacy,
       workingDirectory: defaultWorkingDirectory,
+      sandbox: "workspace-write",
+      proactive: { voice: true },
     });
-    assert.deepEqual(JSON.parse(await readFile(configFile, "utf8")), migrated);
+    assert.deepEqual(JSON.parse(await readFile(configFile, "utf8")), legacy);
     for (const forbidden of [
       projectDirectory,
       path.join(projectDirectory, "client"),
@@ -65,16 +73,16 @@ test("Codex defaults outside Mian, migrates old directories and rejects project 
         { message: PROJECT_DIRECTORY_ERROR },
       );
     }
-    assert.deepEqual(JSON.parse(await readFile(configFile, "utf8")), migrated);
+    assert.deepEqual(JSON.parse(await readFile(configFile, "utf8")), legacy);
     const custom = path.join(directory, "custom-workspace");
-    await saveConfig({ ...migrated, workingDirectory: custom });
-    assert.equal((await stat(custom)).isDirectory(), true);
-    assert.deepEqual(await readConfig(), {
-      ...migrated,
-      workingDirectory: custom,
-    });
+    await assert.rejects(saveConfig({ ...migrated, workingDirectory: custom }), /MIAN_WORKSPACE_DIR/);
+    await assert.rejects(saveConfig({ ...migrated, sandbox: "danger-full-access" }), /sandbox/);
+    await saveConfig(migrated);
+    assert.deepEqual(await readConfig(), migrated);
   } finally {
     process.chdir(original);
+    delete process.env.MIAN_DATA_DIR;
+    delete process.env.MIAN_WORKSPACE_DIR;
     assert.equal(path.dirname(directory), tmpdir());
     await rm(directory, { recursive: true });
   }
