@@ -10,16 +10,16 @@
   transition: opacity .6s ease-out;
 }
 .auth-gate {
+  --auth-edge-gap: calc((100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * .03);
   position: relative;
   width: 100%;
   max-width: 430px;
-  height: 100%;
-  min-height: 720px;
+  height: 100dvh;
   margin: 0 auto;
 }
 .auth-brand {
   position: absolute;
-  top: calc(24px + env(safe-area-inset-top, 0px));
+  top: calc(var(--auth-edge-gap) + env(safe-area-inset-top, 0px));
   left: 30px;
   font: 400 34px/1 ZSFT-br, serif;
   letter-spacing: 1px;
@@ -27,7 +27,7 @@
 }
 .auth-decor {
   position: absolute;
-  top: calc(24px + env(safe-area-inset-top, 0px));
+  top: calc(var(--auth-edge-gap) + env(safe-area-inset-top, 0px));
   right: 28px;
   display: flex;
   gap: 8px;
@@ -59,7 +59,7 @@
 .auth-keyrow {
   position: absolute;
   left: 50%;
-  bottom: 112px;
+  bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px) + 20px);
   width: 196px;
   transform: translateX(-50%);
   transition: opacity .3s;
@@ -126,7 +126,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 92px;
+  bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px));
   text-align: center;
   white-space: pre;
   font: 500 7px/1 ZSFT-br, serif;

@@ -46,7 +46,13 @@ try {
   await call('Page.navigate', { url: backend.base });
   await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), 'first password form');
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
-  assert.deepEqual(await evaluate('[".auth-brand", ".auth-decor"].map(selector=>document.querySelector(selector).getBoundingClientRect().top)'), [24, 24]);
+  const spacing = await evaluate(`(() => {
+    const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+    return {top:rect('.auth-brand').top,decor:rect('.auth-decor').top,bottom:innerHeight-rect('.auth-foot').bottom,gap:rect('.auth-foot').bottom-rect('.auth-keyrow').bottom};
+  })()`);
+  assert.equal(spacing.top, spacing.decor);
+  assert.ok(Math.abs(spacing.top - spacing.bottom) < 1);
+  assert.equal(spacing.gap, 20);
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
   };
@@ -66,8 +72,6 @@ try {
   assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我');
   await typePassword('abcdefghijklmnop');
   assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我聽見你來了，門就要開了我聽見你');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).bottom'), '112px');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).bottom'), '92px');
   await fillPassword();
   await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "再寫一次。"'), 'same line confirms the new password');
   await fillPassword('different-test-password');
