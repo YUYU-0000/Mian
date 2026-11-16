@@ -59,13 +59,16 @@
 }
 .auth-entry {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px));
+  height: 50px;
   pointer-events: none;
 }
 .auth-keyrow {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px) + 20px);
+  bottom: 20px;
   width: 64vw;
   transform: translateX(-50%);
   transition: opacity .3s;
@@ -138,7 +141,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(var(--auth-edge-gap) + env(safe-area-inset-bottom, 0px));
+  bottom: 0;
   text-align: center;
   white-space: pre;
   font: 500 7px/1 ZSFT-br, serif;

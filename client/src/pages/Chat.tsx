@@ -19,6 +19,7 @@ import TicketDrawer from "../components/TicketDrawer";
 import ChatMessage, { collectHistoricalAnimationIds } from "./ChatMessage";
 import FileDraftTicket from "../components/FileDraftTicket";
 import { notify } from "../components/Notify";
+import { getKeyboardViewport, onKeyboardViewportChange } from "../keyboardViewport";
 
 export default function Chat({
   session,
@@ -205,9 +206,9 @@ export default function Chat({
       contentElement.style.removeProperty("will-change");
     };
     const updateNow = (forceBottom = false, animateAttachments = true) => {
-      const viewport = window.visualViewport;
+      const viewport = getKeyboardViewport();
       const chat = inputElement.closest<HTMLElement>(".archive-chat")!;
-      chat.style.height = `${viewport?.height ?? window.innerHeight}px`;
+      chat.style.height = `${viewport.height}px`;
       const streamRect = streamElement.getBoundingClientRect();
       const inputRect = inputElement.getBoundingClientRect();
       const drafts = inputElement.querySelector(".file-drafts");
@@ -245,8 +246,8 @@ export default function Chat({
         }
       }
       return [
-        viewport?.height ?? window.innerHeight,
-        viewport?.offsetTop ?? 0,
+        viewport.height,
+        viewport.offsetTop,
         inputRect.top,
         inputRect.height,
         streamElement.clientHeight,
@@ -277,11 +278,10 @@ export default function Chat({
     observer.observe(inputElement);
     observer.observe(contentElement);
     const onWindowLayout = () => scheduleUpdate();
-    let viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-    let viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
+    let viewportHeight = getKeyboardViewport().height;
+    let viewportOffsetTop = getKeyboardViewport().offsetTop;
     const onViewportLayout = () => {
-      const nextHeight = window.visualViewport?.height ?? window.innerHeight;
-      const nextOffsetTop = window.visualViewport?.offsetTop ?? 0;
+      const { height: nextHeight, offsetTop: nextOffsetTop } = getKeyboardViewport();
       const geometryChanged =
         Math.abs(nextHeight - viewportHeight) > 0.5 ||
         Math.abs(nextOffsetTop - viewportOffsetTop) > 0.5;
@@ -291,8 +291,7 @@ export default function Chat({
     };
     window.addEventListener("resize", onWindowLayout);
     window.addEventListener("orientationchange", onWindowLayout);
-    window.visualViewport?.addEventListener("resize", onViewportLayout);
-    window.visualViewport?.addEventListener("scroll", onViewportLayout);
+    const unsubscribeViewport = onKeyboardViewportChange(onViewportLayout);
     updateNow(false, false);
     return () => {
       cancelAnimationFrame(frame);
@@ -301,8 +300,7 @@ export default function Chat({
       requestViewportSync.current = () => {};
       window.removeEventListener("resize", onWindowLayout);
       window.removeEventListener("orientationchange", onWindowLayout);
-      window.visualViewport?.removeEventListener("resize", onViewportLayout);
-      window.visualViewport?.removeEventListener("scroll", onViewportLayout);
+      unsubscribeViewport();
     };
   }, [session]);
   useLayoutEffect(() => {

@@ -61,7 +61,7 @@ body,
 #root {
   margin: 0;
   width: 100%;
-  height: 100%;
+  height: var(--app-h, 100svh);
   background: #f1efe9;
 }
 button,

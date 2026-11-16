@@ -38,6 +38,7 @@ try {
   };
   await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
   await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+    Object.defineProperty(navigator,'virtualKeyboard',{configurable:true,value:undefined});
     window.soundStarts=0;
     const play=HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play=function(){if(!this.muted) soundStarts++;return play.call(this);};
@@ -70,18 +71,25 @@ try {
   assert.ok(Math.abs(fishPlacement.verticalCenter-fishPlacement.pageCenter)<0.05,'fish keeps its original vertical placement');
   const keyboardGate = await evaluate(`(async()=>{
     const input=document.querySelector('.auth-password');
-    const snapshot=()=>Object.fromEntries(Object.entries({fish:'.auth-fish',input:'.auth-password',brand:'.auth-brand',decor:'.auth-decor',foot:'.auth-foot',page:'.auth-page'})
-      .map(([name,selector])=>[name,document.querySelector(selector).getBoundingClientRect().toJSON()]));
+    const snapshot=()=>Object.fromEntries(Object.entries({fish:'.auth-fish',input:'.auth-password',brand:'.auth-brand',decor:'.auth-decor',foot:'.auth-foot',paper:'.auth-entry',page:'.auth-page'})
+      .map(([name,selector])=>{const r=document.querySelector(selector).getBoundingClientRect().toJSON(),offset=visualViewport.offsetTop;return [name,{...r,y:r.y-offset,top:r.top-offset,bottom:r.bottom-offset}]}));
     const before=snapshot();
     Object.defineProperty(visualViewport,'height',{configurable:true,value:480});
+    Object.defineProperty(visualViewport,'offsetTop',{configurable:true,value:96});
     input.focus({preventScroll:true});visualViewport.dispatchEvent(new Event('resize'));
+    const immediate={page:snapshot().page,offset:document.querySelector('#root').style.getPropertyValue('--keyboard-viewport-y'),animations:document.querySelector('#root').getAnimations().length};
     await new Promise(resolve=>setTimeout(resolve,300));
     const during=snapshot();
-    delete visualViewport.height;input.blur();visualViewport.dispatchEvent(new Event('resize'));
+    delete visualViewport.height;delete visualViewport.offsetTop;input.blur();visualViewport.dispatchEvent(new Event('resize'));
+    const restoredOffset=document.querySelector('#root').style.getPropertyValue('--keyboard-viewport-y');
     await new Promise(resolve=>setTimeout(resolve,300));
-    return {before,during,after:input.getBoundingClientRect().toJSON()};
+    return {before,during,immediate,restoredOffset,after:input.getBoundingClientRect().toJSON()};
   })()`);
-  const loginLift=keyboardGate.before.input.bottom-472;
+  const loginLift=keyboardGate.before.paper.bottom-474;
+  assert.deepEqual(keyboardGate.immediate.page,keyboardGate.before.page,'viewport panning is cancelled before the next animation frame');
+  assert.equal(keyboardGate.immediate.offset,'96px');
+  assert.equal(keyboardGate.immediate.animations,0,'root compensation has no animation');
+  assert.equal(keyboardGate.restoredOffset,'0px');
   for (const name of ['input','foot']) {
     const before=keyboardGate.before[name], during=keyboardGate.during[name];
     assert.ok(Math.abs(before.y-during.y-loginLift)<0.1, `login ${name} moves with the input block`);
@@ -89,7 +97,8 @@ try {
     assert.equal(before.height,during.height);
   }
   for (const name of ['fish','brand','decor','page']) assert.deepEqual(keyboardGate.during[name],keyboardGate.before[name],`login ${name} stays fixed behind the keyboard lift`);
-  assert.ok(Math.abs(keyboardGate.during.input.bottom-472)<0.1, 'login input clears the keyboard by exactly 8px');
+  assert.ok(Math.abs(keyboardGate.during.paper.bottom-474)<0.1, 'login entry bottom clears the keyboard by exactly 6px');
+  assert.ok(keyboardGate.during.input.top>=0 && keyboardGate.during.input.bottom<=474,'login input remains visible');
   assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, 'login line returns to its original position');
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);

@@ -1,13 +1,11 @@
-import { getAppViewport } from "./appViewport";
-
-const editable = 'textarea,input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):not([type="submit"]),[contenteditable="true"]';
+import { editableSelector } from "./inputFocus";
+import { getKeyboardViewport, onKeyboardViewportChange } from "./keyboardViewport";
 
 export function installKeyboardLift() {
   const positions = new Map<HTMLElement, number>();
   const motions = new WeakMap<HTMLElement, { y: number; animation: Animation }>();
   let surface: HTMLElement | null = null;
   let frame = 0;
-  const keyboardOpen = () => getAppViewport().height - (window.visualViewport?.height ?? window.innerHeight) >= 80;
   const currentY = (element: HTMLElement) => parseFloat(getComputedStyle(element).translate.split(" ")[1]) || 0;
   const move = (element: HTMLElement, y: number) => {
     const previous = motions.get(element);
@@ -32,17 +30,26 @@ export function installKeyboardLift() {
   const reveal = () => {
     frame = 0;
     const focused = document.activeElement as HTMLElement;
-    const next = focused.matches(editable) && !focused.closest(".archive-input") && keyboardOpen()
+    const viewport = getKeyboardViewport();
+    const next = focused.matches(editableSelector) && !focused.closest(".archive-input") && viewport.keyboardOpen
       ? focused.closest<HTMLElement>("[data-keyboard-surface]") : null;
     if (surface && surface !== next) move(surface, 0);
     surface = next;
     if (!surface) return;
     restoreScroll();
-    const visible = window.visualViewport;
-    const bottom = visible ? visible.offsetTop + visible.height : window.innerHeight;
-    // 用未平移的位置计算，键盘连续调整或在字段间切换时不会累加位移。
-    const fieldBottom = focused.getBoundingClientRect().bottom - currentY(surface);
-    move(surface, fieldBottom > bottom ? bottom - 8 - fieldBottom : 0);
+    // 同时扣除根节点的视口抵消和纸片当前位移，始终按原纸片位置计算。
+    const offset = viewport.offsetTop + currentY(surface);
+    const paperBottom = surface.getBoundingClientRect().bottom - offset;
+    let y = 0;
+    if (paperBottom > viewport.height) {
+      y = viewport.height - 6 - paperBottom;
+      const field = focused.getBoundingClientRect();
+      // 纸片过高时，优先保住字段；上方本来可见的字段无需再向下推。
+      if (field.top - offset + y < 0) {
+        y = Math.min(0, viewport.height - 6 - (field.bottom - offset));
+      }
+    }
+    move(surface, y);
   };
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(reveal);
@@ -50,14 +57,12 @@ export function installKeyboardLift() {
   document.addEventListener("focusin", () => {
     positions.clear();
     const focused = document.activeElement as HTMLElement;
-    if (focused.matches(editable) && !focused.closest(".archive-input") && focused.closest("[data-keyboard-surface]")) {
+    if (focused.matches(editableSelector) && !focused.closest(".archive-input") && focused.closest("[data-keyboard-surface]")) {
       for (let parent = focused.parentElement; parent; parent = parent.parentElement) positions.set(parent, parent.scrollTop);
     }
     schedule();
   }, true);
   document.addEventListener("focusout", schedule, true);
   document.addEventListener("scroll", () => { if (surface) restoreScroll(); }, true);
-  window.visualViewport?.addEventListener("resize", schedule);
-  window.visualViewport?.addEventListener("scroll", schedule);
-  window.addEventListener("resize", schedule);
+  onKeyboardViewportChange(schedule);
 }
