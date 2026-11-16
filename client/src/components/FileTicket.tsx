@@ -1,5 +1,8 @@
 import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
+import { cachedFileUrl } from "../fileCache";
+import { useCachedFile } from "../useCachedFile";
+import { notify } from "./Notify";
 import { previewKind } from "../filePreview";
 import { cacheLazyImport } from "../lazyImport";
 import type { ChatFile } from "../types";
@@ -43,16 +46,24 @@ export default memo(function FileTicket({
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
   const image = file.mimeType.startsWith("image/");
+  const sourceUrl = previewUrl ?? api.fileUrl(conversationId, file.id);
+  const cachedUrl = useCachedFile(sourceUrl, !pending && sourceUrl.startsWith("/api/"));
+  const displayUrl = sourceUrl.startsWith("/api/") ? cachedUrl : previewUrl;
   const size = fileSize(file.size);
   const extension = file.name.includes(".")
     ? file.name.split(".").at(-1)!.toUpperCase()
     : imageAlt !== undefined
       ? "IMAGE"
       : "FILE";
-  const open = () => {
+  const open = async () => {
     if (pending && !image) return;
     if (kind) setViewing(true);
-    else download.current!.click();
+    else {
+      try {
+        download.current!.href = previewUrl ?? await cachedFileUrl(api.fileUrl(conversationId, file.id));
+        download.current!.click();
+      } catch (error) { notify.fail("文件讀取失敗", error); }
+    }
   };
   const nameAndMeta = (
     <>
@@ -131,7 +142,7 @@ export default memo(function FileTicket({
               {imageAlt !== undefined ? (
                 <img
                   className="ft-thumb"
-                  src={previewUrl}
+                  src={displayUrl}
                   alt={imageAlt}
                   referrerPolicy="no-referrer"
                   draggable={false}
@@ -141,7 +152,7 @@ export default memo(function FileTicket({
                 <div
                   className="ft-thumb"
                   style={{
-                    backgroundImage: `url("${previewUrl ?? api.fileUrl(conversationId, file.id, true)}")`,
+                    backgroundImage: displayUrl ? `url("${displayUrl}")` : undefined,
                   }}
                 />
               )}
@@ -162,7 +173,7 @@ export default memo(function FileTicket({
         )}
         <a
           ref={download}
-          href={previewUrl ?? api.fileUrl(conversationId, file.id)}
+          href={displayUrl}
           download={file.name}
           hidden
         />
@@ -173,7 +184,7 @@ export default memo(function FileTicket({
             file={file}
             conversationId={conversationId}
             kind={kind}
-            previewUrl={previewUrl}
+            previewUrl={displayUrl}
             onImageError={
               imageAlt === undefined ? undefined : () => setImageFailed(true)
             }

@@ -16,6 +16,10 @@ import type { FontPreset, FontSettings } from "./settingsTypes";
 import type { VoiceClip, VoiceOption, VoicePreset, VoiceSettings } from "../../shared/voice.mjs";
 import { voicePlayer } from "./voicePlayer";
 import { createId } from "./id";
+import { readResponse, request, BackendUnavailable, setBackendAvailable } from "./backend";
+import { flushOfflineSaves, queueSave, readQuery, refreshReads } from "./offline";
+import { cachedFile } from "./fileCache";
+import { defaultFont, DEFAULT_FONT_ID, DEFAULT_BUBBLE_SIZE } from "./settingsTypes";
 import type {
   ChatFile,
   Config,
@@ -30,54 +34,49 @@ import type {
   Subscription,
 } from "./connectionTypes";
 
-async function readResponse<T>(response: Response): Promise<T> {
-  const body = await response.text();
-  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-  let parsed: unknown;
-  if (body.trim() && contentType.includes("application/json")) {
-    try {
-      parsed = JSON.parse(body);
-    } catch {
-      throw new Error(`服务返回了无效的 JSON（HTTP ${response.status}）`);
-    }
-  } else if (body.trim()) parsed = body;
-  if (!response.ok) {
-    const message =
-      typeof parsed === "object" && parsed !== null && "error" in parsed
-        ? String((parsed as { error: unknown }).error)
-        : typeof parsed === "string"
-          ? parsed
-          : `请求失败（HTTP ${response.status}）`;
-    throw new Error(message);
-  }
-  if (!body.trim()) return undefined as T;
-  if (!contentType.includes("application/json"))
-    throw new Error(`服务返回了非 JSON 内容（HTTP ${response.status}）`);
-  return parsed as T;
-}
+type ConversationList = { defaultConversationId: string; conversations: ConversationRecord[] };
+const messages = new Map<string, ReturnType<typeof readQuery<MessageSnapshot>>>();
+const messageQuery = (id: string) => {
+  if (!messages.has(id)) messages.set(id, readQuery<MessageSnapshot>(`/api/conversations/${encodeURIComponent(id)}/messages`, undefined, false));
+  return messages.get(id)!;
+};
+const codexStatus = readQuery<Subscription>("/api/subscriptions/codex");
+const codexQuota = readQuery<Quota>("/api/subscriptions/codex/quota");
+const replacePreset = <T extends { id: string }>(presets: T[], preset: T) =>
+  presets.some(item => item.id === preset.id)
+    ? presets.map(item => item.id === preset.id ? preset : item) : [...presets, preset];
+const localValue = async <T>(query: ReturnType<typeof readQuery<T>>) =>
+  (await query.peek()) ?? query();
 
-const request = async <T>(url: string, init?: RequestInit): Promise<T> =>
-  readResponse<T>(
-    await fetch(url, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {}),
-      },
-    }),
-  );
+const saveVoiceSettings = (url: string, method: string, body: unknown, change: (settings: VoiceSettings) => VoiceSettings) =>
+  queueSave(url, method, body, async () => {
+    const result = change(await localValue(api.voicePresets));
+    return { updates: { "/api/voice-presets": result }, result };
+  });
+
+const updateConversation = (id: string, patch: Partial<ConversationRecord>, activity = false) =>
+  queueSave(`/api/conversations/${encodeURIComponent(id)}${activity ? "/activity" : ""}`, "PATCH", patch, async () => {
+    const list = await localValue(api.listConversations);
+    const conversation = { ...list.conversations.find(item => item.conversationId === id)!, ...patch };
+    const conversations = list.conversations.map(item => item.conversationId === id ? conversation
+      : patch.pinned ? { ...item, pinned: false } : item);
+    if (patch.pinned) conversations.sort((left, right) => left.pinned === right.pinned
+      ? left.createdAt.localeCompare(right.createdAt) : left.pinned ? -1 : 1);
+    return { updates: { "/api/conversations": { ...list, conversations } }, result: { conversation } };
+  }, activity);
 
 export const api = {
-  clues: () => request<ClueWall>("/api/clues"),
+  clues: readQuery<ClueWall>("/api/clues"),
   saveClueWall: (wall: ClueWall) =>
-    request<ClueWall>("/api/clues", {
-      method: "PUT",
-      body: JSON.stringify(wall),
-    }),
+    queueSave("/api/clues", "PUT", wall, async () => ({ updates: { "/api/clues": wall }, result: wall })),
   subStatus: (provider: Provider) =>
     provider === "codex"
-      ? request<Subscription>("/api/subscriptions/codex")
+      ? codexStatus()
       : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
+  watchSubStatus: (provider: Provider, receive: (status: Subscription) => void) =>
+    provider === "codex" ? codexStatus.watch(receive) : (() => {}),
+  watchSubQuota: (provider: Provider, receive: (quota: Quota) => void) =>
+    provider === "codex" ? codexQuota.watch(receive) : (() => {}),
   subLogin: async (
     provider: Provider,
   ): Promise<{ account: string; plan: string }> => {
@@ -103,7 +102,7 @@ export const api = {
       popup.location.href = login.authUrl;
       while (true) {
         await delay(1000);
-        const status = await api.subStatus("codex");
+        const status = await codexStatus.refresh();
         if (status.loggedIn) {
           popup.close();
           return status;
@@ -150,30 +149,35 @@ export const api = {
   },
   subQuota: async (provider: Provider): Promise<Quota> => {
     if (provider === "codex")
-      return request<Quota>("/api/subscriptions/codex/quota");
+      return codexQuota();
     // 待接后端：Gemini / Kimi
     await delay(600);
     return { left: 96, resetAt: "11月20日 01:59" };
   },
-  apiPresets: () =>
-    request<{ presets: ApiPreset[]; activeId: string | null }>(
-      "/api/api-presets",
-    ),
-  saveApiPreset: (preset: ApiPreset) =>
-    request<ApiPreset>("/api/api-presets", {
-      method: "POST",
-      body: JSON.stringify(preset),
-    }),
+  apiPresets: readQuery<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
+  saveApiPreset: (input: ApiPreset) => {
+    const preset = { ...input, id: input.id || createId() };
+    return queueSave("/api/api-presets", "POST", preset, async () => {
+      const settings = await localValue(api.apiPresets);
+      const { key, ...rest } = preset;
+      const previous = settings.presets.find(item => item.id === preset.id);
+      const result = { ...rest, hasKey: Boolean(key || previous?.hasKey), keyHint: previous?.keyHint };
+      return { updates: { "/api/api-presets": { ...settings, presets: replacePreset(settings.presets, result) } }, result };
+    });
+  },
   deleteApiPreset: (id: string) =>
-    request<void>(`/api/api-presets/${encodeURIComponent(id)}`, {
-      method: "DELETE",
+    queueSave(`/api/api-presets/${encodeURIComponent(id)}`, "DELETE", undefined, async () => {
+      const settings = await localValue(api.apiPresets);
+      const config = await localValue(api.getConfig);
+      return { updates: {
+        "/api/api-presets": { presets: settings.presets.filter(preset => preset.id !== id), activeId: settings.activeId === id ? null : settings.activeId },
+        "/api/config": config.channel?.kind === "api" && config.channel.presetId === id ? { ...config, channel: { kind: "codex" } } : config,
+      }, result: undefined };
     }),
   useApiPreset: (id: string) =>
-    request<void>(`/api/api-presets/${encodeURIComponent(id)}/use`, {
-      method: "POST",
-    }),
+    selectChannel(id),
   useCodex: () =>
-    request<void>("/api/subscriptions/codex/use", { method: "POST" }),
+    selectChannel(null),
   apiModels: (cfg: ApiPreset) =>
     request<string[]>("/api/api-models", {
       method: "POST",
@@ -184,23 +188,37 @@ export const api = {
       method: "POST",
       body: JSON.stringify(cfg),
     }),
-  fontPresets: () => request<FontSettings>("/api/font-presets"),
+  fontPresets: readQuery<FontSettings>("/api/font-presets"),
   saveFontPreset: (preset: FontPreset, use = false) =>
-    request<FontSettings>("/api/font-presets", {
-      method: "POST",
-      body: JSON.stringify({ preset, use }),
+    queueSave("/api/font-presets", "POST", { preset, use }, async () => {
+      const settings = await localValue(api.fontPresets);
+      const saved = preset.id === DEFAULT_FONT_ID ? { ...defaultFont, view: preset.view } : preset;
+      const result = { ...settings, presets: replacePreset(settings.presets, saved),
+        ...(use ? { activeId: saved.id, style: { face: saved.face, size: saved.size } } : {}) };
+      return { updates: { "/api/font-presets": result }, result };
     }),
   deleteFontPreset: (id: string) =>
-    request<FontSettings>(`/api/font-presets/${encodeURIComponent(id)}`, {
-      method: "DELETE",
+    queueSave(`/api/font-presets/${encodeURIComponent(id)}`, "DELETE", undefined, async () => {
+      const settings = await localValue(api.fontPresets);
+      const result = { ...settings, presets: settings.presets.filter(preset => preset.id !== id),
+        ...(settings.activeId === id ? { activeId: DEFAULT_FONT_ID, style: { face: "", size: DEFAULT_BUBBLE_SIZE } } : {}) };
+      return { updates: { "/api/font-presets": result }, result };
     }),
-  voicePresets: () => request<VoiceSettings>("/api/voice-presets"),
+  voicePresets: readQuery<VoiceSettings>("/api/voice-presets"),
   saveVoicePreset: (preset: VoicePreset) =>
-    request<VoiceSettings>("/api/voice-presets", { method: "POST", body: JSON.stringify(preset) }),
+    saveVoiceSettings("/api/voice-presets", "POST", preset, settings => {
+      const { key, ...rest } = preset;
+      const saved = { ...rest, hasKey: Boolean(key || settings.presets.find(item => item.id === preset.id)?.hasKey) };
+      return { ...settings, presets: replacePreset(settings.presets, saved) };
+    }),
   useVoicePreset: (id: string) =>
-    request<VoiceSettings>(`/api/voice-presets/${encodeURIComponent(id)}/use`, { method: "POST" }),
+    saveVoiceSettings(`/api/voice-presets/${encodeURIComponent(id)}/use`, "POST", undefined, settings => ({ ...settings, activeId: id })),
   deleteVoicePreset: (id: string) =>
-    request<VoiceSettings>(`/api/voice-presets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    saveVoiceSettings(`/api/voice-presets/${encodeURIComponent(id)}`, "DELETE", undefined, settings => {
+      const presets = settings.presets.filter(item => item.id !== id);
+      return { presets, activeId: settings.activeId === id
+        ? presets[Math.max(0, settings.presets.findIndex(item => item.id === id) - 1)].id : settings.activeId };
+    }),
   voiceModels: (preset: VoicePreset) =>
     request<VoiceOption[]>("/api/voice-models", { method: "POST", body: JSON.stringify(preset) }),
   voiceList: (preset: VoicePreset) =>
@@ -212,6 +230,7 @@ export const api = {
     }), signal, onPlaying);
   },
   importData: async (backup: Backup) => {
+    await flushOfflineSaves();
     const { homePhotos, ...data } = backup;
     await request("/api/backup", {
       method: "POST",
@@ -219,8 +238,10 @@ export const api = {
     });
     restoreBrowserBackup(backup, localStorage);
     await restoreHomePhotos(homePhotos);
+    await refreshReads();
   },
   exportData: async () => {
+    await flushOfflineSaves();
     await flushMessageSyncs();
     const content = completeBackup(
       await request<ServerBackup>("/api/backup"),
@@ -238,67 +259,72 @@ export const api = {
     link.click();
     URL.revokeObjectURL(url);
   },
-  getConfig: () => request<Config>("/api/config"),
+  getConfig: readQuery<Config>("/api/config"),
   saveConfig: (config: Config) =>
-    request<Config>("/api/config", {
-      method: "PUT",
-      body: JSON.stringify(config),
+    queueSave("/api/config", "PUT", config, async () => {
+      const subscription = await codexStatus.peek();
+      return { updates: { "/api/config": config,
+        ...(subscription ? { "/api/subscriptions/codex": { ...subscription, model: config.model } } : {}) }, result: config };
     }),
   test: () =>
     request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
-  listConversations: async () => {
-    const data = await request<{
-      defaultConversationId: string;
-      conversations: ConversationRecord[];
-    }>("/api/conversations");
+  listConversations: readQuery<ConversationList>("/api/conversations", async data => {
     for (const record of data.conversations) {
       if (!record.image) continue;
       const file = await (await fetch(record.image)).blob();
       const compressed = await compressImage(file, 1200, true);
       if (compressed === file) continue;
-      const { conversation } = await api.updateConversation(
-        record.conversationId,
-        { image: await blobToDataURL(compressed) },
-      );
+      const { conversation } = await request<{ conversation: ConversationRecord }>(
+        `/api/conversations/${encodeURIComponent(record.conversationId)}`,
+        { method: "PATCH", body: JSON.stringify({ image: await blobToDataURL(compressed) }) });
       Object.assign(record, conversation);
     }
     return data;
-  },
-  createConversation: () =>
-    request<{ conversation: ConversationRecord }>("/api/conversations", {
+  }),
+  rememberConversation: (conversation: ConversationRecord) =>
+    api.listConversations.update(current => current && ({
+      defaultConversationId: current.defaultConversationId,
+      conversations: current.conversations.some(item => item.conversationId === conversation.conversationId)
+        ? current.conversations.map(item => item.conversationId === conversation.conversationId ? conversation : item)
+        : [...current.conversations, conversation],
+    })),
+  createConversation: async () => {
+    const result = await request<{ conversation: ConversationRecord }>("/api/conversations", {
       method: "POST",
-    }),
-  forkConversation: (conversationId: string) =>
-    request<{ conversation: ConversationRecord }>(
+    });
+    await api.rememberConversation(result.conversation);
+    return result;
+  },
+  forkConversation: async (conversationId: string) => {
+    const result = await request<{ conversation: ConversationRecord }>(
       `/api/conversations/${encodeURIComponent(conversationId)}/fork`,
       { method: "POST" },
-    ),
+    );
+    await api.rememberConversation(result.conversation);
+    return result;
+  },
   updateConversation: (
     conversationId: string,
     patch: Partial<
       Pick<ConversationRecord, "title" | "frontName" | "image" | "pinned">
     >,
   ) =>
-    request<{ conversation: ConversationRecord }>(
-      `/api/conversations/${encodeURIComponent(conversationId)}`,
-      { method: "PATCH", body: JSON.stringify(patch) },
-    ),
+    updateConversation(conversationId, patch),
   updateConversationActivity: (
     conversationId: string,
     patch: ConversationActivity,
   ) =>
-    request<{ conversation: ConversationRecord }>(
-      `/api/conversations/${encodeURIComponent(conversationId)}/activity`,
-      { method: "PATCH", body: JSON.stringify(patch) },
-    ),
-  archiveConversation: (conversationId: string) =>
-    request<void>(`/api/conversations/${encodeURIComponent(conversationId)}`, {
+    updateConversation(conversationId, patch, true),
+  archiveConversation: async (conversationId: string) => {
+    await request<void>(`/api/conversations/${encodeURIComponent(conversationId)}`, {
       method: "DELETE",
-    }),
+    });
+    await api.listConversations.update(current => ({ ...current!, conversations: current!.conversations.filter(item => item.conversationId !== conversationId) }), false);
+  },
   fileUrl: (conversationId: string, fileId: string, inline = false) =>
     `/api/conversations/${encodeURIComponent(conversationId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`,
-  loadMessages: (conversationId: string) =>
-    request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`),
+  loadMessages: (conversationId: string, cached?: (snapshot: MessageSnapshot) => void) =>
+    cached ? messageQuery(conversationId).load(cached) : messageQuery(conversationId)(),
   saveMessages: (conversationId: string, groups: ChatGroup[], initialize = false) =>
     request<MessageSnapshot>(`/api/conversations/${encodeURIComponent(conversationId)}/messages`, {
       method: "PUT", body: JSON.stringify({ groups, initialize }),
@@ -308,16 +334,10 @@ export const api = {
     fileId: string,
     signal: AbortSignal,
   ) => {
-    const response = await fetch(api.fileUrl(conversationId, fileId), {
-      signal,
-    });
-    if (!response.ok) await readResponse(response);
-    return response.text();
+    return (await cachedFile(api.fileUrl(conversationId, fileId), signal)).blob.text();
   },
   fileCreatedAt: async (url: string, signal: AbortSignal) => {
-    const response = await fetch(url, { method: "HEAD", signal });
-    if (!response.ok) await readResponse(response);
-    return response.headers.get("X-File-Created-At")!;
+    return (await cachedFile(url, signal)).createdAt;
   },
   uploadFile: (
     conversationId: string,
@@ -339,10 +359,12 @@ export const api = {
       const abort = () => upload.abort();
       signal.addEventListener("abort", abort, { once: true });
       upload.onloadend = () => signal.removeEventListener("abort", abort);
-      upload.onerror = () => reject(new Error("文件上傳連線中斷。"));
+      upload.onerror = () => { setBackendAvailable(false); reject(new BackendUnavailable()); };
       upload.onabort = () =>
         reject(new DOMException("已取消上傳", "AbortError"));
       upload.onload = () => {
+        if (upload.status >= 500) { setBackendAvailable(false); reject(new BackendUnavailable()); return; }
+        setBackendAvailable(true);
         void readResponse<ChatFile>(
           new Response(upload.responseText, {
             status: upload.status,
@@ -393,3 +415,14 @@ const demoSubscriptions: Record<"gemini" | "kimi", Subscription> = {
   gemini: { loggedIn: false, account: "", plan: "", model: "" },
   kimi: { loggedIn: false, account: "", plan: "", model: "" },
 };
+
+function selectChannel(id: string | null) {
+  return queueSave(id ? `/api/api-presets/${encodeURIComponent(id)}/use` : "/api/subscriptions/codex/use", "POST", undefined, async () => {
+    const config = await localValue(api.getConfig);
+    const presets = await localValue(api.apiPresets);
+    return { updates: {
+      "/api/config": { ...config, channel: id ? { kind: "api", presetId: id } : { kind: "codex" } },
+      "/api/api-presets": { ...presets, activeId: id },
+    }, result: undefined };
+  });
+}

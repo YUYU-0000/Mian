@@ -1,4 +1,5 @@
 import type { VoiceClip, VoicePart } from "../../shared/voice.mjs";
+import { cachedFileUrl } from "./fileCache";
 
 type Playback = {
   id: string;
@@ -83,10 +84,15 @@ class VoicePlayer {
     this.seek(startAt);
   }
 
-  private startPart(playback: Playback, position: number) {
+  private async startPart(playback: Playback, position: number) {
     playback.seekTo = position;
+    this.audio!.pause();
     this.update({ playing: false, currentTime: playback.offset + position });
-    this.audio!.src = playback.parts[playback.index].url;
+    const index = playback.index;
+    const source = playback.parts[index].url;
+    const url = source.startsWith("/api/") ? await cachedFileUrl(source, playback.controller.signal) : source;
+    if (playback.index !== index) return;
+    this.audio!.src = url;
     return this.audio!.play();
   }
 

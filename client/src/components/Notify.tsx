@@ -9,6 +9,8 @@ import {
 import { createPortal } from "react-dom";
 import ScrollText from "./ScrollText";
 import "./notify.css";
+import { BackendUnavailable, OFFLINE_MESSAGE } from "../backend";
+import { onQueuedSave, recentlyQueuedSave } from "../offline";
 
 type Notice = { kind: "ok" | "note" | "fail"; title: string; reason: string; time: Date };
 const events = new EventTarget();
@@ -25,9 +27,10 @@ const reasonOf = (err: unknown) =>
       ? String(err.message || "")
       : "") || "沒有收到具體原因，可以稍後再試一次。";
 export const notify = {
-  ok: (title: string) => show("ok", title),
+  ok: (title: string) => recentlyQueuedSave() ? show("note", "先記下了，連上再存") : show("ok", title),
   note: (title: string) => show("note", title),
-  fail: (title: string, err?: unknown) => show("fail", title, reasonOf(err)),
+  fail: (title: string, err?: unknown) => err instanceof BackendUnavailable
+    ? show("note", OFFLINE_MESSAGE) : show("fail", title, reasonOf(err)),
 };
 
 export default function Notify({ page }: { page: string }) {
@@ -131,7 +134,9 @@ export default function Notify({ page }: { page: string }) {
       );
     };
     events.addEventListener("notice", receive);
+    const stopQueued = onQueuedSave(() => notify.note("先記下了，連上再存"));
     return () => {
+      stopQueued();
       events.removeEventListener("notice", receive);
       window.clearTimeout(timer.current);
       window.clearTimeout(busy.current);

@@ -30,6 +30,9 @@ export default function VoicePage({
   const ringId = useId();
   const page = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(preset);
+  useEffect(() => {
+    if (!page.current?.contains(document.activeElement)) setDraft(preset);
+  }, [preset]);
   const [pulled, setPulled] = useState(false);
   const [auditioning, setAuditioning] = useState(false);
   const [playing, setPlaying] = useState(false);

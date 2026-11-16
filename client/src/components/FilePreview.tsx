@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { api } from "../api";
+import { cachedFileUrl } from "../fileCache";
 import { pad2 } from "../format";
 import { fileLanguage, type PreviewKind } from "../filePreview";
 import { cacheLazyImport } from "../lazyImport";
@@ -36,7 +37,9 @@ export default function FilePreview({
     null,
   );
   const image = kind === "image";
-  const loaded = image ? photo !== null : kind === "pdf" || text !== null;
+  const [cachedUrl, setCachedUrl] = useState<string>();
+  const displayUrl = previewUrl ?? cachedUrl;
+  const loaded = image ? photo !== null : kind === "pdf" ? Boolean(displayUrl) : text !== null;
   const CodeHighlight = useMemo(
     () =>
       lazy(
@@ -64,13 +67,22 @@ export default function FilePreview({
     return () => controller.abort();
   }, [conversationId, file.id, image, kind, onClose]);
 
+  useEffect(() => {
+    if (previewUrl) return;
+    const controller = new AbortController();
+    void cachedFileUrl(api.fileUrl(conversationId, file.id), controller.signal).then(setCachedUrl).catch(error => {
+      if (!controller.signal.aborted) { notify.fail("文件讀取失敗", error); onClose(); }
+    });
+    return () => controller.abort();
+  }, [conversationId, file.id, previewUrl, onClose]);
+
   const date = new Date(file.createdAt);
   const label = image ? "IMAGE  圖片" : "FILE  檔案";
 
   return (
     <PaperPreview label={`${image ? "圖片" : "文件"}查看：${file.name}`} loaded={loaded}
       photo={image ? photo : undefined} onClose={onClose}
-      download={{ href: previewUrl ?? api.fileUrl(conversationId, file.id), name: file.name }}
+      download={{ href: displayUrl ?? api.fileUrl(conversationId, file.id), name: file.name }}
       footer={<>
         <div className="pv-info">
           {image && <>
@@ -83,7 +95,7 @@ export default function FilePreview({
       {image ? (
         <img
           className="pv-photo"
-          src={previewUrl ?? api.fileUrl(conversationId, file.id, true)}
+          src={displayUrl}
           referrerPolicy="no-referrer"
           alt={file.name}
           draggable={false}
@@ -110,7 +122,7 @@ export default function FilePreview({
               <iframe
                 className="pv-file-frame"
                 title={file.name}
-                src={api.fileUrl(conversationId, file.id, true)}
+                src={displayUrl}
               />
             ) : kind === "html" ? (
               text !== null && (

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { createPortal } from "react-dom";
 import { fitPhoto } from "../filePreview";
 import { notify } from "./Notify";
+import { cachedFileUrl } from "../fileCache";
 import { usePaperPreview } from "./usePaperPreview";
 import "./file-preview.css";
 
@@ -29,7 +30,10 @@ export default function PaperPreview({
   const downloadLink = useRef<HTMLAnchorElement>(null);
   const preview = usePaperPreview(ready, image, onClose, download ? async () => {
     try {
-      if (new URL(download.href, location.href).origin !== location.origin) {
+      if (download.href.startsWith("/api/")) {
+        downloadLink.current!.href = await cachedFileUrl(download.href);
+        downloadLink.current!.click();
+      } else if (new URL(download.href, location.href).origin !== location.origin) {
         const response = await fetch(download.href, { referrerPolicy: "no-referrer" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const url = URL.createObjectURL(await response.blob());

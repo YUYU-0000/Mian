@@ -72,18 +72,11 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     navigator.vibrate?.(10);
   };
   useEffect(() => {
-    void api
-      .fontPresets()
-      .then(setFonts)
-      .catch((error) => notify.fail("字體讀取失敗", error));
-    void api.voicePresets().then(saved => {
+    const stopFonts = api.fontPresets.watch(setFonts);
+    const stopVoices = api.voicePresets.watch(saved => {
       voiceSelection.current = saved.activeId;
       voice.show(saved.presets.findIndex(preset => preset.id === saved.activeId));
       setVoices(saved);
-    }).catch(error => {
-      voiceSelection.current = defaultVoicePreset.id;
-      setVoices({ presets: [{ ...defaultVoicePreset }], activeId: defaultVoicePreset.id });
-      notify.fail("語音讀取失敗", error);
     });
     const saved = JSON.parse(
       localStorage.getItem("launcher_settings") || "null",
@@ -91,6 +84,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
     if (saved?.cssVars)
       for (const [key, value] of Object.entries(saved.cssVars))
         root.current!.style.setProperty(key, String(value));
+    return () => { stopFonts(); stopVoices(); };
   }, []);
   useEffect(() => {
     const preset = voicePages[voice.index];

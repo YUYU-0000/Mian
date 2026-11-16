@@ -101,22 +101,38 @@ export default function Connections({
     const id = providers[subIndex].id;
     if (id !== "codex" && subscriptions[id].loaded) return;
     let active = true;
+    let stopQuota: (() => void) | undefined;
     const selection = modelSelection.current;
+    const stopStatus = api.watchSubStatus(id, status => {
+      const { model, ...account } = status;
+      patchSub(id, { ...account, loaded: true, ...(selection === modelSelection.current ? { model } : {}) });
+      if (status.loggedIn && !stopQuota) stopQuota = api.watchSubQuota(id, quota => patchSub(id, { quota }));
+    });
     void modelSave.current
       .then(() => api.subStatus(id))
       .then((status) => {
         if (!active) return;
         const { model, ...account } = status;
         patchSub(id, { ...account, loaded: true, ...(selection === modelSelection.current ? { model } : {}) });
-        if (status.loggedIn) void loadQuota(id);
+        if (status.loggedIn && id !== "codex") void loadQuota(id);
       })
       .catch((error) => {
         if (!active) return;
-        patchSub(id, { loaded: false });
-        notify.fail("狀態讀取失敗", error);
+        console.error(error);
       });
-    return () => { active = false; };
+    return () => { active = false; stopStatus(); stopQuota?.(); };
   }, [open, subIndex]);
+  useEffect(() => {
+    if (open !== "api") return;
+    return api.apiPresets.watch(data => {
+      const restored = restoreApiDrafts(sessionStorage, data.presets, data.activeId);
+      setPresets(restored.presets);
+      setPlus(restored.plus);
+      setActiveId(data.activeId);
+      setFocus(restored.focus);
+      setRevision(value => value + 1);
+    });
+  }, [open]);
   useLayoutEffect(() => {
     subStack.current = makeStack(subTrack.current!, setSubIndex);
     apiStack.current = makeStack(apiTrack.current!, (index) => {
@@ -163,22 +179,6 @@ export default function Connections({
     );
     document.body.style.overflow = "hidden";
     setOpen(which);
-    if (which === "api")
-      void api
-        .apiPresets()
-        .then((data) => {
-          const restored = restoreApiDrafts(
-            sessionStorage,
-            data.presets,
-            data.activeId,
-          );
-          setPresets(restored.presets);
-          setPlus(restored.plus);
-          setActiveId(data.activeId);
-          setFocus(restored.focus);
-          setRevision((value) => value + 1);
-        })
-        .catch((error) => notify.fail("預設讀取失敗", error));
   };
   function closeAll() {
     tagSession.current++;

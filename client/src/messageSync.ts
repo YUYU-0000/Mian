@@ -2,7 +2,7 @@ import { mergeUserGroups, type ChatGroup, type UserGroup } from "../../shared/ch
 
 export type MessageSnapshot = { groups: ChatGroup[]; exists: boolean; eventSeq: number; streamId: string };
 export type MessageApi = {
-  loadMessages: (id: string) => Promise<MessageSnapshot>;
+  loadMessages: (id: string, cached?: (snapshot: MessageSnapshot) => void) => Promise<MessageSnapshot>;
   saveMessages: (id: string, groups: ChatGroup[], initialize?: boolean) => Promise<MessageSnapshot>;
 };
 const OUTBOX_KEY = "mian.message-outbox.v1";
@@ -17,6 +17,7 @@ export class MessageSync {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private disposed = false;
   private reloadRequested = false;
+  private showedCache = false;
   initialized = false;
 
   constructor(
@@ -25,7 +26,7 @@ export class MessageSync {
     private readonly storage: Pick<Storage, "getItem" | "setItem">,
     private readonly api: MessageApi,
     private readonly start: () => void,
-    private readonly receive: (snapshot: MessageSnapshot) => void,
+    private readonly receive: (snapshot: MessageSnapshot, cached?: boolean) => void,
   ) {
     try { this.pending = JSON.parse(storage.getItem(OUTBOX_KEY) ?? "[]"); }
     catch { this.pending = []; }
@@ -58,12 +59,17 @@ export class MessageSync {
   }
 
   private async synchronize() {
-    let snapshot = await this.api.loadMessages(this.id);
+    let snapshot = await this.api.loadMessages(this.id, cached => {
+      if (this.showedCache || this.initialized || this.disposed) return;
+      this.showedCache = true;
+      this.receive({ ...cached, groups: mergeUserGroups(cached.groups, this.pending) }, true);
+    });
     if (!snapshot.exists && this.initial.length)
       snapshot = await this.api.saveMessages(this.id, this.initial, true);
     this.initialized = true;
     const batch = this.pending;
     if (batch.length) {
+      if (!this.disposed) this.receive({ ...snapshot, groups: mergeUserGroups(snapshot.groups, batch) }, true);
       snapshot = await this.api.saveMessages(this.id, batch);
       this.pending = this.pending.filter(group => !batch.includes(group));
       this.saveOutbox();
