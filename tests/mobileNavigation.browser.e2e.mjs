@@ -117,7 +117,7 @@ try {
     window.setKeyboard=(height,offset=0)=>{keyboardHeight=height;keyboardOffset=offset;if(testVK){testVK.boundingRect=height<844?new DOMRect(0,height,390,844-height):new DOMRect();testVK.dispatchEvent(new Event('geometrychange'))}else visualViewport.dispatchEvent(new Event('resize'))};
     window.screenRect=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y-visualViewport.offsetTop,width:r.width,height:r.height}};
     window.rect=selector=>screenRect(document.querySelector(selector));
-    window.paperEdge=selector=>{const paper=document.querySelector(selector);return Math.max(...[paper,...paper.querySelectorAll(':scope > .stack-bot,:scope > .stack-mid,:scope > .paper-layer-bot,:scope > .paper-layer-mid,:scope .security-panel')].filter(element=>element.getBoundingClientRect().height>0).map(element=>{const r=screenRect(element);return r.y+r.height}))};
+    window.paperEdge=selector=>{const paper=document.querySelector(selector);return Math.max(...[paper,...paper.querySelectorAll(':scope > .stack-bot,:scope > .stack-mid,:scope > .paper-layer-bot,:scope > .paper-layer-mid')].map(element=>{const r=screenRect(element);return r.y+r.height}))};
     window.keyboardBackground=()=>Array.from(document.querySelectorAll('.connections-page,.settings-page,.clues-page,.settings-header,.connections-page .envelope,.settings-page .folders-container,.clues-page .head,.clues-page .wall,.ticket-drawer .strip-col'),screenRect);
     window.paperFrames=selector=>new Promise(resolve=>{const frames=[],start=performance.now();const sample=()=>{frames.push(rect(selector).y);if(performance.now()-start<260)requestAnimationFrame(sample);else resolve(frames)};requestAnimationFrame(sample)});`;
   await evaluate(geometryHelpers);
@@ -236,27 +236,6 @@ try {
   assert.equal(await evaluate(`document.activeElement===document.querySelector('.vc-page.current .vc-key')`), true, 'show toggle does not blur and save away the token');
   await click('#paperOverlay'); await sleep(600); await click('#folderApiSettings'); await sleep(650);
   await keyboard('.paper-stack-container', '.api-page .api-postcard-form .api-field-row:nth-child(2) input');
-  await click('#paperOverlay'); await sleep(600); await click('#folderStorageSettings'); await sleep(650); await click('.st-security'); await sleep(650);
-  await click('.security-panel form > label:nth-child(2)');
-  assert.equal(await evaluate(`document.activeElement===document.querySelector('.security-panel form > label:nth-child(2) input') && focusCalls.at(-1).preventScroll`),true,'label activation focuses its field without scrolling');
-  for (const n of [1,2,3]) await keyboard('.paper-stack-container', `.security-panel form > label:nth-child(${n}) input`);
-  const nativeScroll = await evaluate(`(async()=>{
-    const panel=document.querySelector('.security-panel'), input=panel.querySelector('form > label:nth-child(3) input');
-    const top=panel.scrollTop;
-    input.focus({preventScroll:true});setKeyboard(480);
-    await new Promise(resolve=>setTimeout(resolve,300));
-    panel.scrollTop=top+24;
-    const attempted=panel.scrollTop;
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    const restored=panel.scrollTop;
-    setKeyboard(844);input.blur();
-    await new Promise(resolve=>setTimeout(resolve,300));
-    return {top,attempted,restored};
-  })()`);
-  assert.ok(nativeScroll.attempted>nativeScroll.top, 'security form exercises a real scrollable ancestor');
-  assert.equal(nativeScroll.restored,nativeScroll.top,'browser focus scrolling cannot slide contents inside the lifted paper');
-  await click('.security-panel .password-toggle');
-  assert.equal(await evaluate(`document.querySelector('.security-panel .password-field input').type`), 'text');
   await click('#paperOverlay'); await click('#headerBackBtn'); await route('/'); await checkHome();
 
   await evaluate(`(async()=>{const wall=await (await fetch('/api/clues')).json();wall.cards=[{

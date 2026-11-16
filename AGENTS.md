@@ -34,7 +34,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - `server/src/chatFiles.ts`、`workspaceFiles.ts`、`fileRoutes.ts`：聊天附件存储、Codex 工作目录文件捕获和文件读取下载。
 - `server/src/voicePresets.ts`、`elevenLabs.ts`、`voiceGeneration.ts`、`voiceReplies.ts`、`voiceWaveform.ts`：语音预设、ElevenLabs 调用、生成缓存、回复音频和波形。
 - `server/src/config.ts`、`apiPresets.ts`、`connections.ts`、`settingsRoutes.ts`：服务器配置、API 预设、连接管理和备份导入导出。
-- `server/src/auth.ts`、`client/src/AuthGate.tsx`、`pages/SettingsSecurity.tsx`：登录、会话、门锁设置与退出所有设备。
+- `server/src/auth.ts`、`client/src/AuthGate.tsx`：登录、会话与服务端门锁接口。
 - `server/src/codexSecurity.ts`、`scripts/check-codex-sandbox.mjs`：Codex 权限和实际隔离检查。
 - `shared/deployment.mjs`、`scripts/service.mjs`、`control.mjs`、`launch.mjs`：跨平台部署配置、后台运行、重启和本机控制通道。
 - `scripts/backup.mjs`、`windows-task.ps1`、`install-windows-tasks.ps1`、`tunnel.mjs`：每日备份、Windows 任务计划和隧道启动；运行日志与控制文件在 `.mian-runtime/`，不进 Git。
@@ -70,6 +70,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 
 ## 五、常见坑
 
+- 门锁界面已暂时从档案馆移除；服务器的修改密码、退出所有设备及本机/局域网免登录设置接口仍保留，后续重新设计界面时再接回。
 - 键盘布局统一用 `appViewport.ts` 的 `--app-h`，只在初次加载及宽度/方向变化时重新测量；html/body 固定且不可滚动。`keyboardViewport.ts` 优先用 VirtualKeyboard 的 overlaysContent/geometrychange，没有该接口才使用 visualViewport；视口 offsetTop 在事件当帧用根节点平移抵消，不能给这层加动画。纸片与聊天输入栏共用这份键盘几何，不再各自读取视口造成双重位移。
 - 输入框和 label 的聚焦由 `inputFocus.ts` 接管，统一用 `focus({ preventScroll: true })`；程序聚焦也显式传这个参数，不用 autoFocus。只在当前纸片容器标记 `data-keyboard-surface`，不要包住背景、标题或其他纸片；登录页只移动包住横线和 SINCE 的 `auth-entry`。纸片未被挡住时不动，被挡住时底边停在键盘上方 6px；纸片过高会把字段顶出屏幕时才改按字段避让。`keyboard.ts` 扣除根节点抵消后计算目标，上移、回落、切换字段均用 200ms ease-out 接续当前位移，不回弹；不用 scrollIntoView、内部滚动或垫高层对齐。聊天输入栏继续跟随键盘。
 - 键盘避让的底边取纸片和可见子元素的包围盒并集，隐藏纸页、透明分支及滚动区裁掉的内容不计入。伪元素伸出并集之外的下沿用纸片上的 `--keyboard-extra` 声明像素值；实际垫纸节点会自动计入，不要再把同一段偏移填进变量重复计算。连接中心和档案馆的纸堆目前没有额外伪元素下沿，变量为 0px；线索编辑页的伪元素是纸内边框，无需声明。
