@@ -300,7 +300,6 @@ export default memo(function TicketDrawer({
       >
         <div
           className="ticket-workspace"
-          data-keyboard-surface
           onTransitionEnd={(event) => {
             if (
               event.currentTarget !== event.target ||
@@ -359,7 +358,7 @@ export default memo(function TicketDrawer({
               ))}
             </div>
           </div>
-          <div className="ticket-builder-area">
+          <div className="ticket-builder-area" data-keyboard-surface>
             <div className={`ticket-flipper ${flipped ? "flipped" : ""}`}>
               <div
                 className="ticket-face front"
