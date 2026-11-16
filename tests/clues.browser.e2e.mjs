@@ -4,6 +4,7 @@ import { once } from "node:events";
 import path from "node:path";
 import { WebSocket } from "ws";
 import { fileTicketServer } from "./fileTickets.server.mjs";
+import { testWallOverscroll } from "./clueWallOverscroll.browser.mjs";
 
 const backend = await fileTicketServer();
 const browser = spawn(
@@ -174,6 +175,7 @@ try {
   });
   await call("Page.navigate", { url: backend.base });
   await visible('.home-app-icon[aria-label="線索"]');
+  await waitFor(() => evaluate("!document.querySelector('.auth-page')"), "开门动画结束");
   await click('.home-app-icon[aria-label="線索"]');
   await waitFor(
     () =>
@@ -182,6 +184,7 @@ try {
       ),
     "線索墙入口",
   );
+  await testWallOverscroll({ call, evaluate, waitFor, click, point, mouse });
   assert.equal(
     await evaluate("document.querySelector('.right-decor').textContent"),
     "CLUE WALL線索",
@@ -378,12 +381,13 @@ try {
   );
   await clearEdit();
 
-  // 失败保留草稿；撕掉必须确认两次并删除所属图钉。
+  // 服务端拒绝保存时保留草稿；500 属于离线排队，不再是页面报错。
+  // 撕掉必须确认两次并删除所属图钉。
   await tap(first);
   await visible(".sw.show");
   await fill("title", "保存失敗的草稿");
   await evaluate(
-    `window.originalFetch=window.fetch;window.fetch=(url,init)=>url==='/api/clues' && init?.method==='PUT'?Promise.resolve(new Response(JSON.stringify({error:'測試失敗'}),{status:500,headers:{'Content-Type':'application/json'}})):window.originalFetch(url,init)`,
+    `window.originalFetch=window.fetch;window.fetch=(url,init)=>url==='/api/clues' && init?.method==='PUT'?Promise.resolve(new Response(JSON.stringify({error:'測試失敗'}),{status:400,headers:{'Content-Type':'application/json'}})):window.originalFetch(url,init)`,
   );
   await click(".done");
   await waitFor(
@@ -418,6 +422,7 @@ try {
   assert.deepEqual(backup.clues, data);
   await call("Page.reload");
   await visible(".portrait");
+  await waitFor(() => evaluate("!document.querySelector('.auth-page')"), "刷新后开门动画结束");
   await waitFor(
     () => evaluate("document.querySelectorAll('.item.card').length===8"),
     "刷新恢复墙面",

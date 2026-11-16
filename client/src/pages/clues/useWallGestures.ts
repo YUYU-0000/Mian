@@ -39,6 +39,7 @@ type Props = {
   update: (change: (wall: ClueWall) => ClueWall) => ClueWall;
   persist: () => Promise<unknown>;
   open: (card: Clue) => void;
+  beforeStart: () => void;
 };
 
 export function useWallGestures({
@@ -53,6 +54,7 @@ export function useWallGestures({
   update,
   persist,
   open,
+  beforeStart,
 }: Props) {
   const gesture = useRef<Gesture | null>(null);
   const tapped = useRef<string | null>(null);
@@ -100,6 +102,7 @@ export function useWallGestures({
     kind: Gesture["kind"],
     id: string,
   ) => {
+    beforeStart();
     event.stopPropagation();
     tapped.current = null;
     event.currentTarget.setPointerCapture(event.pointerId);

@@ -15,6 +15,7 @@ import ClueEnvelope from "./clues/ClueEnvelope";
 import ClueSheet from "./clues/ClueSheet";
 import { useClueWall } from "./clues/useClueWall";
 import { useWallGestures } from "./clues/useWallGestures";
+import { useWallOverscroll } from "./clues/useWallOverscroll";
 import { fitItem, pinPosition, wallItem } from "./clues/clueGeometry";
 import "./clues.css";
 
@@ -22,6 +23,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
   const root = useRef<HTMLElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
+  const stopOverscroll = useWallOverscroll(scroll, board);
   const [size, setSize] = useState({ width: 390, height: 844 });
   const [raised, setRaised] = useState<string[]>([]);
   const [card, setCard] = useState<Clue | null>(null);
@@ -51,6 +53,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
     update,
     persist,
     open: setCard,
+    beforeStart: stopOverscroll,
   });
 
   useLayoutEffect(() => {
@@ -139,133 +142,134 @@ export default function Clues({ onBack }: { onBack: () => void }) {
       onPointerCancel={(event) => gestures.finish(event, true)}
     >
       <div className="wall" ref={scroll}>
-        <div
-          className="board"
-          ref={board}
-          style={{ height: boardHeight }}
-          onPointerDown={(event) => {
-            if (!(event.target as Element).closest(".item,.pin"))
-              gestures.setEditing(null);
-          }}
-        >
-          <div className="items">
-            {wall &&
-              layers.map((id) => {
-                const item = wallItem(wall, id),
-                  portrait = id === PORTRAIT_ID;
+        <div className="wall-space" style={{ height: boardHeight }}>
+          <div
+            className="board"
+            ref={board}
+            onPointerDown={(event) => {
+              if (!(event.target as Element).closest(".item,.pin"))
+                gestures.setEditing(null);
+            }}
+          >
+            <div className="items">
+              {wall &&
+                layers.map((id) => {
+                  const item = wallItem(wall, id),
+                    portrait = id === PORTRAIT_ID;
+                  return (
+                    <div
+                      key={id}
+                      className={`item ${portrait ? "portrait" : "card"}${gestures.editing === id ? " edit" : ""}${landed === id ? " land" : ""}`}
+                      data-id={id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={portrait ? "彼方肖像" : (item as Clue).title}
+                      style={
+                        {
+                          left: item.x,
+                          top: item.y,
+                          width: item.w,
+                          height: item.h,
+                          transform: `rotate(${item.r}deg)`,
+                          "--r": `${item.r}deg`,
+                        } as CSSProperties
+                      }
+                      onPointerDownCapture={() => gestures.prepareClick(id)}
+                      onPointerDown={(event) => gestures.start(event, "item", id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        gestures.activate(id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !portrait)
+                          setCard(item as Clue);
+                      }}
+                      onAnimationEnd={() => {
+                        if (landed === id) setLanded(null);
+                      }}
+                    >
+                      <div className="in">
+                        {portrait ? (
+                          <>
+                            <div className="ph" />
+                            <PortraitCaption width={item.w} height={item.h} />
+                          </>
+                        ) : (
+                          <CluePaper
+                            card={item as Clue}
+                            width={item.w}
+                            height={item.h}
+                          />
+                        )}
+                      </div>
+                      <div
+                        className="rotate-handle"
+                        role="button"
+                        aria-label="旋轉"
+                        onPointerDown={(event) =>
+                          gestures.start(event, "rotate", id)
+                        }
+                      />
+                      <div
+                        className="handle"
+                        aria-label="調整大小"
+                        onPointerDown={(event) =>
+                          gestures.start(event, "resize", id)
+                        }
+                      />
+                    </div>
+                  );
+                })}
+            </div>
+            <svg className="threads" aria-hidden="true">
+              {wall?.threads.map((thread) => {
+                const a = positions.get(thread.from),
+                  b = positions.get(thread.to);
+                if (!a || !b) return null;
+                const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+                const mx = (a[0] + b[0]) / 2,
+                  my = (a[1] + b[1]) / 2 + Math.min(12, length * 0.035);
+                return (
+                  <g key={`${thread.from}:${thread.to}`}>
+                    <path
+                      d={`M${a[0]} ${a[1]} Q${mx} ${my} ${b[0]} ${b[1]}`}
+                      fill="none"
+                      stroke="var(--thread)"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d={`M${a[0] + 0.7} ${a[1] + 0.5} Q${mx + 0.7} ${my + 0.8} ${b[0] + 0.7} ${b[1] + 0.5}`}
+                      fill="none"
+                      stroke="var(--thread)"
+                      strokeWidth=".6"
+                      strokeOpacity=".55"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+            <div className="pins">
+              {wall?.pins.map((pin) => {
+                const [x, y] = positions.get(pin.id)!;
                 return (
                   <div
-                    key={id}
-                    className={`item ${portrait ? "portrait" : "card"}${gestures.editing === id ? " edit" : ""}${landed === id ? " land" : ""}`}
-                    data-id={id}
+                    key={pin.id}
+                    data-pin={pin.id}
+                    className={`pin${gestures.selected === pin.id ? " sel" : ""}${gestures.pressed === pin.id ? " press" : ""}${gestures.removing === pin.id ? " out" : ""}`}
+                    style={{ left: x, top: y }}
                     role="button"
-                    tabIndex={0}
-                    aria-label={portrait ? "彼方肖像" : (item as Clue).title}
-                    style={
-                      {
-                        left: item.x,
-                        top: item.y,
-                        width: item.w,
-                        height: item.h,
-                        transform: `rotate(${item.r}deg)`,
-                        "--r": `${item.r}deg`,
-                      } as CSSProperties
+                    aria-label="圖釘"
+                    onPointerDown={(event) =>
+                      gestures.start(event, "pin", pin.id)
                     }
-                    onPointerDownCapture={() => gestures.prepareClick(id)}
-                    onPointerDown={(event) => gestures.start(event, "item", id)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      gestures.activate(id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !portrait)
-                        setCard(item as Clue);
-                    }}
-                    onAnimationEnd={() => {
-                      if (landed === id) setLanded(null);
-                    }}
                   >
-                    <div className="in">
-                      {portrait ? (
-                        <>
-                          <div className="ph" />
-                          <PortraitCaption width={item.w} height={item.h} />
-                        </>
-                      ) : (
-                        <CluePaper
-                          card={item as Clue}
-                          width={item.w}
-                          height={item.h}
-                        />
-                      )}
-                    </div>
-                    <div
-                      className="rotate-handle"
-                      role="button"
-                      aria-label="旋轉"
-                      onPointerDown={(event) =>
-                        gestures.start(event, "rotate", id)
-                      }
-                    />
-                    <div
-                      className="handle"
-                      aria-label="調整大小"
-                      onPointerDown={(event) =>
-                        gestures.start(event, "resize", id)
-                      }
-                    />
+                    <svg aria-hidden="true">
+                      <circle className="prog" cx="12" cy="12" r="7.6" />
+                    </svg>
                   </div>
                 );
               })}
-          </div>
-          <svg className="threads" aria-hidden="true">
-            {wall?.threads.map((thread) => {
-              const a = positions.get(thread.from),
-                b = positions.get(thread.to);
-              if (!a || !b) return null;
-              const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-              const mx = (a[0] + b[0]) / 2,
-                my = (a[1] + b[1]) / 2 + Math.min(12, length * 0.035);
-              return (
-                <g key={`${thread.from}:${thread.to}`}>
-                  <path
-                    d={`M${a[0]} ${a[1]} Q${mx} ${my} ${b[0]} ${b[1]}`}
-                    fill="none"
-                    stroke="var(--thread)"
-                    strokeWidth="1"
-                  />
-                  <path
-                    d={`M${a[0] + 0.7} ${a[1] + 0.5} Q${mx + 0.7} ${my + 0.8} ${b[0] + 0.7} ${b[1] + 0.5}`}
-                    fill="none"
-                    stroke="var(--thread)"
-                    strokeWidth=".6"
-                    strokeOpacity=".55"
-                  />
-                </g>
-              );
-            })}
-          </svg>
-          <div className="pins">
-            {wall?.pins.map((pin) => {
-              const [x, y] = positions.get(pin.id)!;
-              return (
-                <div
-                  key={pin.id}
-                  data-pin={pin.id}
-                  className={`pin${gestures.selected === pin.id ? " sel" : ""}${gestures.pressed === pin.id ? " press" : ""}${gestures.removing === pin.id ? " out" : ""}`}
-                  style={{ left: x, top: y }}
-                  role="button"
-                  aria-label="圖釘"
-                  onPointerDown={(event) =>
-                    gestures.start(event, "pin", pin.id)
-                  }
-                >
-                  <svg aria-hidden="true">
-                    <circle className="prog" cx="12" cy="12" r="7.6" />
-                  </svg>
-                </div>
-              );
-            })}
+            </div>
           </div>
         </div>
       </div>
@@ -273,13 +277,14 @@ export default function Clues({ onBack }: { onBack: () => void }) {
       <div className="head">
         <div
           className="back-btn clues-back"
-          onClick={onBack}
+          onClick={() => { stopOverscroll(); onBack(); }}
           role="button"
           tabIndex={0}
           aria-label="返回主界面"
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
+              stopOverscroll();
               onBack();
             }
           }}
@@ -317,7 +322,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
       <ClueEnvelope
         scale={openScale}
         ready={loaded}
-        onOpen={() => gestures.setEditing(null)}
+        onOpen={() => { stopOverscroll(); gestures.setEditing(null); }}
         onChoose={choose}
       />
       {gestures.ghost && (
