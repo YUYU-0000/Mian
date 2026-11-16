@@ -1,3 +1,4 @@
+// 通过本机控制通道向守护进程发送启动、暂停、状态或备份命令。
 import { createConnection } from "node:net";
 import { readFile } from "node:fs/promises";
 import path from "node:path";

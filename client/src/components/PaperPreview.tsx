@@ -1,3 +1,4 @@
+// 提供纸片预览容器，协调内容显示、关闭手势和窗口尺寸。
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { fitPhoto } from "../filePreview";
@@ -20,8 +21,8 @@ export default function PaperPreview({
   children: ReactNode;
   footer: ReactNode;
   loaded?: boolean;
-  photo?: { width: number; height: number } | null;
-  download?: { href: string; name: string };
+  photo?: { width: number; height: number; } | null;
+  download?: { href: string; name: string; };
   onClose: () => void;
 }) {
   const image = photo !== undefined;
@@ -66,7 +67,7 @@ export default function PaperPreview({
     // 隐藏链接继续标记原有预览下边界，文件和台词使用同一张相纸。
     setAvailableHeight(Math.min(viewport.height * 0.6,
       2 * (downloadLink.current!.getBoundingClientRect().top - bounds.top - bounds.height / 2 - padding - overhang)
-        - padding - footer.offsetHeight));
+      - padding - footer.offsetHeight));
   }, [loaded, viewport.width, viewport.height]);
 
   useEffect(() => onAppResize(() => setViewport(getAppViewport())), []);

@@ -1,3 +1,4 @@
+// 管理密码、登录会话和限流，统一保护 HTTP 接口与 WebSocket。
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import type { IncomingMessage, Server } from "node:http";
@@ -50,9 +51,9 @@ const digest = (token: string) => createHash("sha256").update(token).digest("hex
 const passwordHash = (password: string, salt: string) => new Promise<Buffer>((resolve, reject) =>
   scrypt(password, salt, 64, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 }, (error, key) => error ? reject(error) : resolve(key)));
 type AuthData = {
-  password?: { salt: string; hash: string };
+  password?: { salt: string; hash: string; };
   localBypass: boolean;
-  sessions: { hash: string; expiresAt: number }[];
+  sessions: { hash: string; expiresAt: number; }[];
   failures: number;
   lockedUntil: number;
 };
@@ -64,7 +65,7 @@ export class Auth {
   private data: AuthData = { localBypass: true, sessions: [], failures: 0, lockedUntil: 0 };
   private writes: Promise<unknown> = Promise.resolve();
   private readonly listeners = new Set<() => void>();
-  constructor(private readonly file = path.join(dataDirectory, "auth.json"), private readonly now = Date.now) {}
+  constructor(private readonly file = path.join(dataDirectory, "auth.json"), private readonly now = Date.now) { }
 
   async load() {
     try { this.data = JSON.parse(await readFile(this.file, "utf8")); }
@@ -80,7 +81,9 @@ export class Auth {
   private changed() { for (const listener of this.listeners) listener(); }
   private session(request: IncomingMessage) {
     const token = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
-    return token ? this.data.sessions.find(session => session.hash === digest(token) && session.expiresAt > this.now()) : undefined;
+    if (!token) return;
+    const hash = digest(token);
+    return this.data.sessions.find(session => session.hash === hash && session.expiresAt > this.now());
   }
   authenticated(request: IncomingMessage) {
     return !!this.data.password && ((this.data.localBypass && isLocalRequest(request)) || !!this.session(request));
@@ -141,7 +144,7 @@ export class Auth {
     });
     const action = (operation: (request: import("express").Request, response: Response) => Promise<unknown>): RequestHandler => (request, response, next) => {
       // 串行验证，连续提交也计入同一把锁；密码与会话一起落盘。
-      const result = this.writes.catch(() => {}).then(() => operation(request, response));
+      const result = this.writes.catch(() => { }).then(() => operation(request, response));
       this.writes = result;
       void result.catch(error => {
         if (error instanceof AuthError) {

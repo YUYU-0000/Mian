@@ -1,3 +1,4 @@
+// 验证连接预设、模型和额度接口，使用本地模拟服务商。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -20,9 +21,9 @@ test("connection routes persist presets, use provider credentials, and read Code
   let quotaResponse: unknown = { rateLimits: { primary, secondary }, rateLimitsByLimitId: null };
   let quotaError: Error | null = null;
   const bridge = {
-    connect: async () => {},
+    connect: async () => { },
     readAccount: async () => ({ loggedIn: true, account: "test@example.com", plan: "plus" }),
-    request: async (method: string, params: { cursor?: string }) => {
+    request: async (method: string, params: { cursor?: string; }) => {
       calls.push(method);
       if (method === "account/rateLimits/read") {
         assert.equal(params, undefined);

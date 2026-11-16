@@ -1,4 +1,7 @@
+/* 定义文件与图片预览纸片的布局、滚动和加载状态。 */
+
 /* 拍立得沿用设计稿，局部恢复字体和盒模型。 */
+
 .pv-viewer {
   --ink: #3b4d5a;
   --muted: #72828e;
@@ -18,6 +21,7 @@
   background: transparent;
   font-family: "LXGW Heart Serif", serif;
 }
+
 .pv-viewer,
 .pv,
 .pv *,
@@ -26,14 +30,17 @@
 .pv-mask {
   box-sizing: content-box;
 }
+
 .pv-viewer::backdrop {
   background: transparent;
 }
+
 .pv-mask {
   position: fixed;
   inset: 0;
   background: rgba(59, 77, 90, 0.42);
 }
+
 .pv {
   position: fixed;
   left: 50%;
@@ -41,32 +48,37 @@
   width: fit-content;
   transform: translate(-50%, -50%);
 }
+
 /* 两张底纸。 */
+
 .pv-under {
   position: absolute;
   inset: 0;
   border-radius: 1px;
   background-image: var(--grain);
 }
+
 .pv-under.a {
   background-color: #5f7789;
   transform: translate(-14px, 10px) rotate(-5deg);
 }
+
 .pv-under.b {
   background-color: #7f95a5;
   transform: translate(10px, 14px) rotate(3.5deg);
 }
+
 .pv-card {
   position: relative;
   background: #fbfaf6;
   background-image: var(--grain);
   padding: 16px 16px 0;
   border-radius: 1px;
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.06),
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06),
     0 10px 24px rgba(30, 40, 50, 0.22);
   transform: rotate(-1.2deg);
 }
+
 .pv-photo {
   display: block;
   max-width: calc(78vw - 32px);
@@ -82,7 +94,9 @@
   );
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
+
 /* 相纸底部白边。 */
+
 .pv-foot {
   width: var(--w);
   max-width: calc(78vw - 32px);
@@ -92,15 +106,18 @@
   align-items: flex-end;
   padding: 14px 2px 16px;
 }
+
 .pv-info {
   min-width: 0;
   flex: 1;
   margin-right: 12px;
 }
+
 .pv-kicker,
 .pv-name {
   font-family: "ZSFT-br", "LXGW Heart Serif", serif;
 }
+
 .pv-kicker {
   white-space: pre;
   font-weight: 500;
@@ -108,6 +125,7 @@
   letter-spacing: 2.2px;
   color: var(--muted);
 }
+
 .pv-name {
   margin-top: 4px;
   font-size: 12px;
@@ -120,6 +138,7 @@
   -webkit-mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
   mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
 }
+
 .pv-hand {
   flex-shrink: 0;
   font-family: "ZSFT-l", cursive;
@@ -130,7 +149,9 @@
   transform: rotate(-6deg);
   margin-bottom: -2px;
 }
+
 /* 下载链接不展示，行高保留原有预览下边界。 */
+
 .pv-download {
   position: fixed;
   bottom: calc(20% + env(safe-area-inset-bottom));
@@ -140,9 +161,11 @@
 }
 
 /* 拖动层与设计稿的固定旋转分开。 */
+
 .pv:not(.is-ready) {
   visibility: hidden;
 }
+
 .pv-motion {
   position: relative;
   will-change: transform, opacity;
@@ -151,26 +174,31 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
 .pv.is-image,
 .pv-foot,
 .pv-under,
 .pv-file-head {
   touch-action: none;
 }
+
 img.pv-photo {
   height: auto;
   object-fit: contain;
   user-select: none;
 }
+
 .pv-name:not(.is-overflowing) {
   mask: none;
   -webkit-mask: none;
 }
+
 .pv-name::-webkit-scrollbar {
   display: none;
 }
 
 /* 文件用信纸替换照片，保留白边和底部日期。 */
+
 .pv-document {
   display: flex;
   flex-direction: column;
@@ -178,20 +206,24 @@ img.pv-photo {
   background: #fbfaf6;
   max-height: var(--preview-height);
 }
+
 .pv-file-head {
   flex-shrink: 0;
   padding: 12px;
 }
+
 .pv-file-content {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
   touch-action: pan-x pan-y;
 }
+
 .pv-source.reply-code {
   all: unset;
   display: contents;
 }
+
 .pv-document .pv-source pre {
   width: max-content;
   min-width: 100%;
@@ -202,36 +234,39 @@ img.pv-photo {
   overflow: visible;
   white-space: pre;
 }
+
 .pv-document .pv-source pre,
 .pv-document .pv-source code {
-  font:
-    12px/1.5 ui-monospace,
+  font: 12px/1.5 ui-monospace,
     "SF Mono",
     Consolas,
     "LXGW Heart Serif",
     monospace;
   color: var(--ink);
 }
+
 .pv-markdown {
   padding: 0 12px 12px;
-  font:
-    14.5px/1.45 "ZSFT-br",
+  font: 14.5px/1.45 "ZSFT-br",
     "LXGW Heart Serif",
     serif;
   letter-spacing: 1px;
 }
+
 .pv-markdown .reply-markdown {
-  --rm-mono:
-    ui-monospace, "SF Mono", "Cascadia Code", Consolas, "LXGW Heart Serif",
+  --rm-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "LXGW Heart Serif",
     monospace;
 }
+
 .pv-document:has(.pv-file-frame) {
   height: calc(var(--app-h, 100svh) * .6);
 }
+
 .pv-document:has(.pv-file-frame) .pv-file-content {
   flex: 1;
   overflow: hidden;
 }
+
 .pv-file-frame {
   display: block;
   width: 100%;

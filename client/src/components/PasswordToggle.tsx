@@ -1,3 +1,4 @@
+// 复用 SHOW / HIDE 按钮及文字过渡，保持输入框的聚焦状态。
 import AnimatedText from "./AnimatedText";
 import "./password-toggle.css";
 

@@ -1,3 +1,4 @@
+// 验证 Codex 工具事件的解析、权限处理和会话归属。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CodexBridge } from "../server/src/codex.ts";

@@ -1,10 +1,11 @@
+// 读取、保存和选择语音预设，沿用现有文件结构与默认值。
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { dataDirectory } from "./config.js";
 import { defaultVoicePreset, type VoicePreset } from "../../shared/voice.mjs";
 
-export type SavedVoicePreset = Omit<VoicePreset, "hasKey"> & { key: string };
-type VoicePresets = { presets: SavedVoicePreset[]; activeId: string };
+export type SavedVoicePreset = Omit<VoicePreset, "hasKey"> & { key: string; };
+type VoicePresets = { presets: SavedVoicePreset[]; activeId: string; };
 const file = path.join(dataDirectory, "voice-presets.json");
 
 export async function readVoicePresets(): Promise<VoicePresets> {

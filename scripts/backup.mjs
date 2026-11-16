@@ -1,3 +1,4 @@
+// 暂停服务后完整复制数据，按日期保留最近十四天的自动备份。
 import { cp, mkdir, mkdtemp, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";

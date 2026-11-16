@@ -1,3 +1,4 @@
+// 组织聊天票根抽屉、分支会话操作和纸片切换。
 import MiniTicket from "./MiniTicket";
 import {
   memo,
@@ -88,8 +89,8 @@ export default memo(function TicketDrawer({
         conversations.find(
           (item) => item.conversationId === activeConversationId,
         )?.conversationId ??
-          conversations[0]?.conversationId ??
-          "",
+        conversations[0]?.conversationId ??
+        "",
       );
   }, [activeConversationId, conversations, previewId]);
 

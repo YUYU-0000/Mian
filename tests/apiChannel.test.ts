@@ -1,9 +1,11 @@
+// 验证 API 通道的流式回复、事件归属和失败处理，使用隔离数据。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { WebSocket } from "ws";
@@ -15,7 +17,7 @@ test(
   { timeout: 30_000 },
   async () => {
     const workspace = process.cwd();
-    const directory = await mkdtemp(path.join(workspace, ".tmp-api-channel-"));
+    const directory = await mkdtemp(path.join(tmpdir(), "mian-api-channel-"));
     const received: any[] = [];
     let providerStopped: () => void;
     const providerClosed = new Promise<void>((resolve) => {
@@ -90,7 +92,13 @@ test(
       ],
       {
         cwd: directory,
-        env: { ...process.env, MIAN_DATA_DIR: path.join(directory, "server/data"), MIAN_WORKSPACE_DIR: path.join(directory, "workspace") },
+        env: {
+          ...process.env,
+          MIAN_DATA_DIR: path.join(directory, "server/data"),
+          MIAN_WORKSPACE_DIR: path.join(directory, "workspace"),
+          MIAN_PORT: "8787",
+          MIAN_HOST: "127.0.0.1",
+        },
         windowsHide: true,
         stdio: ["ignore", "ignore", "pipe", "ipc"],
       },
@@ -102,7 +110,7 @@ test(
     let socket: WebSocket | undefined;
     try {
       const [{ port }] = await Promise.race([
-        once(backend, "message") as Promise<[{ port: number }]>,
+        once(backend, "message") as Promise<[{ port: number; }]>,
         once(backend, "exit").then(() => {
           throw new Error(logs || "Backend exited before listening");
         }),
@@ -259,17 +267,19 @@ test(
       );
     } finally {
       socket?.close();
-      const exited = once(backend, "exit");
-      if (process.platform === "win32")
-        spawnSync("taskkill.exe", ["/PID", String(backend.pid), "/T", "/F"], {
-          windowsHide: true,
-          stdio: "ignore",
-        });
-      else backend.kill("SIGKILL");
-      await exited;
+      if (backend.exitCode === null && backend.signalCode === null) {
+        const exited = once(backend, "exit");
+        if (process.platform === "win32")
+          spawnSync("taskkill.exe", ["/PID", String(backend.pid), "/T", "/F"], {
+            windowsHide: true,
+            stdio: "ignore",
+          });
+        else backend.kill("SIGKILL");
+        await exited;
+      }
       provider.closeAllConnections();
       await new Promise<void>((resolve) => provider.close(() => resolve()));
-      assert.equal(path.dirname(directory), workspace);
+      assert.equal(path.dirname(directory), tmpdir());
       await rm(directory, { recursive: true });
     }
   },

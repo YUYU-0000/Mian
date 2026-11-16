@@ -1,3 +1,4 @@
+// 固定 Codex 的工作区与工具权限，生成不经过 shell 的启动参数。
 import path from "node:path";
 import type { AppConfig } from "./types.js";
 

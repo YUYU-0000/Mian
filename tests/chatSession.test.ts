@@ -1,3 +1,4 @@
+// 验证会话发送、占位绑定、实时事件顺序和历史同步。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatSessionStore } from "../client/src/chatSession.ts";
@@ -19,7 +20,7 @@ class MemoryStorage {
 function fakePlaybackClock() {
   let now = 0;
   let nextId = 1;
-  const jobs = new Map<number, { at: number; callback: () => void }>();
+  const jobs = new Map<number, { at: number; callback: () => void; }>();
   return {
     now: () => now,
     schedule: (callback: () => void, delay: number) => {
@@ -140,7 +141,7 @@ test("route unmount does not own or interrupt the active turn", async () => {
     storage,
     apiClient: {
       send: async () => ({ turnId: "unused" }),
-      stop: async () => {},
+      stop: async () => { },
     },
     nowLabel: () => "10:20",
     nowMs: clock.now,
@@ -186,7 +187,7 @@ test("legacy single-conversation history migrates into default C-01", () => {
 
 test("conversation stores persist and send independently", async () => {
   const storage = new MemoryStorage();
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const apiClient = {
     send: async (text: string, conversationId?: string) => {
       sends.push({ text, conversationId });
@@ -216,7 +217,7 @@ test("conversation stores persist and send independently", async () => {
 
 test("a fresh blank conversation keeps its first message and starts its own turn", async () => {
   const storage = new MemoryStorage();
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const store = new ChatSessionStore({
     storage,
     conversationId: "fresh-conversation",
@@ -238,14 +239,14 @@ test("a fresh blank conversation keeps its first message and starts its own turn
   assert.equal(store.getSnapshot().activeTurnId, "fresh-turn");
   assert.equal(
     store.getSnapshot().messages[0]?.role === "user" &&
-      store.getSnapshot().messages[0].pending,
+    store.getSnapshot().messages[0].pending,
     false,
   );
 });
 
 test("concurrent first-turn requests share the store initialization and send once", async () => {
   const storage = new MemoryStorage();
-  let resolveSend!: (value: { turnId: string }) => void;
+  let resolveSend!: (value: { turnId: string; }) => void;
   let sends = 0;
   const store = new ChatSessionStore({
     storage,
@@ -253,7 +254,7 @@ test("concurrent first-turn requests share the store initialization and send onc
     apiClient: {
       send: () => {
         sends += 1;
-        return new Promise<{ turnId: string }>((resolve) => {
+        return new Promise<{ turnId: string; }>((resolve) => {
           resolveSend = resolve;
         });
       },
@@ -292,7 +293,7 @@ test("failed first initialization retains the pending message for a safe retry",
   store.saveUserRecord("不能丢的原消息");
 
   const originalError = console.error;
-  console.error = () => {};
+  console.error = () => { };
   try {
     await store.startPendingTurn();
   } finally {
@@ -317,7 +318,7 @@ test("failed first initialization retains the pending message for a safe retry",
 test("reply placeholder appears before synchronization and survives a stale message snapshot", async () => {
   const storage = new MemoryStorage();
   let initialize!: (snapshot: any) => void;
-  let finishSend!: (result: { turnId: string }) => void;
+  let finishSend!: (result: { turnId: string; }) => void;
   let saved: any[] = [];
   let sends = 0;
   const initial = new Promise<any>(resolve => { initialize = resolve; });
@@ -337,7 +338,7 @@ test("reply placeholder appears before synchronization and survives a stale mess
     },
     apiClient: {
       send: () => { sends++; return new Promise(resolve => { finishSend = resolve; }); },
-      stop: async () => {},
+      stop: async () => { },
     },
   });
   try {
@@ -369,12 +370,12 @@ test("reply placeholder appears before synchronization and survives a stale mess
 });
 
 test("WebSocket completion before the send response keeps one reply and its original UI identity", async () => {
-  let finishSend!: (result: { turnId: string }) => void;
+  let finishSend!: (result: { turnId: string; }) => void;
   const clock = fakePlaybackClock();
   const store = new ChatSessionStore({
     storage: new MemoryStorage(), conversationId: "fast-reply",
     nowMs: clock.now, schedule: clock.schedule, cancelSchedule: clock.cancel,
-    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => {} },
+    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => { } },
   });
   store.saveUserRecord("马上回来");
   const request = store.startPendingTurn();
@@ -394,12 +395,13 @@ test("WebSocket completion before the send response keeps one reply and its orig
 });
 
 test("only the send response binds a placeholder, and each real turn keeps its own bubbles", async () => {
-  let finishSend!: (result: { turnId: string }) => void;
+  let finishSend!: (result: { turnId: string; }) => void;
   const clock = fakePlaybackClock();
   const storage = new MemoryStorage();
-  const store = new ChatSessionStore({ storage, conversationId: "binding",
+  const store = new ChatSessionStore({
+    storage, conversationId: "binding",
     nowMs: clock.now, schedule: clock.schedule, cancelSchedule: clock.cancel,
-    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => {} },
+    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => { } },
   });
   store.saveUserRecord("第一句");
   store.saveUserRecord("第二句");
@@ -431,8 +433,9 @@ test("only the send response binds a placeholder, and each real turn keeps its o
 
 test("remote running turn clears an unbound placeholder without claiming it", async () => {
   let sends = 0;
-  const store = new ChatSessionStore({ storage: new MemoryStorage(), conversationId: "remote", requireRemoteSynchronization: true,
-    apiClient: { send: async () => { sends++; return { turnId: "unused" }; }, stop: async () => {} },
+  const store = new ChatSessionStore({
+    storage: new MemoryStorage(), conversationId: "remote", requireRemoteSynchronization: true,
+    apiClient: { send: async () => { sends++; return { turnId: "unused" }; }, stop: async () => { } },
   });
   store.saveUserRecord("等上一輪結束");
   const send = store.startPendingTurn();
@@ -447,7 +450,7 @@ test("remote running turn clears an unbound placeholder without claiming it", as
 
 test("C-02 and C-03 use their own pending groups when empty-send starts a turn", async () => {
   const storage = new MemoryStorage();
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const apiClient = {
     send: async (text: string, conversationId?: string) => {
       sends.push({ text, conversationId });
@@ -474,7 +477,7 @@ test("C-02 and C-03 use their own pending groups when empty-send starts a turn",
 
 test("switching stores cannot submit another conversation's pending group", async () => {
   const storage = new MemoryStorage();
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const apiClient = {
     send: async (text: string, conversationId?: string) => {
       sends.push({ text, conversationId });
@@ -493,7 +496,7 @@ test("switching stores cannot submit another conversation's pending group", asyn
   assert.match(sends[0].text, /留在三号/);
   assert.equal(
     c02.getSnapshot().messages[0]?.role === "user" &&
-      c02.getSnapshot().messages[0].pending,
+    c02.getSnapshot().messages[0].pending,
     true,
   );
 });
@@ -518,7 +521,7 @@ test("an old ticket recovers its last unanswered user group before empty-send", 
       },
     ]),
   );
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const store = new ChatSessionStore({
     storage,
     conversationId: "c02",
@@ -585,7 +588,7 @@ test("a non-reset remote snapshot clears a stale local turn and submits every un
     "mian.conversation.c02.mian.chat-session.v1",
     JSON.stringify({ activeTurnId: "stale-turn" }),
   );
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const store = new ChatSessionStore({
     storage,
     conversationId: "c02",
@@ -636,7 +639,7 @@ test("an immediate post-reload click waits for remote turn reconciliation instea
     "mian.conversation.c02.mian.chat-session.v1",
     JSON.stringify({ activeTurnId: "stale-turn" }),
   );
-  const sends: Array<{ text: string; conversationId?: string }> = [];
+  const sends: Array<{ text: string; conversationId?: string; }> = [];
   const stops: string[] = [];
   const store = new ChatSessionStore({
     storage,
@@ -700,11 +703,11 @@ test("only an explicit stop calls turn interrupt", async () => {
     },
     nowLabel: () => "10:20",
     schedule: () => 1 as unknown as ReturnType<typeof setTimeout>,
-    cancelSchedule: () => {},
+    cancelSchedule: () => { },
   });
   store.saveUserRecord("开始后再停止");
   await store.startPendingTurn();
-  const unsubscribe = store.subscribe(() => {});
+  const unsubscribe = store.subscribe(() => { });
   unsubscribe();
   assert.deepEqual(stopped, []);
   await store.stopCurrentTurn();

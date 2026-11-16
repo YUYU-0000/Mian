@@ -1,3 +1,4 @@
+// 呈现档案馆四个文件夹和纸堆容器，承载字体、头像、语音与存储页面。
 import type {
   RefObject,
   ReactNode,

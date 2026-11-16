@@ -1,3 +1,4 @@
+// 呈现连接中心的信封、纸堆与页面骨架。
 import type { RefObject, ReactNode } from "react";
 import ChoiceTag, { type TagConfig } from "../components/ChoiceTag";
 import { useHiddenLayer } from "../components/useHiddenLayer";

@@ -1,3 +1,4 @@
+// 预载首页所需页面、缓存数据和媒体，供开门动画并行等待。
 import { api } from "./api";
 import { loadAvatars } from "./avatars";
 import { homePhotoKeys } from "./homePhotos";

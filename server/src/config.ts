@@ -1,6 +1,7 @@
+// 从固定数据目录读取配置，并限制网页与备份不能扩大工作区权限。
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { AppConfig, Sandbox } from "./types.js";
+import type { AppConfig } from "./types.js";
 import { projectDirectory, dataDirectory, workingDirectory } from "../../shared/deployment.mjs";
 
 export { projectDirectory, dataDirectory };
@@ -51,7 +52,6 @@ async function writeConfig(config: AppConfig) {
 
 export async function saveConfig(input: unknown) {
   const value = input as Partial<AppConfig>;
-  const sandboxes: Sandbox[] = ["workspace-write"];
   if (
     typeof value.workingDirectory !== "string" ||
     !path.isAbsolute(value.workingDirectory)
@@ -61,12 +61,12 @@ export async function saveConfig(input: unknown) {
     throw new Error(PROJECT_DIRECTORY_ERROR);
   if (path.resolve(value.workingDirectory) !== defaultWorkingDirectory)
     throw new Error("工作目錄由伺服器的 MIAN_WORKSPACE_DIR 設定。");
-  if (!sandboxes.includes(value.sandbox as Sandbox))
+  if (value.sandbox !== "workspace-write")
     throw new Error("无效的 sandbox");
   const current = await readConfig();
   const config: AppConfig = {
     workingDirectory: path.resolve(value.workingDirectory),
-    sandbox: value.sandbox as Sandbox,
+    sandbox: value.sandbox,
     model: typeof value.model === "string" ? value.model.trim() : "",
     channel: value.channel ?? current.channel,
     proactive: { ...current.proactive, ...value.proactive },

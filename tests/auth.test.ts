@@ -1,3 +1,4 @@
+// 验证服务端登录保护、会话、限流与本机免登录边界。
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
@@ -9,7 +10,7 @@ import WebSocket from "ws";
 import { Auth, authenticatedSockets, isLocalRequest } from "../server/src/auth.js";
 
 // 使用真实 Host 构造隧道请求，fetch 会按 URL 重写 Host。
-const fetch = (url: string, options: { method?: string; headers?: Record<string, string>; body?: string } = {}) => new Promise<Response>((resolve, reject) => {
+const fetch = (url: string, options: { method?: string; headers?: Record<string, string>; body?: string; } = {}) => new Promise<Response>((resolve, reject) => {
   const request = httpRequest(url, options, response => {
     const chunks: Buffer[] = [];
     response.on("data", chunk => chunks.push(chunk));
@@ -57,7 +58,7 @@ test("login protects data and sockets, persists lockout, and revokes sessions", 
   assert.equal((await send("/api/auth/login", { password: secret }, { ...external, origin: "https://evil.example" })).status, 403);
   const rejected = new WebSocket(base.replace("http:", "ws:") + "/ws", { headers: external });
   const denied = await once(rejected, "unexpected-response");
-  assert.equal(denied[1].statusCode, 401); denied[1].resume(); rejected.terminate(); rejected.on("error", () => {});
+  assert.equal(denied[1].statusCode, 401); denied[1].resume(); rejected.terminate(); rejected.on("error", () => { });
   for (let i = 0; i < 5; i++) assert.equal((await send("/api/auth/login", { password: "wrong" }, external)).status, i === 4 ? 429 : 400);
   assert.equal((await send("/api/auth/login", { password: secret }, external)).status, 429);
   assert.ok(JSON.parse(await readFile(path.join(dir, "auth.json"), "utf8")).lockedUntil > now);

@@ -1,3 +1,4 @@
+// 从代码位置和部署环境解析固定目录，避免启动工作目录影响数据路径。
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";

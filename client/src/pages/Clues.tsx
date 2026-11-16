@@ -1,3 +1,4 @@
+// 组合线索墙内容、图钉连线和编辑纸片，并连接拖动与边界回弹。
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Clue } from "../clueTypes";
 import {
@@ -19,7 +20,7 @@ import { useWallOverscroll } from "./clues/useWallOverscroll";
 import { fitItem, pinPosition, wallItem } from "./clues/clueGeometry";
 import "./clues.css";
 
-export default function Clues({ onBack }: { onBack: () => void }) {
+export default function Clues({ onBack }: { onBack: () => void; }) {
   const root = useRef<HTMLElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -103,7 +104,7 @@ export default function Clues({ onBack }: { onBack: () => void }) {
     update((value) => ({ ...value, cards: [...value.cards, next] }));
     raise(next.id);
     setLanded(next.id);
-    void persist().catch(() => {});
+    void persist().catch(() => { });
   };
   const saveCard = async (draft: Clue) => {
     await commit((data) => ({
@@ -118,10 +119,10 @@ export default function Clues({ onBack }: { onBack: () => void }) {
     : new Map<string, number[]>();
   const bottom = wall
     ? Math.max(
-        wall.portrait.y + wall.portrait.h,
-        ...wall.cards.map((item) => item.y + item.h),
-        ...[...positions.values()].map((point) => point[1]),
-      )
+      wall.portrait.y + wall.portrait.h,
+      ...wall.cards.map((item) => item.y + item.h),
+      ...[...positions.values()].map((point) => point[1]),
+    )
     : 0;
   const boardHeight = Math.max(height, bottom + dockHeight + 80);
   const style = {

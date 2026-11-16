@@ -1,3 +1,4 @@
+// 验证数据路径不随工作目录改变，且网页设置不能扩大 Codex 权限。
 import assert from "node:assert/strict";
 import test from "node:test";
 import {

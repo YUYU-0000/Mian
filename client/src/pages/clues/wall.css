@@ -1,4 +1,7 @@
+/* 定义线索墙内容层、固定背景与图钉装饰，滚动容器禁用原生回弹。 */
+
 /* 原稿：design-reference/線索牆.html；所有规则限定在线索页。 */
+
 .clues-page {
   --ink: #3b4d5a;
   --muted: #72828e;
@@ -32,6 +35,7 @@
 }
 
 /* 頂部 */
+
 .clues-page .head {
   position: absolute;
   left: 0;
@@ -46,19 +50,24 @@
   --icon-bg-4: #5a7082;
   --icon-bg-4-rgb: 90, 112, 130;
 }
+
 /* 返回鍵和標題的共用樣式在 archive-header.css。 */
+
 .clues-page .head .back-btn {
   pointer-events: auto;
 }
+
 .clues-page .head .archive-en {
   color: var(--muted);
   font-family: var(--en);
 }
+
 .clues-page .head .archive-cn {
   background-clip: text;
 }
 
 /* 牆 */
+
 .clues-page .wall {
   position: absolute;
   inset: 0;
@@ -68,47 +77,55 @@
   touch-action: pan-y;
   scrollbar-width: none;
 }
+
 .clues-page .wall::-webkit-scrollbar {
   display: none;
 }
+
 .clues-page .wall-space {
   /* 固定真实滚动范围，内容的拉伸位移不能增加 scrollHeight。 */
   overflow: clip;
 }
+
 .clues-page .board {
   position: relative;
   width: 100%;
   height: 100%;
 }
+
 .clues-page .item {
   position: absolute;
   touch-action: none;
   cursor: grab;
 }
+
 .clues-page .in {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
+
 .clues-page .item.land {
   animation: clue-land 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
 }
+
 @keyframes clue-land {
   from {
     opacity: 0;
     transform: translateY(-14px) rotate(var(--r)) scale(1.1);
   }
 }
+
 .clues-page .card {
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.05),
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05),
     0 5px 12px rgba(30, 40, 50, 0.13);
 }
+
 .clues-page .item.edit {
-  box-shadow:
-    0 0 0 2px #fff,
+  box-shadow: 0 0 0 2px #fff,
     0 8px 18px rgba(30, 40, 50, 0.24) !important;
 }
+
 .clues-page .handle,
 .clues-page .rotate-handle {
   position: absolute;
@@ -118,6 +135,7 @@
   touch-action: none;
   z-index: 2;
 }
+
 .clues-page .handle:before,
 .clues-page .rotate-handle:before {
   content: "";
@@ -125,39 +143,45 @@
   width: 10px;
   height: 10px;
 }
+
 .clues-page .handle {
   right: -12px;
   bottom: -12px;
   cursor: nwse-resize;
 }
+
 .clues-page .handle:before {
   left: 5px;
   top: 5px;
   border-right: 1.5px solid var(--ink);
   border-bottom: 1.5px solid var(--ink);
 }
+
 .clues-page .rotate-handle {
   left: -12px;
   top: -12px;
   cursor: grab;
 }
+
 .clues-page .rotate-handle:before {
   right: 5px;
   bottom: 5px;
   border-left: 1.5px solid var(--ink);
   border-top: 1.5px solid var(--ink);
 }
+
 .clues-page .item.edit .handle,
 .clues-page .item.edit .rotate-handle {
   display: block;
 }
+
 .clues-page .portrait {
   background: var(--paper);
   background-image: var(--grain);
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.06),
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06),
     0 7px 16px rgba(30, 40, 50, 0.17);
 }
+
 .clues-page .portrait .ph {
   position: absolute;
   left: 7px;
@@ -171,12 +195,14 @@
   background-size: cover;
   background-position: center;
 }
+
 .clues-page .portrait .portrait-caption {
   position: absolute;
   left: 8px;
   right: 8px;
   bottom: 8px;
 }
+
 .clues-page .portrait .caption-line {
   --caption-scale: 1;
   display: flex;
@@ -188,9 +214,11 @@
   transform-origin: left bottom;
   white-space: nowrap;
 }
+
 .clues-page .portrait .caption-line > span {
   flex: none;
 }
+
 .clues-page .portrait .portrait-caption span:first-child {
   font-family: var(--en);
   font-weight: 500;
@@ -198,17 +226,20 @@
   letter-spacing: 2px;
   color: var(--muted);
 }
+
 .clues-page .portrait .portrait-caption span:last-child {
   font-family: "ZSFT-l", cursive;
   font-size: calc(var(--portrait-width) * 0.15);
   line-height: 1;
   padding: 0.12em 0.2em;
 }
+
 .clues-page .portrait .portrait-caption i {
   display: block;
   font-style: normal;
   transform: rotate(-6deg);
 }
+
 .clues-page svg.threads {
   position: absolute;
   left: 0;
@@ -219,11 +250,13 @@
   overflow: visible;
   filter: drop-shadow(0 1px 0.6px rgba(0, 0, 0, 0.2));
 }
+
 .clues-page .pins {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
+
 .clues-page .pin {
   position: absolute;
   width: 36px;
@@ -232,6 +265,7 @@
   pointer-events: auto;
   touch-action: none;
 }
+
 .clues-page .pin:before,
 .clues-page .pin:after {
   content: "";
@@ -241,21 +275,23 @@
   height: 8px;
   border-radius: 50%;
 }
+
 .clues-page .pin:before {
   top: 15.2px;
   background: rgba(0, 0, 0, 0.2);
   filter: blur(0.5px);
 }
+
 .clues-page .pin:after {
   top: 14px;
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle at 35% 32%,
       rgba(255, 255, 255, 0.55) 0 1px,
       transparent 1.5px
     ),
     var(--ink);
 }
+
 .clues-page .pin svg {
   position: absolute;
   inset: 6px;
@@ -263,9 +299,11 @@
   height: 24px;
   overflow: visible;
 }
+
 .clues-page .pin.sel:after {
   box-shadow: 0 0 0 1.5px #fff, 0 1px 3px rgba(0, 0, 0, .25);
 }
+
 .clues-page .pin .prog {
   fill: none;
   stroke: var(--ink);
@@ -275,17 +313,21 @@
   transform: rotate(-90deg);
   transform-origin: 12px 12px;
 }
+
 .clues-page .pin.press .prog {
   animation: clue-prog 1s linear forwards;
 }
+
 @keyframes clue-prog {
   to {
     stroke-dashoffset: 0;
   }
 }
+
 .clues-page .pin.out {
   animation: clue-out 0.2s ease-in forwards;
 }
+
 @keyframes clue-out {
   to {
     opacity: 0;
@@ -294,11 +336,14 @@
 }
 
 /* 只在信封、郵票、返回鍵和標題附近有一圈柔化，其他地方的卡片照常清楚 */
+
 .clues-page .halo {
   position: absolute;
   pointer-events: none;
 }
+
 /* 右下：照信封和郵票的外形鋪一塊牆色，再整塊模糊，四邊的霧一樣濃、一樣往外淡 */
+
 .clues-page .h-env {
   z-index: 7;
   right: -14px;
@@ -310,7 +355,9 @@
   border-radius: 24px;
   filter: blur(20px);
 }
+
 /* 左上：只貼著小魚，一小團 */
+
 .clues-page .h-back {
   left: 0;
   top: calc(var(--st) + 8px);
@@ -324,7 +371,9 @@
     rgba(241, 239, 233, 0)
   );
 }
+
 /* 右上：豎排標題那一條，從上往下漸變 */
+
 .clues-page .h-title {
   right: 0;
   top: 0;
@@ -339,4 +388,3 @@
   -webkit-mask: linear-gradient(90deg, transparent, #000 32%);
   mask: linear-gradient(90deg, transparent, #000 32%);
 }
-

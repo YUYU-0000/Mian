@@ -1,3 +1,4 @@
+// 维护单个会话的消息、发送占位和回复播放，协调实时事件与服务器快照。
 import { pad2 } from "./format";
 import { MessageSync, type MessageApi, type MessageSnapshot } from "./messageSync";
 import { backendAvailable, BackendUnavailable } from "./backend";
@@ -42,7 +43,7 @@ type SessionApi = {
     conversationId: string,
     files?: ChatFile[],
     message?: UserGroup,
-  ) => Promise<{ turnId: string }>;
+  ) => Promise<{ turnId: string; }>;
   stop: (turnId: string, conversationId: string) => Promise<unknown>;
   decide?: (
     requestId: string,
@@ -185,7 +186,7 @@ export class ChatSessionStore {
   private startingTurn = false;
   private pendingReply: ReplyGroup | null = null;
   private sendingEvents: ChatEvent[] | null = null;
-  private sendingSnapshot: { snapshot: MessageSnapshot; cached: boolean } | null = null;
+  private sendingSnapshot: { snapshot: MessageSnapshot; cached: boolean; } | null = null;
   // 只保留 React 节点身份；消息、事件和播放队列始终使用真实 turnId。
   private readonly replyKeys = new Map<string, string>();
   private playbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -230,8 +231,8 @@ export class ChatSessionStore {
     this.remoteTurnSynchronization = this.remoteTurnSynchronized
       ? Promise.resolve()
       : new Promise<void>((resolve) => {
-          this.resolveRemoteTurnSynchronization = resolve;
-        });
+        this.resolveRemoteTurnSynchronization = resolve;
+      });
     // 把旧 C-01 记录迁入按会话保存的存储键。
     saveChatGroups(this.storage, this.messages);
     this.storage.setItem(
@@ -241,7 +242,7 @@ export class ChatSessionStore {
     this.visualReplies = Object.fromEntries(
       this.messages
         .filter(
-          (group): group is Extract<ChatGroup, { role: "assistant" }> =>
+          (group): group is Extract<ChatGroup, { role: "assistant"; }> =>
             group.role === "assistant",
         )
         .map((group) => [
@@ -253,7 +254,7 @@ export class ChatSessionStore {
     if (options.messageApi) {
       this.messageSync = new MessageSync(this.conversationId, this.messages, this.storage, options.messageApi,
         () => { this.syncingEvents = []; }, (snapshot, cached) => this.receiveMessages(snapshot, cached));
-      void this.messageSync.refresh().catch(() => {});
+      void this.messageSync.refresh().catch(() => { });
     }
   }
 
@@ -351,9 +352,7 @@ export class ChatSessionStore {
     this.startingTurn = true;
     this.turnPhase = "starting";
     // 只在界面快照里放占位，服务器 turnId 到来后接入同一个节点。
-    this.pendingReply = this.activeTurnId ? null : applyReplyEvent([], {
-      type: "turn-started", turnId: `waiting:${group.groupId}`,
-    }, this.nowLabel())[0] as ReplyGroup;
+    this.pendingReply = this.activeTurnId ? null : this.waitingReply(group.groupId);
     this.commit(false, false);
     try {
       if (!backendAvailable()) throw new BackendUnavailable();
@@ -364,9 +363,7 @@ export class ChatSessionStore {
       }
       if (this.activeTurnId) { this.pendingReply = null; return; }
       group = pendingUserGroup(this.messages) ?? group;
-      if (!this.pendingReply) this.pendingReply = applyReplyEvent([], {
-        type: "turn-started", turnId: `waiting:${group.groupId}`,
-      }, this.nowLabel())[0] as ReplyGroup;
+      this.pendingReply ??= this.waitingReply(group.groupId);
       const userText = group.records.map((record) => record.text).join("\n\n");
       this.sendingEvents = [];
       this.commit(false, false);
@@ -377,13 +374,9 @@ export class ChatSessionStore {
         group,
       );
       this.bindPendingReply(result.turnId);
-      const reply = this.messages.find(
-        (message) =>
-          message.role === "assistant" &&
-          message.replyGroupId === result.turnId,
-      );
+      const reply = this.findReply(result.turnId);
       // 快速返回的 API 可能先收到结束事件，再收到 HTTP 响应。
-      if (reply?.role !== "assistant" || !reply.status) {
+      if (!reply?.status) {
         this.activeTurnId = result.turnId;
         this.turnPhase = "running";
       }
@@ -433,11 +426,11 @@ export class ChatSessionStore {
     this.messages = this.messages.map((message) =>
       message.role === "assistant" && message.replyGroupId === replyGroupId
         ? {
-            ...message,
-            approvals: message.approvals.filter(
-              (approval) => approval.requestId !== requestId,
-            ),
-          }
+          ...message,
+          approvals: message.approvals.filter(
+            (approval) => approval.requestId !== requestId,
+          ),
+        }
         : message,
     );
     this.commit(true, false);
@@ -496,7 +489,7 @@ export class ChatSessionStore {
       const message = this.messages.find(
         (group) =>
           group.role === "assistant" && group.replyGroupId === event.turnId,
-      ) as Extract<ChatGroup, { role: "assistant" }>;
+      ) as Extract<ChatGroup, { role: "assistant"; }>;
       const queue =
         this.playbackQueues.get(event.turnId) ?? new ReplyPlaybackQueue();
       queue.enqueue(
@@ -554,20 +547,30 @@ export class ChatSessionStore {
 
   refreshMessages() { this.messageSync?.invalidate(); }
 
+  private findReply(turnId: string | null) {
+    return this.messages.find((group): group is ReplyGroup =>
+      group.role === "assistant" && group.replyGroupId === turnId);
+  }
+
+  private waitingReply(groupId: string) {
+    return applyReplyEvent([], {
+      type: "turn-started", turnId: `waiting:${groupId}`,
+    }, this.nowLabel())[0] as ReplyGroup;
+  }
+
+  // 只由本次 send 的返回值绑定；真实消息 ID 立即替换，旧 key 仅保住 React 节点。
   private bindPendingReply(turnId: string) {
     const pending = this.pendingReply;
-    if (!pending) return false;
+    if (!pending) return;
     this.replyKeys.set(turnId, pending.replyGroupId);
-    this.messages = this.messages.some(group => group.role === "assistant" && group.replyGroupId === turnId)
-      ? this.messages : [...this.messages, { ...pending, replyGroupId: turnId }];
+    if (!this.findReply(turnId)) this.messages = [...this.messages, { ...pending, replyGroupId: turnId }];
     this.pendingReply = null;
-    return true;
   }
 
   private receiveMessages(snapshot: MessageSnapshot, cached = false) {
     // HTTP 返回前无法确定哪一轮属于占位，先收齐，绑定后再按真实 ID 回放。
     if (this.sendingEvents) { this.sendingSnapshot = { snapshot, cached }; return; }
-    const currentReply = this.messages.find(group => group.role === "assistant" && group.replyGroupId === this.activeTurnId);
+    const currentReply = this.findReply(this.activeTurnId);
     this.messages = snapshot.groups;
     this.messageSequence = snapshot.eventSeq;
     this.messageStreamId = snapshot.streamId;
@@ -576,7 +579,7 @@ export class ChatSessionStore {
         this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
     }
     // 请求发出前的旧快照不能拿掉已经显示的回复。
-    if (currentReply?.role === "assistant" && !this.messages.some(group => group.role === "assistant" && group.replyGroupId === currentReply.replyGroupId))
+    if (currentReply && !this.findReply(currentReply.replyGroupId))
       this.messages = [...this.messages, currentReply];
     if (!cached) this.syncingEvents = null;
     this.visualReplies = Object.fromEntries(this.messages.filter(group => group.role === "assistant").map(group => [
@@ -584,8 +587,8 @@ export class ChatSessionStore {
       group.replyGroupId === this.activeTurnId && this.visualReplies[group.replyGroupId]
         ? this.visualReplies[group.replyGroupId] : hydrateVisualReply(visualTarget(group)),
     ]));
-    const active = this.messages.find(group => group.role === "assistant" && group.replyGroupId === this.activeTurnId);
-    if (active?.role === "assistant") {
+    const active = this.findReply(this.activeTurnId);
+    if (active) {
       const queue = this.playbackQueues.get(active.replyGroupId) ?? new ReplyPlaybackQueue();
       queue.enqueue("snapshot", visualTarget(active), this.nowMs());
       this.playbackQueues.set(active.replyGroupId, queue);
@@ -616,10 +619,7 @@ export class ChatSessionStore {
   private pumpPlayback() {
     const turnId = this.activeTurnId;
     if (!turnId) return;
-    const message = this.messages.find(
-      (group): group is Extract<ChatGroup, { role: "assistant" }> =>
-        group.role === "assistant" && group.replyGroupId === turnId,
-    );
+    const message = this.findReply(turnId);
     if (!message) return;
     const target = visualTarget(message);
     const current = this.visualReplies[turnId] ?? emptyVisualReply();
@@ -647,10 +647,7 @@ export class ChatSessionStore {
 
   private flushTurn(turnId: string) {
     this.playbackQueues.delete(turnId);
-    const message = this.messages.find(
-      (group): group is Extract<ChatGroup, { role: "assistant" }> =>
-        group.role === "assistant" && group.replyGroupId === turnId,
-    );
+    const message = this.findReply(turnId);
     if (!message) return;
     this.visualReplies = {
       ...this.visualReplies,

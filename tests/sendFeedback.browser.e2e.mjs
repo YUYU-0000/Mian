@@ -1,3 +1,4 @@
+// 验证发送后立即出现回复占位，以及图片和文件上传细线。
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";

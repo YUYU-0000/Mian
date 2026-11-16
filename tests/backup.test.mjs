@@ -1,3 +1,4 @@
+// 验证完整目录备份、日期保留和原始数据不被移动。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";

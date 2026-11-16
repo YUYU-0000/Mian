@@ -1,3 +1,4 @@
+// 提供全局唯一语音播放器，统一分段播放、跳转和逐频段音量取样。
 import type { VoiceClip, VoicePart } from "../../shared/voice.mjs";
 import { cachedFileUrl } from "./fileCache";
 
@@ -18,7 +19,7 @@ type Playback = {
   detach: () => void;
   onPlaying?: () => void;
 };
-type PlayerState = { id: string | null; playing: boolean; duration: number | null; currentTime: number };
+type PlayerState = { id: string | null; playing: boolean; duration: number | null; currentTime: number; };
 
 // 试听和聊天共用这一个 Audio。只有用户点击会装载新的播放队列。
 class VoicePlayer {
@@ -92,17 +93,17 @@ class VoicePlayer {
     this.stop();
     this.spectrum.fill(0);
     this.bandPeaks.fill(0);
-    let playback: Playback;
+    let playback!: Playback;
     const done = new Promise<void>((resolve, reject) => {
-      playback = { id, controller: new AbortController(), parts: [], index: -1, offset: 0, seekTo: null, resolve, reject, detach: () => {}, onPlaying };
+      playback = { id, controller: new AbortController(), parts: [], index: -1, offset: 0, seekTo: null, resolve, reject, detach: () => { }, onPlaying };
     });
-    this.playback = playback!;
+    this.playback = playback;
     this.update({ id, playing: false, duration: null, currentTime: 0 });
     const stop = () => this.finish(playback, signal!.reason);
     signal?.addEventListener("abort", stop, { once: true });
-    playback!.detach = () => signal?.removeEventListener("abort", stop);
+    playback.detach = () => signal?.removeEventListener("abort", stop);
     if (signal?.aborted) stop();
-    else void this.load(playback!, load, startAt).catch(error => this.finish(playback, error));
+    else void this.load(playback, load, startAt).catch(error => this.finish(playback, error));
     return done;
   }
 

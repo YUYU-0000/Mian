@@ -1,3 +1,4 @@
+// 编辑语音预设并调用共用播放器试听，协调纸堆和吊牌选择。
 import { pad2 } from "../format";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { api } from "../api";
@@ -74,11 +75,15 @@ export default function VoicePage({
         title: field === "model" ? "模型" : "聲音",
         titleConfirm: "你寫",
         titleAction: () => setManual(value => ({ ...value, [field]: "title" })),
-        items: options.map(option => ({ label: field === "model" ? option.id : option.name, value: option.id,
-          selected: option.id === (draft[field] || (field === "model" ? "eleven_v4" : "")) })),
+        items: options.map(option => ({
+          label: field === "model" ? option.id : option.name, value: option.id,
+          selected: option.id === (draft[field] || (field === "model" ? "eleven_v4" : ""))
+        })),
         onPick: value => {
-          const next = { ...draft, [field]: value,
-            ...(field === "voice_id" ? { voice_name: options.find(option => option.id === value)!.name } : {}) };
+          const next = {
+            ...draft, [field]: value,
+            ...(field === "voice_id" ? { voice_name: options.find(option => option.id === value)!.name } : {})
+          };
           setDraft(next);
           persist(next);
         },

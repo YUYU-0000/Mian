@@ -1,3 +1,4 @@
+# 排除用户数据、凭据、本机状态和可重新生成的产物。
 # Dependencies and reproducible build output
 node_modules/
 dist/

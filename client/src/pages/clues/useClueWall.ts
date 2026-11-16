@@ -1,3 +1,4 @@
+// 订阅线索墙缓存并串行保存本地改动，读取完成后更新现有墙面。
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api";
 import { notify } from "../../components/Notify";
@@ -20,7 +21,7 @@ export function useClueWall() {
   const persist = (next = current.current!) => {
     const request = writes.current.then(() => api.saveClueWall(next));
     writes.current = request.then(
-      () => {},
+      () => { },
       (error) => { notify.fail("線索保存失敗", error); },
     );
     return request;

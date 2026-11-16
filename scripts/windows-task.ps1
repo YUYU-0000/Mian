@@ -1,3 +1,4 @@
+# 为计划任务运行指定命令，并在任务存活期间阻止闲置睡眠。
 param(
     [Parameter(Mandatory)][ValidateSet('service', 'tunnel', 'backup')][string]$Mode,
     [Parameter(Mandatory)][string]$NodePath

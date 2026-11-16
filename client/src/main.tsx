@@ -1,3 +1,4 @@
+// 安装全局视口、聚焦与离线外壳处理，再挂载登录入口和应用。
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

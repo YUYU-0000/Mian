@@ -1,22 +1,29 @@
+/* 定义共用吊牌、选项列表与手动输入的布局和进退动画。 */
+
 .choice-tag {
   --sheet: #f5f2ec;
   --ink: #3b4d5a;
   --muted: #72828e;
 }
+
 /* ================= 吊牌（小房子） ================= */
+
 .choice-tag .hang-tag {
   --tag-string: calc(var(--app-h, 100svh) * .3);
   width: 188px;
   margin-left: -94px;
 }
+
 .choice-tag .tag-string {
   margin-bottom: -16px;
 }
+
 .choice-tag .tag-card {
   position: relative;
   width: 188px;
   height: 225px;
 }
+
 .choice-tag .tag-card::before,
 .choice-tag .tag-card::after {
   content: "";
@@ -28,29 +35,41 @@
   border-radius: 0 0 10px 10px;
   pointer-events: none;
 }
-.choice-tag .tag-card::before { background: var(--sheet); }
-.choice-tag .tag-card::after { background: url("/grain.png"); mix-blend-mode: multiply; }
+
+.choice-tag .tag-card::before {
+  background: var(--sheet);
+}
+
+.choice-tag .tag-card::after {
+  background: url("/grain.png");
+  mix-blend-mode: multiply;
+}
 
 /* 上半部：屋頂、標題與操作文字 */
+
 .choice-tag .tag-roof {
   display: block;
   width: 188px;
   height: 150px;
 }
+
 .choice-tag .tag-roof text {
   font-family: var(--font-main);
 }
+
 .choice-tag .tag-roof .tag-title.is-action {
   cursor: pointer;
   fill: rgba(241, 239, 233, 0.9);
   font-weight: 600;
   transform: translateY(2px);
 }
+
 .choice-tag .tag-roof .tag-title.is-action:active {
   opacity: 0.6;
 }
 
 /* 下半部：固定高度的選項列表，可垂直捲動。 */
+
 .choice-tag .tag-walls {
   position: relative;
   z-index: 1;
@@ -61,12 +80,14 @@
   display: flex;
   flex-direction: column;
 }
+
 .choice-tag .tag-kicker {
   font-size: 7.5px;
   letter-spacing: 1.5px;
   font-weight: 500;
   color: var(--muted);
 }
+
 .choice-tag .tag-list {
   flex: 1;
   min-height: 0;
@@ -79,13 +100,16 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
+
 .choice-tag .tag-list::-webkit-scrollbar {
   display: none;
 }
+
 .choice-tag .tag-list.is-overflow {
   -webkit-mask-image: linear-gradient(#000 70%, transparent);
   mask-image: linear-gradient(#000 70%, transparent);
 }
+
 .choice-tag .tag-option {
   all: unset;
   flex-shrink: 0;
@@ -100,6 +124,7 @@
   word-break: break-all;
   -webkit-tap-highlight-color: transparent;
 }
+
 .choice-tag .tag-option::before {
   content: "";
   flex-shrink: 0;
@@ -108,17 +133,21 @@
   border-radius: 50%;
   border: 1px solid rgba(59, 77, 90, 0.45);
 }
+
 .choice-tag .tag-option.is-selected {
   color: var(--ink);
   font-weight: 600;
 }
+
 .choice-tag .tag-option.is-selected::before {
   background: var(--ink);
   border-color: var(--ink);
 }
+
 .choice-tag .tag-option.is-static {
   cursor: default;
 }
+
 .choice-tag .tag-option:not(.is-static):active {
   opacity: 0.6;
 }

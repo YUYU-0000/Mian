@@ -1,3 +1,4 @@
+// 验证正式构建在同一监听端口提供页面、API 和 WebSocket。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
@@ -43,7 +44,7 @@ test(
     try {
       const [{ requestedPort, host, port }] = await Promise.race([
         once(backend, "message") as Promise<
-          [{ requestedPort: number; host: string; port: number }]
+          [{ requestedPort: number; host: string; port: number; }]
         >,
         once(backend, "exit").then(() => {
           throw new Error(logs || "LAN server did not start");

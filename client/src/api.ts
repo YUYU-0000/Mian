@@ -1,3 +1,4 @@
+// 提供前端业务请求，读取接入缓存，保存接入顺序补发队列。
 import { subscribe } from "./realtime";
 import type { ClueWall } from "./clueTypes";
 import { localDateTime } from "./format";
@@ -34,7 +35,7 @@ import type {
   Subscription,
 } from "./connectionTypes";
 
-type ConversationList = { defaultConversationId: string; conversations: ConversationRecord[] };
+type ConversationList = { defaultConversationId: string; conversations: ConversationRecord[]; };
 const messages = new Map<string, ReturnType<typeof readQuery<MessageSnapshot>>>();
 const messageQuery = (id: string) => {
   if (!messages.has(id)) messages.set(id, readQuery<MessageSnapshot>(`/api/conversations/${encodeURIComponent(id)}/messages`, undefined, false));
@@ -42,7 +43,7 @@ const messageQuery = (id: string) => {
 };
 const codexStatus = readQuery<Subscription>("/api/subscriptions/codex");
 const codexQuota = readQuery<Quota>("/api/subscriptions/codex/quota");
-const replacePreset = <T extends { id: string }>(presets: T[], preset: T) =>
+const replacePreset = <T extends { id: string; }>(presets: T[], preset: T) =>
   presets.some(item => item.id === preset.id)
     ? presets.map(item => item.id === preset.id ? preset : item) : [...presets, preset];
 const localValue = async <T>(query: ReturnType<typeof readQuery<T>>) =>
@@ -74,12 +75,12 @@ export const api = {
       ? codexStatus()
       : Promise.resolve({ ...demoSubscriptions[provider] }), // 待接后端：Gemini / Kimi
   watchSubStatus: (provider: Provider, receive: (status: Subscription) => void) =>
-    provider === "codex" ? codexStatus.watch(receive) : (() => {}),
+    provider === "codex" ? codexStatus.watch(receive) : (() => { }),
   watchSubQuota: (provider: Provider, receive: (quota: Quota) => void) =>
-    provider === "codex" ? codexQuota.watch(receive) : (() => {}),
+    provider === "codex" ? codexQuota.watch(receive) : (() => { }),
   subLogin: async (
     provider: Provider,
-  ): Promise<{ account: string; plan: string }> => {
+  ): Promise<{ account: string; plan: string; }> => {
     if (provider !== "codex") {
       // 待接后端：保留设计稿的演示登录。
       await delay(900);
@@ -94,7 +95,7 @@ export const api = {
     if (!popup) throw new Error("請允許開啟登入視窗，再試一次。");
     let loginId = "";
     try {
-      const login = await request<{ authUrl: string; loginId: string }>(
+      const login = await request<{ authUrl: string; loginId: string; }>(
         "/api/subscriptions/codex/login",
         { method: "POST" },
       );
@@ -134,11 +135,11 @@ export const api = {
     provider === "codex"
       ? request("/api/subscriptions/codex/models")
       : Promise.resolve(
-          provider === "gemini"
-            ? ["gemini-3-pro", "gemini-3-flash"]
-            : ["kimi-k3", "kimi-k3-turbo"],
-        ), // 待接后端
-  saveSubConfig: async (provider: Provider, cfg: { model: string }) => {
+        provider === "gemini"
+          ? ["gemini-3-pro", "gemini-3-flash"]
+          : ["kimi-k3", "kimi-k3-turbo"],
+      ), // 待接后端
+  saveSubConfig: async (provider: Provider, cfg: { model: string; }) => {
     if (provider === "codex") {
       await api.saveConfig({ ...(await api.getConfig()), model: cfg.model });
       return api.useCodex();
@@ -154,7 +155,7 @@ export const api = {
     await delay(600);
     return { left: 96, resetAt: "11月20日 01:59" };
   },
-  apiPresets: readQuery<{ presets: ApiPreset[]; activeId: string | null }>("/api/api-presets"),
+  apiPresets: readQuery<{ presets: ApiPreset[]; activeId: string | null; }>("/api/api-presets"),
   saveApiPreset: (input: ApiPreset) => {
     const preset = { ...input, id: input.id || createId() };
     return queueSave("/api/api-presets", "POST", preset, async () => {
@@ -169,10 +170,12 @@ export const api = {
     queueSave(`/api/api-presets/${encodeURIComponent(id)}`, "DELETE", undefined, async () => {
       const settings = await localValue(api.apiPresets);
       const config = await localValue(api.getConfig);
-      return { updates: {
-        "/api/api-presets": { presets: settings.presets.filter(preset => preset.id !== id), activeId: settings.activeId === id ? null : settings.activeId },
-        "/api/config": config.channel?.kind === "api" && config.channel.presetId === id ? { ...config, channel: { kind: "codex" } } : config,
-      }, result: undefined };
+      return {
+        updates: {
+          "/api/api-presets": { presets: settings.presets.filter(preset => preset.id !== id), activeId: settings.activeId === id ? null : settings.activeId },
+          "/api/config": config.channel?.kind === "api" && config.channel.presetId === id ? { ...config, channel: { kind: "codex" } } : config,
+        }, result: undefined
+      };
     }),
   useApiPreset: (id: string) =>
     selectChannel(id),
@@ -193,15 +196,19 @@ export const api = {
     queueSave("/api/font-presets", "POST", { preset, use }, async () => {
       const settings = await localValue(api.fontPresets);
       const saved = preset.id === DEFAULT_FONT_ID ? { ...defaultFont, view: preset.view } : preset;
-      const result = { ...settings, presets: replacePreset(settings.presets, saved),
-        ...(use ? { activeId: saved.id, style: { face: saved.face, size: saved.size } } : {}) };
+      const result = {
+        ...settings, presets: replacePreset(settings.presets, saved),
+        ...(use ? { activeId: saved.id, style: { face: saved.face, size: saved.size } } : {})
+      };
       return { updates: { "/api/font-presets": result }, result };
     }),
   deleteFontPreset: (id: string) =>
     queueSave(`/api/font-presets/${encodeURIComponent(id)}`, "DELETE", undefined, async () => {
       const settings = await localValue(api.fontPresets);
-      const result = { ...settings, presets: settings.presets.filter(preset => preset.id !== id),
-        ...(settings.activeId === id ? { activeId: DEFAULT_FONT_ID, style: { face: "", size: DEFAULT_BUBBLE_SIZE } } : {}) };
+      const result = {
+        ...settings, presets: settings.presets.filter(preset => preset.id !== id),
+        ...(settings.activeId === id ? { activeId: DEFAULT_FONT_ID, style: { face: "", size: DEFAULT_BUBBLE_SIZE } } : {})
+      };
       return { updates: { "/api/font-presets": result }, result };
     }),
   voicePresets: readQuery<VoiceSettings>("/api/voice-presets"),
@@ -216,8 +223,10 @@ export const api = {
   deleteVoicePreset: (id: string) =>
     saveVoiceSettings(`/api/voice-presets/${encodeURIComponent(id)}`, "DELETE", undefined, settings => {
       const presets = settings.presets.filter(item => item.id !== id);
-      return { presets, activeId: settings.activeId === id
-        ? presets[Math.max(0, settings.presets.findIndex(item => item.id === id) - 1)].id : settings.activeId };
+      return {
+        presets, activeId: settings.activeId === id
+          ? presets[Math.max(0, settings.presets.findIndex(item => item.id === id) - 1)].id : settings.activeId
+      };
     }),
   voiceModels: (preset: VoicePreset) =>
     request<VoiceOption[]>("/api/voice-models", { method: "POST", body: JSON.stringify(preset) }),
@@ -263,8 +272,12 @@ export const api = {
   saveConfig: (config: Config) =>
     queueSave("/api/config", "PUT", config, async () => {
       const subscription = await codexStatus.peek();
-      return { updates: { "/api/config": config,
-        ...(subscription ? { "/api/subscriptions/codex": { ...subscription, model: config.model } } : {}) }, result: config };
+      return {
+        updates: {
+          "/api/config": config,
+          ...(subscription ? { "/api/subscriptions/codex": { ...subscription, model: config.model } } : {})
+        }, result: config
+      };
     }),
   test: () =>
     request<ConnectionStatus>("/api/connection/test", { method: "POST" }),
@@ -274,7 +287,7 @@ export const api = {
       const file = await (await fetch(record.image)).blob();
       const compressed = await compressImage(file, 1200, true);
       if (compressed === file) continue;
-      const { conversation } = await request<{ conversation: ConversationRecord }>(
+      const { conversation } = await request<{ conversation: ConversationRecord; }>(
         `/api/conversations/${encodeURIComponent(record.conversationId)}`,
         { method: "PATCH", body: JSON.stringify({ image: await blobToDataURL(compressed) }) });
       Object.assign(record, conversation);
@@ -289,14 +302,14 @@ export const api = {
         : [...current.conversations, conversation],
     })),
   createConversation: async () => {
-    const result = await request<{ conversation: ConversationRecord }>("/api/conversations", {
+    const result = await request<{ conversation: ConversationRecord; }>("/api/conversations", {
       method: "POST",
     });
     await api.rememberConversation(result.conversation);
     return result;
   },
   forkConversation: async (conversationId: string) => {
-    const result = await request<{ conversation: ConversationRecord }>(
+    const result = await request<{ conversation: ConversationRecord; }>(
       `/api/conversations/${encodeURIComponent(conversationId)}/fork`,
       { method: "POST" },
     );
@@ -384,7 +397,7 @@ export const api = {
     files?: ChatFile[],
     message?: UserGroup,
   ) => {
-    const result = await request<{ turnId?: unknown }>("/api/turn", {
+    const result = await request<{ turnId?: unknown; }>("/api/turn", {
       method: "POST",
       body: JSON.stringify({
         text,
@@ -422,9 +435,11 @@ function selectChannel(id: string | null) {
   return queueSave(id ? `/api/api-presets/${encodeURIComponent(id)}/use` : "/api/subscriptions/codex/use", "POST", undefined, async () => {
     const config = await localValue(api.getConfig);
     const presets = await localValue(api.apiPresets);
-    return { updates: {
-      "/api/config": { ...config, channel: id ? { kind: "api", presetId: id } : { kind: "codex" } },
-      "/api/api-presets": { ...presets, activeId: id },
-    }, result: undefined };
+    return {
+      updates: {
+        "/api/config": { ...config, channel: id ? { kind: "api", presetId: id } : { kind: "codex" } },
+        "/api/api-presets": { ...presets, activeId: id },
+      }, result: undefined
+    };
   });
 }

@@ -1,8 +1,9 @@
+// 统一媒体的 IndexedDB 读写、内存地址缓存和订阅，替换或删除时释放旧地址。
 import { compressImage } from "./imageCompression";
 
 // 封面和设置媒体共用 IndexedDB 连接。
 const databases = new Map<string, Promise<IDBDatabase>>();
-export type CachedMedia = { url: string; video: boolean; time: number };
+export type CachedMedia = { url: string; video: boolean; time: number; };
 const media = new Map<string, CachedMedia | null>();
 const reads = new Map<string, Promise<CachedMedia | null>>();
 const listeners = new Map<string, Set<() => void>>();
@@ -27,6 +28,7 @@ export function loadCachedMedia(name: string, store: string, key: string) {
   const id = mediaId(name, store, key);
   if (media.has(id)) return Promise.resolve(media.get(id)!);
   if (!reads.has(id)) reads.set(id, readMedia(name, store, key).then(file =>
+    // 读取期间可能已上传或删除；后到的磁盘内容不能替换新的内存条目。
     media.has(id) ? media.get(id)! : cacheMedia(name, store, key, file),
   ).finally(() => reads.delete(id)));
   return reads.get(id)!;

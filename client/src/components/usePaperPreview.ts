@@ -1,3 +1,4 @@
+// 处理预览纸片的打开、关闭、拖动和位置动画。
 import { getAppViewport } from "../appViewport";
 import {
   useLayoutEffect,
@@ -6,17 +7,17 @@ import {
   type PointerEvent,
 } from "react";
 
-type Point = { x: number; y: number };
-type Pose = Point & { scale: number };
+type Point = { x: number; y: number; };
+type Pose = Point & { scale: number; };
 type Gesture =
-  | { kind: "drag" | "pan"; point: Point; pose: Pose }
+  | { kind: "drag" | "pan"; point: Point; pose: Pose; }
   | {
-      kind: "pinch";
-      distance: number;
-      focus: Point;
-      center: Point;
-      scale: number;
-    };
+    kind: "pinch";
+    distance: number;
+    focus: Point;
+    center: Point;
+    scale: number;
+  };
 const motion = { duration: 320, easing: "cubic-bezier(.22,.8,.3,1)" };
 const transform = ({ x, y, scale }: Pose) =>
   `translate3d(${x}px,${y}px,0) scale(${scale})`;
@@ -40,7 +41,7 @@ export function usePaperPreview(
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef<Gesture | null>(null);
   const closing = useRef(false);
-  const hold = useRef<{ id: number; point: Point; timer: number } | null>(null);
+  const hold = useRef<{ id: number; point: Point; timer: number; } | null>(null);
   const saved = useRef(false);
 
   const cancelHold = () => {

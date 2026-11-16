@@ -1,3 +1,4 @@
+// 验证守护进程的崩溃重启、暂停和完整备份流程。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
@@ -45,7 +46,7 @@ test("supervisor restarts a crashed server and pauses it for a complete backup",
     await control("pause");
     assert.equal((await control("status")).running, false);
   } finally {
-    await control("pause").catch(() => {});
+    await control("pause").catch(() => { });
     const exited = once(service, "exit");
     service.kill("SIGTERM");
     await exited;

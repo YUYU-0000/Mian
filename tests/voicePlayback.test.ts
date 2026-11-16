@@ -1,3 +1,4 @@
+// 验证共用播放器、分段跳转、频谱增益和播放中断。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { api } from "../client/src/api.ts";
@@ -5,7 +6,7 @@ import { voicePlayer } from "../client/src/voicePlayer.ts";
 import { defaultVoicePreset } from "../shared/voice.mjs";
 
 test("one global player waits for playing, replaces older audio, pauses and plays chunks once in order", async t => {
-  let onPlay: () => void = () => {};
+  let onPlay: () => void = () => { };
   let instances = 0;
   let audio: FakeAudio;
   class FakeAudio {
@@ -32,8 +33,8 @@ test("one global player waits for playing, replaces older audio, pauses and play
     destination = {};
     sampleRate = 48000;
     constructor() { contexts++; }
-    createAnalyser() { return { fftSize: 0, connect() {}, getByteFrequencyData(samples: Uint8Array) { samples.set(frequencyData); } }; }
-    createMediaElementSource(element: FakeAudio) { assert.equal(element, audio); sources++; return { connect() {} }; }
+    createAnalyser() { return { fftSize: 0, connect() { }, getByteFrequencyData(samples: Uint8Array) { samples.set(frequencyData); } }; }
+    createMediaElementSource(element: FakeAudio) { assert.equal(element, audio); sources++; return { connect() { } }; }
     async resume() { resumes++; }
   }
   Object.defineProperty(globalThis, "Audio", { configurable: true, value: FakeAudio });
@@ -124,7 +125,7 @@ test("one global player waits for playing, replaces older audio, pauses and play
   assert.equal(voicePlayer.getSnapshot().currentTime, 1.75);
   ready = new Promise<void>(resolve => { onPlay = resolve; });
   const controller = new AbortController();
-  const second = api.testVoice(defaultVoicePreset, controller.signal, () => {});
+  const second = api.testVoice(defaultVoicePreset, controller.signal, () => { });
   await stopped;
   await ready;
   assert.equal(instances, 1);

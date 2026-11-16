@@ -1,3 +1,4 @@
+// 组织聊天页面、附件草稿和发送操作，保持输入栏跟随键盘。
 import {
   useCallback,
   useEffect,
@@ -72,7 +73,7 @@ export default function Chat({
   initialScrollTop: number | null;
   onViewStateChange: (
     conversationId: string,
-    patch: { draft?: string; scrollTop?: number },
+    patch: { draft?: string; scrollTop?: number; },
   ) => void;
 }) {
   const snapshot: ChatSessionSnapshot = useSyncExternalStore(
@@ -125,7 +126,7 @@ export default function Chat({
   const scrollConversationId = useRef<string | null>(null);
   const shouldFollowBottom = useRef(true);
   const inputFocused = useRef(false);
-  const requestViewportSync = useRef<(forceBottom?: boolean) => void>(() => {});
+  const requestViewportSync = useRef<(forceBottom?: boolean) => void>(() => { });
   const captureConversationFrame =
     useCallback((): FrozenConversationFrame | null => {
       const element = stream.current;
@@ -297,7 +298,7 @@ export default function Chat({
       cancelAnimationFrame(frame);
       clearAttachmentAnimation();
       observer.disconnect();
-      requestViewportSync.current = () => {};
+      requestViewportSync.current = () => { };
       window.removeEventListener("resize", onWindowLayout);
       window.removeEventListener("orientationchange", onWindowLayout);
       unsubscribeViewport();
@@ -424,11 +425,10 @@ export default function Chat({
         )}
         <div
           ref={stream}
-          className={`archive-stream archive-message-layer archive-message-layer-current ${
-            conversationTransition
+          className={`archive-stream archive-message-layer archive-message-layer-current ${conversationTransition
               ? `is-conversation-incoming transition-${conversationTransition.generation % 2 ? "a" : "b"}`
               : ""
-          }`}
+            }`}
           data-conversation-id={displayedConversation.conversationId}
           data-conversation-switch-phase={
             conversationTransition ? "overlap" : "idle"
@@ -441,7 +441,7 @@ export default function Chat({
               event.currentTarget === event.target &&
               conversationTransition &&
               event.animationName ===
-                `chatConversationIncoming${conversationTransition.generation % 2 ? "A" : "B"}`
+              `chatConversationIncoming${conversationTransition.generation % 2 ? "A" : "B"}`
             )
               onConversationSwitchEnd(conversationTransition.generation);
           }}

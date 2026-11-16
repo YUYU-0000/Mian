@@ -1,3 +1,4 @@
+// 验证线索墙布局、回弹、卡片图钉操作、持久化与备份。
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
@@ -418,7 +419,9 @@ try {
     data.pins.some((p) => p.cardId === "card-0"),
     false,
   );
-  const backup = await (await fetch(backend.base + "/api/backup")).json();
+  const backupResponse = await fetch(backend.base + "/api/backup");
+  assert.equal(backupResponse.status, 200, await backupResponse.clone().text());
+  const backup = await backupResponse.json();
   assert.deepEqual(backup.clues, data);
   await call("Page.reload");
   await visible(".portrait");

@@ -1,4 +1,7 @@
+/* 定义档案馆背景、文件夹与预设纸堆的基础布局。 */
+
 /* 主题颜色 & 字體設定 */
+
 .settings-page {
   --bg-color: #f1efe9;
   --font-main: "ZSFT-br", "LXGW Heart Serif", sans-serif;
@@ -10,7 +13,6 @@
   --color-text-main: #4f6475;
   --color-text-muted: #72828e;
   --color-tab-text: #ffffff;
-
   /* 纸张色调 */
   --paper-layer-top: #f5f2ec;
   --paper-layer-mid: #ebe7de;
@@ -30,6 +32,7 @@
 }
 
 /* 桌面端响应式适配 */
+
 @media (min-width: 768px) {
   .route-layer-surface-settings {
     background-color: #e8e6df;
@@ -43,6 +46,7 @@
 }
 
 /* 顶部导航 */
+
 .settings-page .settings-header {
   padding: 24px 16px 0px 16px;
   flex: none;
@@ -52,21 +56,25 @@
   position: relative;
   z-index: 10;
 }
+
 .settings-page .archive-en {
   color: var(--color-text-muted);
   margin: 0;
 }
+
 .settings-page .decor-line,
 .settings-page .archive-cn {
   margin: 0;
 }
 
 /* 档案袋容器 */
+
 .settings-page .folders-container {
   position: relative;
   flex: 1;
   width: 100%;
 }
+
 .settings-page .folder {
   position: absolute;
   bottom: 0;
@@ -74,15 +82,16 @@
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   cursor: pointer;
 }
+
 .settings-page .folder.active {
   transform: translateY(-25px);
 }
+
 .settings-page .folder-body {
   width: 100%;
   height: calc(100% + 50px);
   border-radius: 0;
-  box-shadow:
-    0 -2px 6px rgba(0, 0, 0, 0.12),
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.12),
     0 -8px 24px rgba(0, 0, 0, 0.08);
   position: relative;
 }
@@ -91,78 +100,96 @@
   height: calc(var(--app-h, 100svh) * 0.56);
   z-index: 1;
 }
+
 .settings-page .f1 .folder-body {
   background-color: var(--icon-bg-4);
 }
+
 .settings-page .f1 .tab-wrapper,
 .settings-page .f3 .tab-wrapper {
   left: 0;
   width: 115px;
 }
+
 .settings-page .f1 .tab-bg {
   background-color: var(--icon-bg-4);
   clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
 }
+
 .settings-page .f1 .tab-text,
 .settings-page .f3 .tab-text {
   padding-right: 6px;
 }
+
 .settings-page .f2 {
   height: calc(var(--app-h, 100svh) * 0.44);
   z-index: 2;
 }
+
 .settings-page .f2 .folder-body {
   background-color: var(--icon-bg-1);
 }
+
 .settings-page .f2 .tab-wrapper,
 .settings-page .f4 .tab-wrapper {
   right: 0;
   left: auto;
   width: 115px;
 }
+
 .settings-page .f2 .tab-bg {
   background-color: var(--icon-bg-1);
   clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
 }
+
 .settings-page .f2 .tab-text,
 .settings-page .f4 .tab-text {
   padding-left: 10px;
 }
+
 .settings-page .f3 {
   height: calc(var(--app-h, 100svh) * 0.32);
   z-index: 3;
 }
+
 .settings-page .f3 .folder-body {
   background-color: var(--icon-bg-3);
 }
+
 .settings-page .f3 .tab-bg {
   background-color: var(--icon-bg-3);
   clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
 }
+
 .settings-page .f4 {
   height: calc(var(--app-h, 100svh) * 0.2);
   z-index: 4;
 }
+
 .settings-page .f4 .folder-body {
   background-color: var(--icon-bg-2);
 }
+
 .settings-page .f4 .tab-bg {
   background-color: var(--icon-bg-2);
   clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
 }
 
-  :root[data-app-compact="true"] .settings-page .f1 {
-    height: calc(var(--app-h, 100svh) * 0.5);
-  }
-  :root[data-app-compact="true"] .settings-page .f2 {
-    height: calc(var(--app-h, 100svh) * 0.4);
-  }
-  :root[data-app-compact="true"] .settings-page .f3 {
-    height: calc(var(--app-h, 100svh) * 0.3);
-  }
-  :root[data-app-compact="true"] .settings-page .f4 {
-    height: calc(var(--app-h, 100svh) * 0.2);
-  }
+:root[data-app-compact="true"] .settings-page .f1 {
+  height: calc(var(--app-h, 100svh) * 0.5);
+}
+
+:root[data-app-compact="true"] .settings-page .f2 {
+  height: calc(var(--app-h, 100svh) * 0.4);
+}
+
+:root[data-app-compact="true"] .settings-page .f3 {
+  height: calc(var(--app-h, 100svh) * 0.3);
+}
+
+:root[data-app-compact="true"] .settings-page .f4 {
+  height: calc(var(--app-h, 100svh) * 0.2);
+}
 
 .settings-page .tab-wrapper {
   position: absolute;
@@ -170,11 +197,13 @@
   height: 31px;
   filter: drop-shadow(0px -3px 5px rgba(0, 0, 0, 0.15));
 }
+
 .settings-page .tab-bg {
   position: absolute;
   inset: 0;
   border-radius: 0;
 }
+
 .settings-page .tab-text {
   position: absolute;
   inset: 0;
@@ -190,6 +219,7 @@
 }
 
 /* 文件夹 4（存儲設置）封面上的文字 */
+
 .settings-page .front-deco {
   position: absolute;
   top: 40px;
@@ -200,6 +230,7 @@
   align-items: center;
   transform: rotate(-3.5deg);
 }
+
 .settings-page .front-hand {
   font-family: "ZSFT-l", cursive;
   font-size: 50px;
@@ -210,6 +241,7 @@
   margin-right: 40px;
   text-transform: uppercase;
 }
+
 .settings-page .front-sub {
   font-size: 8.5px;
   letter-spacing: 3px;
@@ -222,6 +254,7 @@
 }
 
 /* 弹出特效层 */
+
 .settings-page .paper-overlay {
   height: var(--app-h, 100svh);
   position: fixed;
@@ -233,12 +266,12 @@
   align-items: center;
   opacity: 0;
   visibility: hidden;
-  transition:
-    opacity 0.5s ease,
+  transition: opacity 0.5s ease,
     visibility 0.5s ease;
   backdrop-filter: blur(4px);
   perspective: 1200px;
 }
+
 .settings-page .paper-overlay.active {
   opacity: 1;
   visibility: visible;
@@ -253,11 +286,11 @@
   position: relative;
   transform: translateY(30px) scale(0.95) rotateX(-5deg);
   opacity: 0;
-  transition:
-    transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1),
+  transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1),
     opacity 0.4s ease;
   transform-origin: center 80%;
 }
+
 .settings-page .paper-overlay.active .paper-stack-container {
   transform: translateY(0) scale(1) rotateX(0deg);
   opacity: 1;
@@ -269,12 +302,12 @@
   background-color: var(--paper-layer-bot);
   border-radius: 2px;
   transform: rotate(-1.5deg) translate(-2px, 8px);
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.15),
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15),
     0 4px 10px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.03);
   z-index: 1;
 }
+
 .settings-page .paper-layer-mid {
   position: absolute;
   inset: 0;
@@ -285,6 +318,7 @@
   border: 1px solid rgba(0, 0, 0, 0.03);
   z-index: 2;
 }
+
 .settings-page .paper-main {
   position: absolute;
   inset: 0;
@@ -292,28 +326,30 @@
   border-radius: 2px;
   z-index: 3;
   transform: rotate(-0.2deg) translate(0, 0);
-  box-shadow:
-    -1px 3px 10px rgba(0, 0, 0, 0.05),
+  box-shadow: -1px 3px 10px rgba(0, 0, 0, 0.05),
     inset 0 0 40px rgba(160, 150, 130, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 /* 字体和语音使用连接中心同样的两层垫纸。 */
+
 .settings-page .has-paper-stack > .paper-layer-bot {
   background: #e1ddd2;
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.18),
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18),
     0 4px 10px rgba(0, 0, 0, 0.08);
 }
+
 .settings-page .has-paper-stack > .paper-layer-mid {
   background: #ebe7de;
 }
+
 .settings-page .has-paper-stack > .paper-main,
 .settings-page .has-avatar-stack > .paper-main {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
 }
+
 .settings-page .has-paper-stack > .paper-main > .paper-holes,
 .settings-page .has-avatar-stack > .paper-main > .paper-holes {
   display: none;
@@ -330,6 +366,7 @@
   z-index: 5;
   pointer-events: none;
 }
+
 .settings-page .api-wrapper,
 .settings-page .wallpaper-wrapper,
 .settings-page .voice-wrapper,
@@ -339,6 +376,7 @@
   z-index: 10;
   display: none;
 }
+
 .settings-page .api-page,
 .settings-page .avatar-page,
 .settings-page .vc-page {
@@ -351,13 +389,13 @@
   box-sizing: border-box;
   opacity: 0;
 }
+
 .settings-page .hole {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background-color: var(--paper-layer-mid);
-  box-shadow:
-    inset 1px 2px 4px rgba(0, 0, 0, 0.25),
+  box-shadow: inset 1px 2px 4px rgba(0, 0, 0, 0.25),
     0.5px 0.5px 0px rgba(255, 255, 255, 1);
 }
 
@@ -367,11 +405,11 @@
   border-radius: 1px;
   border: 1px solid rgba(0, 0, 0, 0.03);
   position: relative;
-  box-shadow:
-    0px 2px 4px rgba(0, 0, 0, 0.03),
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.03),
     0px 6px 12px rgba(0, 0, 0, 0.04),
     0px 12px 24px rgba(0, 0, 0, 0.05);
 }
+
 .settings-page .polaroid-img-placeholder {
   width: 100%;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -383,6 +421,7 @@
   align-items: center;
   transition: background-color 0.2s ease;
 }
+
 .settings-page .upload-icon {
   color: rgba(255, 255, 255, 0.5);
   font-size: 24px;
@@ -394,6 +433,7 @@
   align-items: center;
   line-height: 1;
 }
+
 .settings-page .upload-text {
   font-size: 8px;
   font-family: var(--font-main);
@@ -401,6 +441,7 @@
   letter-spacing: 1px;
   margin-top: 6px;
 }
+
 .settings-page .file-input {
   position: absolute;
   inset: 0;
@@ -410,6 +451,7 @@
   cursor: pointer;
   z-index: 2;
 }
+
 .settings-page .loading-text {
   display: none;
   position: absolute;

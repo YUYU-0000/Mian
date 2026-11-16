@@ -1,3 +1,4 @@
+// 按整叠可见纸片计算键盘避让，只平移纸片并在收起时恢复原位。
 import { editableSelector } from "./inputFocus";
 import { getKeyboardViewport, onKeyboardViewportChange } from "./keyboardViewport";
 
@@ -24,7 +25,7 @@ function visiblePaperBottom(surface: HTMLElement) {
 
 export function installKeyboardLift() {
   const positions = new Map<HTMLElement, number>();
-  const motions = new WeakMap<HTMLElement, { y: number; animation: Animation }>();
+  const motions = new WeakMap<HTMLElement, { y: number; animation: Animation; }>();
   let surface: HTMLElement | null = null;
   let frame = 0;
   const currentY = (element: HTMLElement) => parseFloat(getComputedStyle(element).translate.split(" ")[1]) || 0;

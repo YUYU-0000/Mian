@@ -1,8 +1,9 @@
+// 保存头像裁剪与图片，向共用媒体缓存和页面主题同步头像。
 import { cacheMedia, openMediaDatabase, readSettingsMedia } from "./mediaStorage";
 
 export type AvatarRole = "assistant" | "user";
-export type AvatarCrop = { x: number; y: number; zoom: number };
-export type AvatarEditor = { file: Blob; crop: AvatarCrop };
+export type AvatarCrop = { x: number; y: number; zoom: number; };
+export type AvatarEditor = { file: Blob; crop: AvatarCrop; };
 export const INITIAL_AVATAR_CROP: AvatarCrop = { x: 0, y: 0, zoom: 1 };
 const images = new Map<AvatarRole, HTMLImageElement>();
 

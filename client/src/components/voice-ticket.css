@@ -1,19 +1,25 @@
+/* 定义语音票根与条码样式，用 transform 在静态和播放状态间过渡。 */
+
 .voice-reply,
 .voice-ticket {
   width: 228px;
   max-width: 100%;
 }
+
 .voice-reply {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
+
 .voice-reply:has(> .archive-bubble) {
   width: auto;
 }
+
 .voice-ticket .ft-main {
   padding-bottom: 6px;
 }
+
 .voice-row {
   display: flex;
   align-items: center;
@@ -21,6 +27,7 @@
   margin-top: 6px;
   height: 20px;
 }
+
 .voice-play,
 .voice-wave {
   padding: 0;
@@ -28,6 +35,7 @@
   background: none;
   cursor: pointer;
 }
+
 .voice-play {
   position: relative;
   flex: none;
@@ -36,6 +44,7 @@
   box-shadow: inset 0 0 0 1px var(--ink);
   border-radius: 1px;
 }
+
 .voice-play::before {
   content: "";
   position: absolute;
@@ -45,6 +54,7 @@
   border-top: 3px solid transparent;
   border-bottom: 3px solid transparent;
 }
+
 .voice-play.is-playing::before {
   left: 4.5px;
   width: 1.4px;
@@ -53,6 +63,7 @@
   background: var(--ink);
   box-shadow: 3.6px 0 0 var(--ink);
 }
+
 .voice-wave,
 .voice-wave-slot {
   flex: 1;
@@ -60,9 +71,11 @@
   align-items: center;
   height: 20px;
 }
+
 .voice-wave {
   justify-content: space-between;
 }
+
 .voice-wave i {
   display: block;
   width: 1.3px;
@@ -72,18 +85,22 @@
   transform: scaleY(var(--voice-static));
   transition: background 0.25s, transform 0.35s ease-in-out;
 }
+
 .voice-wave.is-playing i {
   transform: scaleY(0.15);
   transition: background 0.25s, transform 0.08s linear;
 }
+
 .voice-wave i.done {
   background: var(--ink);
 }
+
 .voice-generating {
   font: 10px "LXGW Heart Serif", serif;
   letter-spacing: 1.2px;
   color: var(--muted);
 }
+
 .voice-preview-controls {
   display: flex;
   align-items: center;
@@ -91,10 +108,12 @@
   width: 100%;
   height: 20px;
 }
+
 .voice-play:disabled,
 .voice-wave:disabled {
   cursor: default;
 }
+
 .voice-ticket .ft-act {
   border: 0;
   border-bottom: 1px solid var(--ink);
@@ -102,6 +121,7 @@
   background: none;
   cursor: pointer;
 }
+
 .pv-document .pv-voice-text pre {
   width: auto;
   white-space: pre-wrap;

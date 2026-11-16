@@ -1,3 +1,4 @@
+// 为线索与媒体交互测试挂载隔离的页面和内存数据。
 import { createRoot } from "react-dom/client";
 import { api } from "../client/src/api";
 import type { ClueWall } from "../client/src/clueTypes";
@@ -26,7 +27,7 @@ let wall: ClueWall = {
 };
 Object.assign(api.clues, {
   getSnapshot: () => structuredClone(wall),
-  watch: (receive: (value: ClueWall) => void) => { receive(structuredClone(wall)); return () => {}; },
+  watch: (receive: (value: ClueWall) => void) => { receive(structuredClone(wall)); return () => { }; },
 });
 api.saveClueWall = async (next) => {
   wall = structuredClone(next);
@@ -37,14 +38,14 @@ fixture.showNotice = (kind: "ok" | "fail" = "fail") =>
   kind === "ok" ? notify.ok("已保存") : notify.fail("測試通知", "可向上滑動收起");
 fixture.renderClues = () => root.render(
   <>
-    <Clues key={++mount} onBack={() => {}} />
+    <Clues key={++mount} onBack={() => { }} />
     <Notify page="/clues" />
   </>,
 );
 fixture.renderHome = () => root.render(
   <>
     <Home status={{ state: "ready", message: "ready" }} channelName="TEST"
-      onChat={() => {}} onConnections={() => {}} onSettings={() => {}} onClues={() => {}} />
+      onChat={() => { }} onConnections={() => { }} onSettings={() => { }} onClues={() => { }} />
     <div className="settings-page" style={{ position: "absolute", left: 500, top: 0 }}>
       <div className="api-polaroid-container">
         <div className="polaroid-img-placeholder">

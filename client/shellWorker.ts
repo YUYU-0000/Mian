@@ -1,3 +1,4 @@
+// 构建时收集界面资源、统一字体预载地址，并生成带版本的离线外壳清单。
 import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";

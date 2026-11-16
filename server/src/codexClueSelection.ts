@@ -1,3 +1,4 @@
+// 使用独立的只读 Codex 线程挑选当前对话所需线索。
 import type { AppConfig } from "./types.js";
 import type { ChatMessage } from "./providers/openai.js";
 import { CLUE_SELECTION_INSTRUCTION } from "./clueSelection.js";
@@ -57,7 +58,7 @@ export class CodexClueSelection {
       clearTimeout(timer!);
       this.pending.delete(thread.id);
       await request("thread/unsubscribe", { threadId: thread.id }).catch(
-        () => {},
+        () => { },
       );
     }
   }

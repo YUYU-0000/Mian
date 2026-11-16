@@ -1,3 +1,4 @@
+// 连接待发送附件票根与上传状态、拖动及删除交互。
 import { useRef } from "react";
 import { flushSync } from "react-dom";
 import type { FileDraft } from "../fileDrafts";

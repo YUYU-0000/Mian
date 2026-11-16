@@ -1,3 +1,4 @@
+// 为发送反馈测试提供隔离会话和可控制的上传状态。
 import { createRoot } from "react-dom/client";
 import Chat from "../client/src/pages/Chat";
 import { ChatSessionStore } from "../client/src/chatSession";
@@ -13,8 +14,8 @@ context.fillRect(0, 0, 48, 48);
 const png = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), "image/png"));
 let decodedAvatars = 0;
 const decode = HTMLImageElement.prototype.decode;
-HTMLImageElement.prototype.decode = async function () { await decode.call(this); decodedAvatars++; };
-let resolveSend: (value: { turnId: string }) => void;
+HTMLImageElement.prototype.decode = async function() { await decode.call(this); decodedAvatars++; };
+let resolveSend: (value: { turnId: string; }) => void;
 let rejectSend: (error: Error) => void;
 localStorage.setItem("mian.conversation.feedback.mian.chat-groups.v2", JSON.stringify([1, 2].map(index => ({
   role: "user", groupId: `history-${index}`, pending: false, time: "10:00",
@@ -22,9 +23,9 @@ localStorage.setItem("mian.conversation.feedback.mian.chat-groups.v2", JSON.stri
 }))));
 const session = new ChatSessionStore({
   conversationId: "feedback", nowLabel: () => "10:20",
-  apiClient: { send: () => new Promise((resolve, reject) => { resolveSend = resolve; rejectSend = reject; }), stop: async () => {} },
+  apiClient: { send: () => new Promise((resolve, reject) => { resolveSend = resolve; rejectSend = reject; }), stop: async () => { } },
 });
-const uploads: { file: File; progress: (value: number) => void; finish: (file: ChatFile) => void }[] = [];
+const uploads: { file: File; progress: (value: number) => void; finish: (file: ChatFile) => void; }[] = [];
 api.uploadFile = (_id, file, progress) => new Promise(finish => { uploads.push({ file, progress, finish }); });
 const conversation: ConversationRecord = {
   conversationId: "feedback", threadId: null, parentConversationId: null,
@@ -32,13 +33,13 @@ const conversation: ConversationRecord = {
   model: null, reasoningEffort: null, totalTokens: null, uncachedTotalTokens: null, lastActivityAt: null, lastMessage: null, collaborationMode: null,
   createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString(),
 };
-const noop = () => {};
+const noop = () => { };
 await saveAvatar("assistant", { file: png, crop: INITIAL_AVATAR_CROP });
 createRoot(document.getElementById("root")!).render(<Chat
   session={session} conversations={[conversation]} activeConversationId="feedback" displayedConversation={conversation}
   onBack={noop} onSelectConversation={noop} onCreateConversation={async () => conversation}
   onForkConversation={async () => null} onUpdateConversation={async () => conversation}
-  canArchiveConversation={() => false} onArchiveConversation={async () => {}} onArchivedConversation={noop}
+  canArchiveConversation={() => false} onArchiveConversation={async () => { }} onArchivedConversation={noop}
   conversationTransition={null} onConversationSwitchEnd={noop} onRegisterFrameCapture={noop}
   initialDraft="" initialScrollTop={null} onViewStateChange={noop}
 />);
@@ -49,7 +50,7 @@ createRoot(document.getElementById("root")!).render(<Chat
   resolve: () => resolveSend({ turnId: "reply" }),
   reject: () => rejectSend(new Error("fixture request failed")),
   event: (event: any) => session.enqueueEvent(event),
-  addFiles: () => session.attachments.add([new File(["attachment"], "notes.txt", { type: "text/plain" }), new File([png], "photo.png", { type: "image/png" })], () => {}),
+  addFiles: () => session.attachments.add([new File(["attachment"], "notes.txt", { type: "text/plain" }), new File([png], "photo.png", { type: "image/png" })], () => { }),
   progress: (value: number) => uploads.forEach(upload => upload.progress(value)),
   uploaded: () => uploads.forEach((upload, index) => upload.finish({ id: `file-${index}`, name: upload.file.name, mimeType: upload.file.type, size: upload.file.size, createdAt: new Date().toISOString() })),
   saveFiles: () => session.saveUserRecord("附件", session.attachments.take()),

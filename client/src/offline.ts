@@ -1,8 +1,9 @@
+// 提供缓存优先读取、快照订阅与顺序保存，重连时补发并刷新使用过的数据。
 import { backendAvailable, backendAuthorized, onBackendRecovery, request, BackendUnavailable, LoginRequired } from "./backend";
 import { readOffline, writeOffline } from "./offlineStorage";
 
-type QueuedSave = { url: string; method: string; body?: string; keys: string[] };
-type Query = { used: () => boolean; refresh: () => Promise<unknown>; publish: (value: unknown, notify: boolean) => void };
+type QueuedSave = { url: string; method: string; body?: string; keys: string[]; };
+type Query = { used: () => boolean; refresh: () => Promise<unknown>; publish: (value: unknown, notify: boolean) => void; };
 const queries = new Map<string, Query>();
 const revisions = new Map<string, number>();
 let outbox: QueuedSave[] = [];
@@ -19,6 +20,12 @@ export function onQueuedSave(listener: () => void) {
 const initialize = () => loaded ??= readOffline<QueuedSave[]>("outbox").then(saved => { outbox = saved ?? []; });
 const pending = (key: string) => outbox.some(save => save.keys.includes(key));
 const revision = (key: string) => revisions.get(key) ?? 0;
+// 新保存与补发共用一条串行队列；某次失败不能截断后续操作。
+function enqueueWrite<T>(run: () => Promise<T>) {
+  const result = writes.catch(() => { }).then(run);
+  writes = result;
+  return result;
+}
 function publish(key: string, value: unknown, notify = true) {
   revisions.set(key, revision(key) + 1);
   queries.get(key)?.publish(value, notify);
@@ -53,7 +60,7 @@ export function readQuery<T>(url: string, transform?: (value: T) => Promise<T>, 
     used = true;
     await hydrate();
     if (value !== undefined) {
-      void refresh().catch(() => {});
+      void refresh().catch(() => { });
       return value;
     }
     return refresh();
@@ -63,7 +70,7 @@ export function readQuery<T>(url: string, transform?: (value: T) => Promise<T>, 
     let delivered = false;
     const listener = (next: T) => { delivered = true; receiveValue(next); };
     listeners.add(listener);
-    void read().then(next => { if (active && !delivered) receiveValue(next); }).catch(() => {});
+    void read().then(next => { if (active && !delivered) receiveValue(next); }).catch(() => { });
     return () => { active = false; listeners.delete(listener); };
   };
   read.refresh = refresh;
@@ -105,8 +112,8 @@ async function flush() {
 }
 
 export function queueSave<T>(url: string, method: string, body: unknown,
-  prepare: () => Promise<{ updates: Record<string, unknown>; result: T }>, quiet = false): Promise<T> {
-  const operation = writes.catch(() => {}).then(async () => {
+  prepare: () => Promise<{ updates: Record<string, unknown>; result: T; }>, quiet = false): Promise<T> {
+  return enqueueWrite(async () => {
     if (!backendAuthorized()) throw new LoginRequired();
     await initialize();
     const { updates, result } = await prepare();
@@ -131,8 +138,6 @@ export function queueSave<T>(url: string, method: string, body: unknown,
     }
     return result;
   });
-  writes = operation;
-  return operation;
 }
 
 export async function refreshReads() {
@@ -140,9 +145,7 @@ export async function refreshReads() {
 }
 
 export function flushOfflineSaves() {
-  const operation = writes.catch(() => {}).then(flush);
-  writes = operation;
-  return operation;
+  return enqueueWrite(flush);
 }
 
 export function startOfflineSync() {
@@ -153,7 +156,7 @@ export function startOfflineSync() {
     await request("/api/config");
     try { await flushOfflineSaves(); }
     finally { await refreshReads(); }
-  })().catch(() => {}).finally(() => { recovering = undefined; });
+  })().catch(() => { }).finally(() => { recovering = undefined; });
   const retry = () => { if (!backendAvailable() || outbox.length) void recover(); };
   const visible = () => { if (document.visibilityState === "visible") void recover(); };
   const stop = onBackendRecovery(() => { void recover(); });

@@ -1,3 +1,4 @@
+// 保存每个会话的线程与运行回合，协调恢复和结束状态。
 type ConversationRuntimeState = {
   conversationId: string;
   threadId: string | null;
@@ -30,7 +31,7 @@ export class ConversationRuntimeRegistry {
     return state;
   }
 
-  restore(records: Array<{ conversationId: string; threadId: string | null }>) {
+  restore(records: Array<{ conversationId: string; threadId: string | null; }>) {
     for (const record of records) this.register(record.conversationId, record.threadId);
   }
 
