@@ -1,15 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { homedir } from "node:os";
-import { fileURLToPath } from "node:url";
 import type { AppConfig, Sandbox } from "./types.js";
+import { projectDirectory, dataDirectory, workingDirectory } from "../../shared/deployment.mjs";
 
-export const dataDirectory = path.resolve(process.cwd(), "server", "data");
+export { projectDirectory, dataDirectory };
 const file = path.join(dataDirectory, "config.json");
-export const projectDirectory = fileURLToPath(
-  new URL("../..", import.meta.url),
-);
-export const defaultWorkingDirectory = path.join(homedir(), "MianWorkspace");
+export const defaultWorkingDirectory = workingDirectory;
 export const PROJECT_DIRECTORY_ERROR =
   "工作目錄不能設在 Mian 專案裡面，請換一個資料夾。";
 
@@ -39,12 +35,12 @@ export async function readConfig(): Promise<AppConfig> {
     config = { ...defaults };
   }
   config.proactive = { ...defaults.proactive, ...config.proactive };
-  // 老配置迁出项目目录，保留模型、权限和当前通道。
-  if (isProjectDirectory(config.workingDirectory)) {
-    config.workingDirectory = defaultWorkingDirectory;
-    await writeConfig(config);
-  }
+  // 工作区只能由部署环境决定，网页与备份不能扩展电脑访问范围。
+  config.workingDirectory = defaultWorkingDirectory;
+  config.sandbox = "workspace-write";
+  if (isProjectDirectory(config.workingDirectory)) throw new Error(PROJECT_DIRECTORY_ERROR);
   await mkdir(config.workingDirectory, { recursive: true });
+  await mkdir(path.join(config.workingDirectory, ".tmp"), { recursive: true });
   return config;
 }
 
@@ -55,11 +51,7 @@ async function writeConfig(config: AppConfig) {
 
 export async function saveConfig(input: unknown) {
   const value = input as Partial<AppConfig>;
-  const sandboxes: Sandbox[] = [
-    "read-only",
-    "workspace-write",
-    "danger-full-access",
-  ];
+  const sandboxes: Sandbox[] = ["workspace-write"];
   if (
     typeof value.workingDirectory !== "string" ||
     !path.isAbsolute(value.workingDirectory)
@@ -67,6 +59,8 @@ export async function saveConfig(input: unknown) {
     throw new Error("工作目录必须是绝对路径");
   if (isProjectDirectory(value.workingDirectory))
     throw new Error(PROJECT_DIRECTORY_ERROR);
+  if (path.resolve(value.workingDirectory) !== defaultWorkingDirectory)
+    throw new Error("工作目錄由伺服器的 MIAN_WORKSPACE_DIR 設定。");
   if (!sandboxes.includes(value.sandbox as Sandbox))
     throw new Error("无效的 sandbox");
   const current = await readConfig();

@@ -33,6 +33,7 @@ export async function backendFetch(url: string, init?: RequestInit) {
     throw new BackendUnavailable();
   }
   setBackendAvailable(true);
+  if (response.status === 401) window.dispatchEvent(new Event("mian:login-required"));
   return response;
 }
 

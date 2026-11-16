@@ -112,8 +112,12 @@ export const subscribe = (
       }
     };
     ws.onerror = reportFailure;
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (closedByClient) return;
+      if (event.code === 4001) {
+        window.dispatchEvent(new Event("mian:login-required"));
+        return;
+      }
       reportFailure();
       window.clearTimeout(reconnectTimer);
       reconnectTimer = window.setTimeout(connect, reconnectDelay);

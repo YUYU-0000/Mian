@@ -52,6 +52,8 @@ test("Codex selection uses an ephemeral system prompt and consumes its own notif
     "id-1,id-2",
   );
   assert.equal(requests[0].params.ephemeral, true);
+  assert.equal(requests[0].params.permissions, "mian-read");
+  assert.equal(requests[0].params.approvalPolicy, "never");
   assert.equal(requests[0].params.model, config.model);
   assert.equal(requests[0].params.baseInstructions, CLUE_SELECTION_INSTRUCTION);
   assert.equal(requests[1].params.additionalContext[MIAN_TURN_CONTEXT_KEY].value, "只回 id");

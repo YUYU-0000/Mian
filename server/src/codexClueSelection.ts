@@ -2,6 +2,7 @@ import type { AppConfig } from "./types.js";
 import type { ChatMessage } from "./providers/openai.js";
 import { CLUE_SELECTION_INSTRUCTION } from "./clueSelection.js";
 import { MIAN_TURN_CONTEXT_KEY } from "./publicReplyProtocol.js";
+import { CODEX_READ_PERMISSIONS, codexOverrides } from "./codexSecurity.js";
 
 type Request = (method: string, params: unknown) => Promise<any>;
 type Selection = {
@@ -25,7 +26,10 @@ export class CodexClueSelection {
       model: config.model || null,
       ephemeral: true,
       approvalPolicy: "never",
-      sandbox: "read-only",
+      permissions: CODEX_READ_PERMISSIONS,
+      runtimeWorkspaceRoots: [config.workingDirectory],
+      config: codexOverrides(config),
+      approvalsReviewer: "user",
       baseInstructions: CLUE_SELECTION_INSTRUCTION,
     });
     let timer: NodeJS.Timeout;

@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
 import path from "node:path";
+import { CODEX_PERMISSIONS, codexArguments, codexOverrides } from "./codexSecurity.js";
 import type {
   AppConfig,
   ConversationRuntimeMetadata,
@@ -14,7 +15,6 @@ import { CodexClueSelection } from "./codexClueSelection.js";
 import type { ChatMessage } from "./providers/openai.js";
 import {
   handleCodexNotification,
-  resolveConversationId,
 } from "./codexEvents.js";
 import {
   MIAN_PUBLIC_REPLY_CONTEXT_KEY,
@@ -54,10 +54,11 @@ type AppServerInstance = {
 };
 
 const defaultSpawner: AppServerSpawner = (config) =>
-  spawn("codex", ["app-server", "--stdio"], {
+  spawn(process.env.MIAN_CODEX_BIN || "codex", codexArguments(config), {
     cwd: config.workingDirectory,
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
+    env: { ...process.env, ...(process.env.MIAN_CODEX_HOME ? { CODEX_HOME: process.env.MIAN_CODEX_HOME } : {}) },
   });
 
 const configKey = (config: AppConfig) =>
@@ -76,7 +77,6 @@ export class CodexBridge extends EventEmitter {
   private lastStatus?: ConnectionStatus;
   private seq = 1;
   private waiters = new Map<number | string, Waiter>();
-  private approvals = new Map<string, PendingApproval>();
   private readonly conversations = new ConversationRuntimeRegistry();
   private readonly clueSelection = new CodexClueSelection();
   private readonly codeModeCalls = new Map<string, string>();
@@ -302,7 +302,6 @@ export class CodexBridge extends EventEmitter {
       instance.id,
       new Error(`app-server 已退出 (${code ?? signal ?? "unknown"})`),
     );
-    this.approvals.clear();
     const interruptedTurns = this.conversations.clearTransientState();
     this.lastStatus = undefined;
 
@@ -346,7 +345,6 @@ export class CodexBridge extends EventEmitter {
     this.lifecycleState = "failed";
     this.lastStatus = undefined;
     this.rejectWaitersFor(instance.id, error);
-    this.approvals.clear();
     const interruptedConversations = this.conversations
       .clearTransientState()
       .map(([conversationId]) => conversationId);
@@ -370,7 +368,6 @@ export class CodexBridge extends EventEmitter {
     this.lifecycleState = "stopping";
     this.current = undefined;
     this.rejectWaitersFor(instance.id, new Error(reason));
-    this.approvals.clear();
     this.conversations.clearTransientState();
     instance.child.kill();
     await this.waitForExit(instance);
@@ -421,51 +418,8 @@ export class CodexBridge extends EventEmitter {
       this.respondError(msg.id!, -32601, `客户端未实现请求 ${msg.method}`);
       return;
     }
-    const params = (msg.params || {}) as Record<string, unknown>;
-    const requestId = String(msg.id);
-    const conversationId = resolveConversationId(this.conversations, params);
-    if (!conversationId) {
-      this.respondError(
-        msg.id!,
-        -32602,
-        "无法确定权限请求所属的 conversationId",
-      );
-      return;
-    }
-    const turnId = String(
-      params.turnId ||
-        this.conversations.require(conversationId).activeTurnId ||
-        "",
-    );
-    this.approvals.set(requestId, {
-      rpcId: msg.id!,
-      kind,
-      params,
-      turnId,
-      conversationId,
-    });
-    const detail =
-      kind === "command"
-        ? String(params.command || params.reason || "命令执行请求")
-        : kind === "file"
-          ? String(params.reason || params.grantRoot || "文件修改请求")
-          : JSON.stringify(params.permissions || {}, null, 2);
-    this.emit("event", {
-      type: "approval",
-      conversationId,
-      turnId,
-      approval: {
-        requestId,
-        kind,
-        title:
-          kind === "command"
-            ? "命令权限请求"
-            : kind === "file"
-              ? "文件修改请求"
-              : "额外权限请求",
-        detail,
-      },
-    });
+    this.respond(msg.id!, kind === "permissions" ? { permissions: {}, scope: "turn" } : { decision: "decline" });
+    return;
   }
 
   private handleNotification(method: string, params: any) {
@@ -484,9 +438,12 @@ export class CodexBridge extends EventEmitter {
     // 正式线程沿用固定的默认 baseInstructions，逐轮上下文只交给 turn/start。
     return {
       cwd: path.join(this.config.workingDirectory, conversationId),
-      sandbox: this.config.sandbox,
+      permissions: CODEX_PERMISSIONS,
+      runtimeWorkspaceRoots: [this.config.workingDirectory],
+      config: codexOverrides(this.config),
       model: this.config.model || null,
-      approvalPolicy: "on-request",
+      approvalPolicy: "never",
+      approvalsReviewer: "user",
     };
   }
 
@@ -588,10 +545,7 @@ export class CodexBridge extends EventEmitter {
     return (
       Boolean(runtime.activeTurnId) ||
       runtime.startingTurn ||
-      Boolean(runtime.threadOperation) ||
-      [...this.approvals.values()].some(
-        (approval) => approval.conversationId === conversationId,
-      )
+      Boolean(runtime.threadOperation)
     );
   }
 
@@ -644,6 +598,9 @@ export class CodexBridge extends EventEmitter {
       const threadId = await this.ensureConversationThread(conversationId);
       const result = (await this.request("turn/start", {
         threadId,
+        permissions: CODEX_PERMISSIONS,
+        approvalPolicy: "never",
+        approvalsReviewer: "user",
         cwd: path.join(this.config.workingDirectory, conversationId),
         input: [{ type: "text", text, text_elements: [] }],
         additionalContext: {
@@ -687,20 +644,8 @@ export class CodexBridge extends EventEmitter {
     }
   }
 
-  decide(requestId: string, allow: boolean, conversationId: string) {
-    const approval = this.approvals.get(requestId);
-    if (!approval) throw new Error("权限请求已失效");
-    if (approval.conversationId !== conversationId)
-      throw new Error("权限请求不属于这个会话");
-    this.approvals.delete(requestId);
-    let result: any;
-    if (approval.kind === "command" || approval.kind === "file")
-      result = { decision: allow ? "accept" : "decline" };
-    else
-      result = allow
-        ? { permissions: approval.params.permissions || {}, scope: "turn" }
-        : { permissions: {}, scope: "turn" };
-    this.respond(approval.rpcId, result);
+  decide(_requestId: string, _allow: boolean, _conversationId: string) {
+    throw new Error("Mian 的工作區權限固定，不能放寬。");
   }
 
   request(method: string, params?: unknown, timeout = 15_000) {
@@ -773,7 +718,6 @@ export class CodexBridge extends EventEmitter {
       this.rejectWaitersFor(instance.id, new Error("连接已关闭"));
       instance.child.kill();
     }
-    this.approvals.clear();
     this.conversations.clearTransientState();
     this.lastStatus = undefined;
     this.lifecycleState = "idle";

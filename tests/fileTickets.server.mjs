@@ -14,7 +14,7 @@ export const imageBytes = Buffer.from(
 );
 
 // 真实本地后端配合假的服务商和 Codex，不发付费请求。
-export async function fileTicketServer({ selection = "", selectionFails = false, rejectTools = false, reply, voice = false } = {}) {
+export async function fileTicketServer({ selection = "", selectionFails = false, rejectTools = false, reply, voice = false, setup = true } = {}) {
   const repository = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-file-tickets-"));
   const workspace = path.join(directory, "workspace");
@@ -146,6 +146,7 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     ],
     {
       cwd: directory,
+      env: { ...process.env, MIAN_DATA_DIR: path.join(directory, "server/data"), MIAN_WORKSPACE_DIR: workspace },
       windowsHide: true,
       stdio: ["ignore", "ignore", "pipe", "ipc"],
     },
@@ -168,6 +169,10 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
       throw new Error(logs);
     }),
   ]);
+  if (setup) {
+    const result = await fetch(`http://127.0.0.1:${port}/api/auth/setup`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "fixture-password-only" }) });
+    assert.equal(result.status, 200);
+  }
   return {
     directory,
     workspace,

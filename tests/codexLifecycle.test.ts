@@ -81,9 +81,9 @@ class FakeAppServer extends EventEmitter {
   }
 
   private receive(message: RpcMessage) {
+    this.requests.push(message);
     if (!message.method) return;
     this.methods.push(message.method);
-    this.requests.push(message);
     if (message.id === undefined) return;
     let result: unknown = {};
     if (message.method === "initialize") result = { userAgent: "fake-codex" };
@@ -429,6 +429,11 @@ test("a fresh conversation shares one in-flight thread initialization", async ()
   assert.equal(threadStarts.length, 1);
   assert.equal(turnStarts.length, 1);
   assert.equal(forks.length, 1);
+  for (const request of [...threadStarts, ...turnStarts, ...forks]) {
+    assert.equal((request.params as any).permissions, "mian-workspace");
+    assert.equal((request.params as any).approvalPolicy, "never");
+    assert.equal((request.params as any).sandbox, undefined);
+  }
   assert.equal((forks[0].params as any).threadId, started.threadId);
   assert.notEqual(forked.threadId, started.threadId);
   bridge.close();
@@ -562,7 +567,7 @@ test("an empty thread with no rollout is already absent remotely and may commit 
   bridge.close();
 });
 
-test("an active or approval-blocked conversation cannot be archived", async () => {
+test("an active conversation cannot be archived and escalation is always declined", async () => {
   const activeFixture = bridgeFixture();
   await activeFixture.bridge.connect(baseConfig);
   await activeFixture.bridge.startTurn("still running", "c2");
@@ -592,19 +597,18 @@ test("an active or approval-blocked conversation cannot be archived", async () =
     method: "item/commandExecution/requestApproval",
     params: { threadId, turnId: "turn-approval", command: "Get-Location" },
   });
-  await assert.rejects(
-    approvalFixture.bridge.archiveConversationThread("c3"),
-    /运行|权限/,
-  );
+  assert.deepEqual(approvalFixture.children[0].requests.find(message => message.id === 91)?.result, { decision: "decline" });
+  await approvalFixture.bridge.archiveConversationThread("c3");
   assert.equal(
     approvalFixture.children[0].methods.includes("thread/archive"),
-    false,
+    true,
   );
   approvalFixture.bridge.close();
 });
 
-test("stream and approval events carry the owning conversation id", () => {
+test("stream events carry the owning conversation id and browser approvals cannot expand permissions", async () => {
   const { bridge } = bridgeFixture();
+  await bridge.connect(baseConfig);
   const events: any[] = [];
   bridge.on("event", (event) => events.push(event));
   bridge.registerConversationThread("c2", "thread-c2");
@@ -644,12 +648,11 @@ test("stream and approval events carry the owning conversation id", () => {
     [
       ["turn-started", "c2"],
       ["assistant-delta", "c2"],
-      ["approval", "c2"],
     ],
   );
   assert.throws(
     () => bridge.decide("42", true, "c1"),
-    /不属于这个会话/,
+    /權限固定/,
   );
   bridge.close();
 });

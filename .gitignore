@@ -12,6 +12,7 @@ coverage/
 # Local runtime configuration, credentials, and environment files
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.p12
@@ -22,6 +23,7 @@ secrets*.json
 # Real Mian conversation/thread mappings and runtime state
 server/data/
 server/server/data/
+server/server/data-迁移前/
 **/data/conversations.json
 **/data/config.json
 **/data/runtime*.json
@@ -33,6 +35,7 @@ server/server/data/
 .tmp-chrome*/
 .npm-cache/
 .cache/
+.mian-runtime/
 .protocol/
 *.log
 *.err

@@ -90,6 +90,7 @@ test(
       ],
       {
         cwd: directory,
+        env: { ...process.env, MIAN_DATA_DIR: path.join(directory, "server/data"), MIAN_WORKSPACE_DIR: path.join(directory, "workspace") },
         windowsHide: true,
         stdio: ["ignore", "ignore", "pipe", "ipc"],
       },
@@ -107,6 +108,7 @@ test(
         }),
       ]);
       const base = `http://127.0.0.1:${port}`;
+      await fetch(base + "/api/auth/setup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "fixture-password-only" }) });
       const request = async (
         url: string,
         method = "GET",

@@ -11,6 +11,8 @@ test("connection routes persist presets, use provider credentials, and read Code
   const workspace = process.cwd();
   const directory = await mkdtemp(path.join(tmpdir(), "mian-connection-test-"));
   process.chdir(directory);
+  process.env.MIAN_DATA_DIR = path.join(directory, "server/data");
+  process.env.MIAN_WORKSPACE_DIR = path.join(directory, "workspace");
   const { connectionRoutes } = await import("../server/src/connections.ts");
   const calls: string[] = [];
   const primary = { usedPercent: 20, windowDurationMins: 300, resetsAt: new Date(2026, 10, 14, 1, 20).getTime() / 1000 };
@@ -116,6 +118,8 @@ test("connection routes persist presets, use provider credentials, and read Code
   } finally {
     await Promise.all([new Promise<void>(resolve => server.close(() => resolve())), new Promise<void>(resolve => providerServer.close(() => resolve()))]);
     process.chdir(workspace);
+    delete process.env.MIAN_DATA_DIR;
+    delete process.env.MIAN_WORKSPACE_DIR;
     assert.equal(path.dirname(directory), tmpdir());
     await rm(directory, { recursive: true });
   }

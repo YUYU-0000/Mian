@@ -225,7 +225,8 @@ export function settingsRoutes(
       await beforeImport();
       const previous = conversations.list();
       const existing = (await readPresets()).presets;
-      await saveConfig(backup.config);
+      const deployment = await readConfig();
+      await saveConfig({ ...backup.config, workingDirectory: deployment.workingDirectory, sandbox: deployment.sandbox });
       // 同一台机器保留同一纸片、同一服务地址的金钥；新机器需重新填写。
       await writePresets({
         presets: backup.apiPresets.map((preset) => ({
