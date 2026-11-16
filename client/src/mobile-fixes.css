@@ -171,11 +171,6 @@
     opacity 160ms ease,
     transform 200ms ease;
 }
-.archive-tool-step .archive-step-body {
-  transition:
-    opacity 160ms ease,
-    transform 200ms ease;
-}
 .archive-module.is-expanded .collapsible-content,
 .archive-tool-step.is-expanded .archive-step-body {
   opacity: 1;
@@ -203,7 +198,6 @@
   -webkit-clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   border-radius: 3px 3px 0 0;
-  position: relative;
 }
 .env-top-flap::before {
   content: "";
@@ -251,9 +245,6 @@
 }
 
 /* 折叠标题和工具步骤的布局。 */
-.archive-module > summary::before {
-  display: none;
-}
 .archive-module-header {
   display: flex;
   align-items: center;

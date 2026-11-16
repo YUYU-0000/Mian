@@ -180,7 +180,7 @@ function codeModeToolFrom(
   };
 }
 
-export function resolveConversationId(
+function resolveConversationId(
   conversations: ConversationRuntimeRegistry,
   params: Record<string, unknown> | undefined,
 ) {

@@ -189,15 +189,6 @@
   letter-spacing: 4px;
   color: var(--line);
 }
-.archive-module > summary:before {
-  content: "›";
-  font-size: 18px;
-  line-height: 10px;
-  transition: transform 0.35s;
-}
-.archive-module[open] > summary:before {
-  transform: rotate(90deg);
-}
 .status-icon {
   width: 14px;
   height: 14px;

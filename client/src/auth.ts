@@ -15,15 +15,11 @@ export function cachedAccess(): Access | null {
     ? { configured: true, authenticated: true, canSetup: false, local: false, localBypass: false, expiresAt }
     : null;
 }
-export function rememberAccess(access: Access) {
+function rememberAccess(access: Access) {
   if (access.authenticated) localStorage.setItem(ACCESS_KEY, String(access.expiresAt));
   else localStorage.removeItem(ACCESS_KEY);
   window.dispatchEvent(new CustomEvent<Access>("mian:access", { detail: access }));
   return access;
-}
-export function forgetAccess() {
-  localStorage.removeItem(ACCESS_KEY);
-  window.dispatchEvent(new Event("mian:login-required"));
 }
 const write = (url: string, body: unknown, method = "POST") => request<Access>(`/api/auth/${url}`, {
   method, body: JSON.stringify(body),

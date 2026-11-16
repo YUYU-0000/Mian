@@ -30,7 +30,7 @@ export function isLocalRequest(request: IncomingMessage) {
   const host = hostname(request);
   return privateAddress(request.socket.remoteAddress || "") && (host === "localhost" || privateAddress(host));
 }
-export function isSetupRequest(request: IncomingMessage) {
+function isSetupRequest(request: IncomingMessage) {
   const address = addressOf(request.socket.remoteAddress || "");
   return isLocalRequest(request) && (address === "::1" || address === "127.0.0.1");
 }
@@ -41,7 +41,7 @@ function secureRequest(request: IncomingMessage) {
     request.headers.host === new URL(process.env.MIAN_PUBLIC_ORIGIN || "https://mian.crab-bless.com").host &&
     request.headers["x-forwarded-proto"] === "https";
 }
-export function sameOrigin(request: IncomingMessage) {
+function sameOrigin(request: IncomingMessage) {
   if (request.headers["sec-fetch-site"] === "cross-site") return false;
   const origin = request.headers.origin;
   return !origin || origin === `${secureRequest(request) ? "https" : "http"}://${request.headers.host}`;
