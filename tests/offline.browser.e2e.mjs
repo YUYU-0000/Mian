@@ -24,7 +24,7 @@ const data = {
   "/api/config": { workingDirectory: "workspace", sandbox: "workspace-write", model: "cached-model", channel: { kind: "api", presetId: "p1" } },
   "/api/conversations": { defaultConversationId: "c1", conversations: [conversation] },
   "/api/conversations/c1/messages": { exists: true, eventSeq: 0, streamId: "test", groups: [{ role: "user", groupId: "u1", pending: false, time: "12:00", records: [{ messageId: "m1", text: "上次的內容", time: "12:00", files: [file] }] }] },
-  "/api/clues": { cards: [{ id: "clue", title: "緩存線索", content: "內容還在", mode: "pinned", when: "", scenes: [], layout: 0, order: 0, x: 30, y: 160, w: 84, h: 88, r: 0, createdAt: now, updatedAt: now }], pins: [], threads: [], portrait: { x: 160, y: 160, w: 84, h: 88, r: 0 } },
+  "/api/clues": { cards: [{ id: "clue", title: "緩存線索", content: "內容還在", mode: "pinned", when: "", scenes: [], layout: 0, order: 0, x: 30, y: 160, w: 84, h: 88, r: 0, createdAt: now, updatedAt: now }], pins: [{ id: "p1", cardId: "clue", x: 0.5, y: 0.2 }, { id: "p2", cardId: "portrait", x: 0.5, y: 0.2 }], threads: [{ from: "p1", to: "p2" }], portrait: { x: 160, y: 160, w: 84, h: 88, r: 0 } },
   "/api/font-presets": { presets: [{ id: "1", name: "預設", face: "", view: "Still water.", size: 14.5 }], activeId: "1", style: { face: "", size: 14.5 } },
   "/api/voice-presets": { presets: [{ id: "v1", note: "離線語音", voice_id: "v", voice_name: "聲音", model: "voice-model", words: "陪你", hasKey: true }], activeId: "v1" },
   "/api/api-presets": { presets: [{ id: "p1", note: "緩存通道", endpoint: "https://example.invalid", model: "cached-model", format: "openai", hasKey: true }], activeId: "p1" },
@@ -34,12 +34,12 @@ const data = {
 const harness = await build({ stdin: { resolveDir: process.cwd(), contents: `
   import { api } from './client/src/api';
   import * as offline from './client/src/offline';
-  import { readOffline } from './client/src/offlineStorage';
+  import { readOffline, writeOffline } from './client/src/offlineStorage';
   import { backendAvailable, backendAuthorized, setBackendAuthorized } from './client/src/backend';
   import { cachedFile, cachedFileUrl } from './client/src/fileCache';
   import { voicePlayer } from './client/src/voicePlayer';
   import { writeMedia, readSettingsMedia } from './client/src/mediaStorage';
-  window.test = { api, ...offline, readOffline, backendAvailable, backendAuthorized, setBackendAuthorized, cachedFile, cachedFileUrl, voicePlayer, writeMedia, readSettingsMedia };
+  window.test = { api, ...offline, readOffline, writeOffline, backendAvailable, backendAuthorized, setBackendAuthorized, cachedFile, cachedFileUrl, voicePlayer, writeMedia, readSettingsMedia };
   offline.startOfflineSync();
 ` }, bundle: true, write: false, format: "iife" });
 let apiDown = false, unauthorized = false, failedSave = false, version = 1, delayRead = false, releaseRead;
@@ -125,6 +125,12 @@ try {
   await navigate("/offline-test");
   await evaluate(`Promise.all([test.api.clues(), test.api.getConfig(), test.api.fontPresets(), test.api.voicePresets(), test.api.apiPresets(), test.api.subStatus('codex'), test.api.subQuota('codex'), test.api.listConversations(), test.api.loadMessages('c1'), test.cachedFile('/api/conversations/c1/files/note'), test.cachedFile(${JSON.stringify(voice.url)})])`);
   await evaluate(`test.writeMedia('LauncherDB','mediaStore','savedMediaFile_home_photo_widget',new Blob(['local photo'],{type:'video/mp4'}))`);
+  await evaluate(`(async()=>{
+    const canvas=document.createElement('canvas'); canvas.width=canvas.height=24;
+    canvas.getContext('2d').fillRect(0,0,24,24);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+    await test.writeMedia('LauncherDB','mediaStore','savedMediaFile_avatar_assistant',blob);
+  })()`);
   delayRead = true;
   data["/api/clues"].cards[0].title = "遠端更新";
   assert.equal(await evaluate("test.api.clues().then(wall=>wall.cards[0].title)"), "緩存線索");
@@ -176,7 +182,33 @@ try {
   await evaluate("test.setBackendAuthorized(true); test.flushOfflineSaves()");
   assert.equal(data["/api/config"].model, "after-login");
 
+  delayRead = true; releaseRead = undefined;
   await navigate("/");
+  await waitFor(() => evaluate("!document.querySelector('.auth-page')"), "home gate finishes");
+  assert.ok(releaseRead, "gate preloads wall data before the wall is opened");
+  assert.match(await evaluate("document.documentElement.style.getPropertyValue('--avatar-assistant')"), /blob:/, "portrait preloaded with home");
+  await evaluate(`
+    const observer=new MutationObserver(()=>{
+      const wall=document.querySelector('.clues-page');
+      if(!wall) return;
+      window.firstWall={cards:wall.querySelectorAll('.item.card').length,pins:wall.querySelectorAll('.pin').length,threads:wall.querySelectorAll('.threads g').length,portrait:wall.querySelectorAll('.portrait .ph').length};
+      observer.disconnect();
+    });
+    observer.observe(document,{subtree:true,childList:true});
+    document.querySelector('[aria-label="線索"]').click();
+  `);
+  await waitFor(() => evaluate("!!window.firstWall"), "first wall frame");
+  assert.deepEqual(await evaluate("firstWall"), { cards: 1, pins: 2, threads: 1, portrait: 1 });
+  releaseRead(); delayRead = false;
+
+  // 旧缓存即便是一面空墙，迟到的完整响应也要更新所有墙面元素。
+  await navigate("/offline-test");
+  await evaluate("test.writeOffline({'/api/clues':{cards:[],pins:[],threads:[],portrait:" + JSON.stringify(data["/api/clues"].portrait) + "}})");
+  delayRead = true; releaseRead = undefined;
+  await navigate("/clues");
+  assert.equal(await evaluate("document.querySelectorAll('.clues-page .item.card').length"), 0);
+  releaseRead(); delayRead = false;
+  await waitFor(() => evaluate("document.querySelectorAll('.clues-page .item.card').length===1 && document.querySelectorAll('.clues-page .pin').length===2 && document.querySelectorAll('.clues-page .threads g').length===1"), "empty cache replaced by the complete wall");
   await waitFor(() => evaluate("!!navigator.serviceWorker.controller"), "shell installation");
   await navigate("/chat");
   await waitFor(() => evaluate("document.body.textContent.includes('上次的內容')"), "chat loaded");

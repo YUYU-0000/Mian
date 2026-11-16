@@ -67,6 +67,7 @@ export function readQuery<T>(url: string, transform?: (value: T) => Promise<T>, 
     return () => { active = false; listeners.delete(listener); };
   };
   read.refresh = refresh;
+  read.getSnapshot = () => value;
   read.peek = async () => { await hydrate(); return value; };
   read.update = async (change: (current: T | undefined) => T | undefined, notify = true) => {
     await initialize();

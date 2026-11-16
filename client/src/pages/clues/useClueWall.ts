@@ -4,8 +4,8 @@ import { notify } from "../../components/Notify";
 import type { ClueWall } from "../../clueTypes";
 
 export function useClueWall() {
-  const [wall, setWall] = useState<ClueWall | null>(null);
-  const current = useRef<ClueWall | null>(null);
+  const [wall, setWall] = useState<ClueWall | null>(() => api.clues.getSnapshot() ?? null);
+  const current = useRef(wall);
   const writes = useRef(Promise.resolve());
   const replace = (next: ClueWall) => {
     current.current = next;

@@ -11,7 +11,8 @@ import { gateFontsReady } from "./gateFonts";
 import { voicePlayer } from "./voicePlayer";
 import "./auth.css";
 
-type Phase = "checking" | "locked" | "drawing" | "settled" | "opening" | "open";
+type Phase = "checking" | "locked" | "welcome" | "drawing" | "settled" | "opening" | "open";
+const WELCOME_MS = 600;
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [access, setAccess] = useState<Access | null>(cachedAccess);
@@ -32,7 +33,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const move = (next: Phase) => { currentPhase.current = next; setPhase(next); };
   const receiveAccess = (next: Access | null) => { currentAccess.current = next; setAccess(next); };
 
-  const openDoor = async (permission: Promise<Access>) => {
+  const openDoor = async (permission: Promise<Access>, automatic = false) => {
     move("drawing");
     setHomeReady(false);
     entryWasSlow.current = false;
@@ -48,7 +49,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     // 给收笔和交叉淡化留一秒，整个等待不超过八秒。
     const ready = Promise.race([
       prepared,
-      new Promise<boolean>(resolve => { timer = window.setTimeout(() => resolve(true), 7000); }),
+      new Promise<boolean>(resolve => { timer = window.setTimeout(() => resolve(true), 7000 - (automatic ? WELCOME_MS : 0)); }),
     ]).then(slow => {
       if (!currentAccess.current?.authenticated) throw new BackendUnavailable();
       if (drawing.current !== run) return;
@@ -117,8 +118,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (access?.authenticated && (currentPhase.current === "checking" || currentPhase.current === "locked"))
-      void openDoor(Promise.resolve(access));
+      move("welcome");
   }, [access?.authenticated]);
+  useEffect(() => {
+    if (phase !== "welcome") return;
+    const timer = window.setTimeout(() => void openDoor(Promise.resolve(currentAccess.current!), true), WELCOME_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
   useEffect(() => { if (access?.authenticated) return startOfflineSync(); }, [access?.authenticated]);
   useEffect(() => {
     if (!errorHint) return;
@@ -133,10 +139,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }, [phase]);
 
   const setup = access && !access.configured;
-  const canEnter = access && (!setup || access.canSetup);
+  const canEnter = access && !access.authenticated && (!setup || access.canSetup);
   const busy = phase === "drawing" || phase === "settled" || phase === "opening";
   const value = confirming ? repeat : password;
-  const hint = errorHint || (offline ? OFFLINE_MESSAGE : setup
+  const hint = phase === "checking" ? "" : access?.authenticated ? "門開著，進來。" : errorHint || (offline ? OFFLINE_MESSAGE : setup
     ? access.canSetup ? confirming ? "再寫一次。" : "先把門鎖好。至少十個字。" : "先在這台電腦上把門鎖好。"
     : "密碼給門，不用給我");
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -150,7 +156,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   };
   return <>
     {access?.authenticated && homeReady && <div className="auth-content" inert={phase !== "open"}>{children}</div>}
-    {phase !== "open" && <main className={`auth-page${busy ? " is-drawing" : ""}${phase === "locked" ? " is-locked" : ""}${phase === "opening" ? " is-opening" : ""}`}
+    {phase !== "open" && <main className={`auth-page${busy ? " is-drawing" : ""}${phase === "locked" ? " is-locked" : ""}${phase === "welcome" ? " is-welcoming" : ""}${phase === "opening" ? " is-opening" : ""}`}
       onTransitionEnd={event => {
         if (event.target !== event.currentTarget || event.propertyName !== "opacity" || phase !== "opening") return;
         move("open");
