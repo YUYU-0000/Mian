@@ -4,24 +4,27 @@ export type AvatarRole = "assistant" | "user";
 export type AvatarCrop = { x: number; y: number; zoom: number };
 export type AvatarEditor = { file: Blob; crop: AvatarCrop };
 export const INITIAL_AVATAR_CROP: AvatarCrop = { x: 0, y: 0, zoom: 1 };
-const urls = new Map<AvatarRole, string>();
+const images = new Map<AvatarRole, HTMLImageElement>();
 
-function applyAvatar(role: AvatarRole, file: Blob) {
-  const previous = urls.get(role);
-  if (previous) URL.revokeObjectURL(previous);
+async function applyAvatar(role: AvatarRole, file: Blob) {
   const url = URL.createObjectURL(file);
-  urls.set(role, url);
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  const previous = images.get(role);
+  images.set(role, image);
   document.documentElement.style.setProperty(
     `--avatar-${role}`,
     `url("${url}")`,
   );
+  if (previous) URL.revokeObjectURL(previous.src);
 }
 
 export async function loadAvatars() {
   await Promise.all(
     (["assistant", "user"] as const).map(async (role) => {
       const file = await readSettingsMedia(`avatar_${role}`);
-      if (file) applyAvatar(role, file);
+      if (file) await applyAvatar(role, file);
     }),
   );
 }
@@ -59,7 +62,7 @@ export async function saveAvatar(role: AvatarRole, editor: AvatarEditor) {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });
-  applyAvatar(role, picture);
+  await applyAvatar(role, picture);
   return picture;
 }
 

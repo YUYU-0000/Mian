@@ -79,7 +79,7 @@ export default function Chat({
     session.getSnapshot,
     session.getSnapshot,
   );
-  const { messages, visualReplies, activeTurnId, turnPhase } = snapshot;
+  const { messages, visualReplies, activeTurnId, turnPhase, pendingReplyId } = snapshot;
   const attachments = useSyncExternalStore(
     session.attachments.subscribe,
     session.attachments.getSnapshot,
@@ -89,7 +89,7 @@ export default function Chat({
   const fileInput = useRef<HTMLInputElement>(null);
   const active = turnPhase !== "idle";
   const historicalAnimationIds = useMemo(
-    () => collectHistoricalAnimationIds(session.getSnapshot().messages),
+    () => collectHistoricalAnimationIds(session.getSnapshot().messages, session.replyKey),
     [session],
   );
   const [expandedTools, setExpandedTools] = useState<Set<string>>(
@@ -449,7 +449,7 @@ export default function Chat({
             {messages.map((message) => (
               <ChatMessage
                 key={
-                  message.role === "user" ? message.groupId : message.replyGroupId
+                  message.role === "user" ? message.groupId : session.replyKey(message.replyGroupId)
                 }
                 message={message}
                 visual={
@@ -458,6 +458,7 @@ export default function Chat({
                     : null
                 }
                 activeTurnId={activeTurnId}
+                waiting={message.role === "assistant" && message.replyGroupId === pendingReplyId}
                 historicalAnimationIds={historicalAnimationIds}
                 expandedTools={expandedTools}
                 onToggleTool={toggleToolExpansion}

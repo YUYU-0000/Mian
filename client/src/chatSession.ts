@@ -15,6 +15,7 @@ import {
   recoverLastUnansweredUserGroup,
   saveChatGroups,
   type ChatGroup,
+  type ReplyGroup,
   type UserGroup,
 } from "../../shared/chatModel.mjs";
 import { loadPending, PENDING_STORAGE_KEY } from "./chatPending";
@@ -58,6 +59,7 @@ export type ChatSessionSnapshot = {
   visualReplies: Record<string, VisualReply>;
   activeTurnId: string | null;
   turnPhase: TurnPhase;
+  pendingReplyId?: string;
 };
 
 export type ChatSessionOptions = {
@@ -181,6 +183,8 @@ export class ChatSessionStore {
   private readonly eventQueue: ChatEvent[] = [];
   private processingEvents = false;
   private startingTurn = false;
+  private pendingReply: ReplyGroup | null = null;
+  private readonly replyKeys = new Map<string, string>();
   private playbackTimer: ReturnType<typeof setTimeout> | null = null;
   private messages: ChatGroup[];
   private visualReplies: Record<string, VisualReply>;
@@ -257,6 +261,8 @@ export class ChatSessionStore {
 
   readonly getSnapshot = () => this.snapshot;
 
+  readonly replyKey = (turnId: string) => this.replyKeys.get(turnId) ?? turnId;
+
   enqueueEvent(event: ChatEvent) {
     if (event.type === "messages-updated") {
       this.refreshMessages();
@@ -281,14 +287,15 @@ export class ChatSessionStore {
   synchronizeRemoteTurn(turnId: string | null, _reset: boolean) {
     this.refreshMessages();
     if (turnId) {
+      const bound = this.bindPendingReply(turnId);
       if (this.activeTurnId !== turnId) {
         this.activeTurnId = turnId;
         this.turnPhase = "running";
-        this.commit(false, true);
+        this.commit(bound, true);
       } else if (this.turnPhase !== "running") {
         this.turnPhase = "running";
-        this.commit(false, false);
-      }
+        this.commit(bound, false);
+      } else if (bound) this.commit(true, false);
       this.markRemoteTurnSynchronized();
       this.schedulePlayback();
       return;
@@ -297,9 +304,9 @@ export class ChatSessionStore {
     if (this.activeTurnId) {
       this.flushTurn(this.activeTurnId);
       this.activeTurnId = null;
-      this.turnPhase = "idle";
+      this.turnPhase = this.startingTurn ? "starting" : "idle";
       this.commit(false, true);
-    } else if (this.turnPhase !== "idle") {
+    } else if (this.turnPhase !== "idle" && !this.startingTurn) {
       this.turnPhase = "idle";
       this.commit(false, false);
     }
@@ -326,15 +333,7 @@ export class ChatSessionStore {
   }
 
   async startPendingTurn() {
-    if (!backendAvailable()) { this.onSendError?.(new BackendUnavailable()); return; }
-    if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
-    if (this.messageSync && !this.messageSync.initialized) {
-      try { await this.messageSync.refresh(); }
-      catch (error) {
-        if (!this.messageSync.initialized) { this.onSendError?.(error); return; }
-      }
-    }
-    if (this.activeTurnId || this.startingTurn) return;
+    if (this.startingTurn || (this.remoteTurnSynchronized && this.activeTurnId)) return;
     let group = pendingUserGroup(this.messages);
     if (!group) {
       const recovered = recoverLastUnansweredUserGroup(this.messages);
@@ -345,17 +344,30 @@ export class ChatSessionStore {
       }
     }
     if (!group) return;
-    const userText = group.records.map((record) => record.text).join("\n\n");
     this.startingTurn = true;
     this.turnPhase = "starting";
+    // 只在界面快照里放占位，服务器 turnId 到来后接入同一个节点。
+    this.pendingReply = applyReplyEvent([], {
+      type: "turn-started", turnId: `waiting:${group.groupId}`,
+    }, this.nowLabel())[0] as ReplyGroup;
     this.commit(false, false);
     try {
+      if (!backendAvailable()) throw new BackendUnavailable();
+      if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
+      if (this.messageSync && !this.messageSync.initialized) {
+        try { await this.messageSync.refresh(); }
+        catch (error) { if (!this.messageSync.initialized) throw error; }
+      }
+      if (this.activeTurnId) return;
+      group = pendingUserGroup(this.messages) ?? group;
+      const userText = group.records.map((record) => record.text).join("\n\n");
       const result = await this.apiClient.send(
         userText,
         this.conversationId,
         group.records.flatMap((record) => record.files ?? []),
         group,
       );
+      this.bindPendingReply(result.turnId);
       const reply = this.messages.find(
         (message) =>
           message.role === "assistant" &&
@@ -370,6 +382,7 @@ export class ChatSessionStore {
       this.commit(true, true);
       this.schedulePlayback();
     } catch (error) {
+      if (this.pendingReply) this.pendingReply = { ...this.pendingReply, status: "failed" };
       console.error(error);
       this.onSendError?.(error);
     } finally {
@@ -446,7 +459,10 @@ export class ChatSessionStore {
   private applyEvent(event: ChatEvent) {
     let messagesChanged = false;
     let sessionChanged = false;
-    if ("turnId" in event) this.markRemoteTurnSynchronized();
+    if ("turnId" in event) {
+      this.markRemoteTurnSynchronized();
+      this.bindPendingReply(event.turnId);
+    }
     if (event.type === "turn-started") {
       this.activeTurnId = event.turnId;
       this.turnPhase = "running";
@@ -490,6 +506,7 @@ export class ChatSessionStore {
       }
     } else if (event.type === "error") {
       console.error(event.message);
+      if (this.pendingReply) this.pendingReply = { ...this.pendingReply, status: "failed" };
       if (this.activeTurnId) {
         const finalized = finalizeReplyGroup(
           this.messages,
@@ -523,7 +540,17 @@ export class ChatSessionStore {
 
   refreshMessages() { this.messageSync?.invalidate(); }
 
+  private bindPendingReply(turnId: string) {
+    const pending = this.pendingReply;
+    if (!pending) return false;
+    this.replyKeys.set(turnId, pending.replyGroupId);
+    this.messages = applyReplyEvent(this.messages, { type: "turn-started", turnId }, pending.time);
+    this.pendingReply = null;
+    return true;
+  }
+
   private receiveMessages(snapshot: MessageSnapshot, cached = false) {
+    const currentReply = this.messages.find(group => group.role === "assistant" && group.replyGroupId === this.activeTurnId);
     this.messages = snapshot.groups;
     this.messageSequence = snapshot.eventSeq;
     this.messageStreamId = snapshot.streamId;
@@ -531,6 +558,9 @@ export class ChatSessionStore {
       if ("turnId" in event && (event.streamId !== snapshot.streamId || (event.eventSeq ?? Infinity) > snapshot.eventSeq))
         this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
     }
+    // 请求发出前的旧快照不能拿掉已经显示的回复。
+    if (currentReply?.role === "assistant" && !this.messages.some(group => group.role === "assistant" && group.replyGroupId === currentReply.replyGroupId))
+      this.messages = [...this.messages, currentReply];
     if (!cached) this.syncingEvents = null;
     this.visualReplies = Object.fromEntries(this.messages.filter(group => group.role === "assistant").map(group => [
       group.replyGroupId,
@@ -625,10 +655,11 @@ export class ChatSessionStore {
   private createSnapshot(): ChatSessionSnapshot {
     return {
       conversationId: this.conversationId,
-      messages: this.messages,
+      messages: this.pendingReply ? [...this.messages, this.pendingReply] : this.messages,
       visualReplies: this.visualReplies,
       activeTurnId: this.activeTurnId,
       turnPhase: this.turnPhase,
+      pendingReplyId: this.pendingReply && !this.pendingReply.status ? this.pendingReply.replyGroupId : undefined,
     };
   }
 }
