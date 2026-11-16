@@ -64,17 +64,21 @@
   inset: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  /* 与首页共用浏览器的阻尼、惯性和回弹，滚动链不传给外层页面。 */
-  overscroll-behavior: none contain;
+  overscroll-behavior: none;
   touch-action: pan-y;
   scrollbar-width: none;
 }
 .clues-page .wall::-webkit-scrollbar {
   display: none;
 }
+.clues-page .wall-space {
+  /* 固定真实滚动范围，内容的拉伸位移不能增加 scrollHeight。 */
+  overflow: clip;
+}
 .clues-page .board {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 .clues-page .item {
   position: absolute;
