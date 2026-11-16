@@ -4,7 +4,7 @@ import { dataDirectory } from "./config.js";
 import { defaultVoicePreset, type VoicePreset } from "../../shared/voice.mjs";
 
 export type SavedVoicePreset = Omit<VoicePreset, "hasKey"> & { key: string };
-export type VoicePresets = { presets: SavedVoicePreset[]; activeId: string };
+type VoicePresets = { presets: SavedVoicePreset[]; activeId: string };
 const file = path.join(dataDirectory, "voice-presets.json");
 
 export async function readVoicePresets(): Promise<VoicePresets> {
