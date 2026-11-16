@@ -146,7 +146,13 @@ export async function fileTicketServer({ selection = "", selectionFails = false,
     ],
     {
       cwd: directory,
-      env: { ...process.env, MIAN_DATA_DIR: path.join(directory, "server/data"), MIAN_WORKSPACE_DIR: workspace },
+      env: {
+        ...process.env,
+        MIAN_DATA_DIR: path.join(directory, "server/data"),
+        MIAN_WORKSPACE_DIR: workspace,
+        MIAN_PORT: "8787", // 上面的 listen 钩子会替换为系统分配的临时端口。
+        MIAN_HOST: "127.0.0.1",
+      },
       windowsHide: true,
       stdio: ["ignore", "ignore", "pipe", "ipc"],
     },
