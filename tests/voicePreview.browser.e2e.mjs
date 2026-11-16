@@ -40,14 +40,16 @@ app.get("/", (_req, res) =>
   ),
 );
 app.use(express.static(path.join(workspace, "client/dist")));
-const samples = 56000;
+const sampleRate = 24000, samples = sampleRate * 7;
 const wav = Buffer.alloc(44 + samples * 2);
 wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16);
-wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28);
+wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(sampleRate, 24); wav.writeUInt32LE(sampleRate * 2, 28);
 wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
+let noise = 12345;
 for (let i = 0; i < samples; i++) {
-  const volume = 0.08 + 0.92 * (0.5 + 0.5 * Math.sin(i / 8000 * Math.PI * 2 / 1.6));
-  wav.writeInt16LE(Math.round(Math.sin(i / 8000 * Math.PI * 880) * 12000 * volume), 44 + i * 2);
+  noise = (Math.imul(noise, 1664525) + 1013904223) >>> 0;
+  const sounding = i / sampleRate % 1.8 < 1;
+  wav.writeInt16LE(sounding ? Math.round((noise / 0xffffffff * 2 - 1) * 23000) : 0, 44 + i * 2);
 }
 app.get('/tone.wav', (_req, res) => res.set('X-File-Created-At', '2024-02-03T12:34:56.000Z').type('audio/wav').send(wav));
 const server = app.listen(0, "127.0.0.1");
@@ -128,7 +130,7 @@ try {
   const click = (selector) =>
     evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
 
-  const settled = () => evaluate("Promise.all(Array.from(document.querySelectorAll('.pv-viewer *')).flatMap(el => el.getAnimations()).map(a => a.finished))");
+  const settled = () => evaluate("Promise.all(Array.from(document.querySelectorAll('.pv-viewer *')).filter(el => !el.closest('.voice-wave')).flatMap(el => el.getAnimations()).map(a => a.finished))");
   const closePreview = async () => {
     await click('.pv-mask');
     await waitFor(() => evaluate("!document.querySelector('.pv-viewer')"), 'preview close');
@@ -158,7 +160,7 @@ try {
   assert.equal(await evaluate("document.querySelector('.pv-file-content').textContent"), '陪你等天亮。');
   assert.equal(await evaluate("voicePlayer.getSnapshot().id"), null);
   const transcript = '[softly, close] ' + '陪你等天亮。\n'.repeat(80);
-  const clip = {url:'/tone.wav',text:transcript,duration:7,peaks:Array(38).fill(.5)};
+  const clip = {url:'/tone.wav',text:transcript,duration:7,peaks:Array.from({length:38},(_,i)=>i<8 || i>29 ? 0.9 : i%2 ? 0.02 : 0)};
   // 记录真实执行的动画，文本与条码都先淡出，换内容后再淡入。
   await evaluate(`window.voiceAnimations=[];const animate=Element.prototype.animate;Element.prototype.animate=function(frames,options){
     if(this.matches('.voice-wave-slot,.ft-meta b span,.pv-name .scroll-text-content > span,.pv-voice-text code > span'))
@@ -166,7 +168,9 @@ try {
     return animate.call(this,frames,options);
   }`);
   await show(clip);
-  await waitFor(() => evaluate("document.querySelectorAll('.voice-wave i').length === 38 && document.querySelector('.pv-name').textContent === '2024.02.03  沈眠'"), 'generated voice and original send date');
+  await waitFor(() => evaluate("document.querySelectorAll('.voice-ticket .voice-wave i').length === 38 && document.querySelectorAll('.pv-foot .voice-wave i').length === 38 && document.querySelector('.pv-name').textContent === '2024.02.03  沈眠'"), 'generated voice and original send date');
+  await evaluate(`window.staticLevels=${JSON.stringify(clip.peaks.map(peak=>Math.max(0.18,peak)))}`);
+  assert.equal(await evaluate('[...document.querySelectorAll(".voice-wave i")].every((bar,i)=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-staticLevels[i%38])<0.001)'), true, 'static waveform keeps silent bars visible');
   await waitFor(() => evaluate("voiceAnimations.some(a => a.target === 'voice-wave-slot' && a.duration === 180)"), 'barcode fade in');
   const animations = await evaluate('voiceAnimations');
   assert.deepEqual(animations.filter(a => a.target === 'voice-wave-slot').map(a => a.duration), [140,180]);
@@ -189,18 +193,22 @@ try {
   const wave = await evaluate(`new Promise(resolve=>{
     const samples=[],start=performance.now();
     const sample=()=>{
-      const bars=[...document.querySelectorAll('.voice-wave i')];
-      samples.push({volume:voicePlayer.readVolume(),near:new DOMMatrix(getComputedStyle(bars[5]).transform).d,far:new DOMMatrix(getComputedStyle(bars[37]).transform).d,height:getComputedStyle(bars[5]).height});
-      if(performance.now()-start<1100) requestAnimationFrame(sample); else resolve(samples);
+      const bars=[...document.querySelectorAll('.voice-ticket .voice-wave i')];
+      const preview=[...document.querySelectorAll('.pv-foot .voice-wave i')];
+      samples.push({time:performance.now()-start,levels:bars.map(bar=>new DOMMatrix(getComputedStyle(bar).transform).d),preview:preview.map(bar=>new DOMMatrix(getComputedStyle(bar).transform).d),heights:bars.map(bar=>getComputedStyle(bar).height)});
+      if(performance.now()-start<1750) requestAnimationFrame(sample); else resolve(samples);
     };sample();
   })`);
-  assert.ok(Math.max(...wave.map(s=>s.volume))-Math.min(...wave.map(s=>s.volume))>0.2);
-  assert.ok(Math.max(...wave.map(s=>s.near))-Math.min(...wave.map(s=>s.near))>0.04, 'preview playback animates the ticket from measured audio');
-  assert.ok(wave.every(s=>Math.abs(s.far-1)<0.001 && s.height==='10px'), 'distant bars and layout remain still');
+  assert.ok(Math.max(...wave.map(s=>s.levels[18]))>0.65, 'a silent static bar rises independently with live audio');
+  const rowAverage = sample => sample.levels.reduce((sum,level)=>sum+level,0)/38;
+  assert.ok(Math.max(...wave.map(rowAverage))-Math.min(...wave.map(rowAverage))>0.4, 'the whole row rises with sound and falls during a pause');
+  assert.ok(wave.some(s=>s.levels.some((level,i)=>i>0 && Math.abs(level-s.levels[i-1])>0.06)), 'frequency bands have distinct levels');
+  assert.ok(wave.every(s=>s.heights.every(height=>height==='20px') && s.levels.every(level=>level>=0.149 && level<=1.001)), 'only transforms change the visible heights');
+  assert.ok(wave.every(s=>s.preview.every((level,i)=>Math.abs(level-s.levels[i])<0.05)), 'preview and ticket follow the same spectrum');
   assert.ok(await evaluate('document.querySelectorAll(".voice-wave i.done").length>0'), 'played bars stay dark');
   await click('.pv-foot .voice-play');
   await waitFor(() => evaluate("document.querySelectorAll('.voice-play.is-playing').length === 0"), 'shared paused state');
-  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every(bar=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-1)<0.001)'), 'paused barcode settles to its static heights');
+  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every((bar,i)=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-staticLevels[i%38])<0.001)'), 'paused barcode settles to its static heights');
   await closePreview();
   await click('.voice-ticket .voice-play');
   await waitFor(() => evaluate("voicePlayer.getSnapshot().playing"), 'ticket playback');
@@ -225,7 +233,7 @@ try {
   await waitFor(() => evaluate("!document.querySelector('.pv-viewer')"), 'drag closes voice preview');
   await evaluate('voicePlayer.seek(6.8)');
   await waitFor(() => evaluate('voicePlayer.getSnapshot().id === null'), 'voice completes');
-  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every(bar=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-1)<0.001)'), 'completed barcode settles');
+  await waitFor(() => evaluate('[...document.querySelectorAll(".voice-wave i")].every((bar,i)=>Math.abs(new DOMMatrix(getComputedStyle(bar).transform).d-staticLevels[i%38])<0.001)'), 'completed barcode settles');
   assert.equal(await evaluate('audioContexts.length'), 1, 'resume and seek reuse the audio graph');
 
   const failed = {url:'',text:'[quietly amused] 陪你。'};

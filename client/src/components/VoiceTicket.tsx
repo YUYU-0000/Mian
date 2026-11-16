@@ -8,10 +8,10 @@ import { notify } from "./Notify";
 import ScrollText from "./ScrollText";
 import AnimatedText from "./AnimatedText";
 import AnimatedSwap from "./AnimatedSwap";
+import VoiceWave from "./VoiceWave";
 import "./file-ticket.css";
 import "./voice-ticket.css";
 
-const emptyPeaks = Array<number>(38).fill(0);
 const PaperPreview = lazy(cacheLazyImport("paper-preview", () => import("./PaperPreview")));
 
 function durationLabel(seconds: number) {
@@ -32,26 +32,6 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
   const previewName = sentAt ? `${sentAt.slice(0, 10).replaceAll("-", ".")}  沈眠` : "沈眠";
   const transcript = stripVoiceTags(clip.text);
   const progress = active && duration ? player.currentTime / duration : 0;
-  const animateWave = useCallback((element: HTMLButtonElement | null) => {
-    if (!element || !playing) return;
-    const bars = [...element.querySelectorAll("i")];
-    let frame: number;
-    const animate = () => {
-      const volume = voicePlayer.readVolume();
-      const state = voicePlayer.getSnapshot();
-      const position = state.duration ? state.currentTime / state.duration * (bars.length - 1) : 0;
-      bars.forEach((bar, index) => {
-        const influence = Math.exp(-Math.pow((index - position) / 5, 2));
-        bar.style.transform = `scaleY(${1 + (volume - 0.5) * 0.5 * influence})`;
-      });
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => {
-      cancelAnimationFrame(frame);
-      for (const bar of bars) bar.style.transform = "scaleY(1)";
-    };
-  }, [playing]);
   useEffect(() => {
     const urls = clip.parts?.map(part => part.url) ?? [clip.url];
     for (const url of urls) if (url) void cachedFile(url).catch(() => {});
@@ -78,6 +58,11 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
       else voicePlayer.resume();
     } else void play();
   };
+  const seek = (position: number) => {
+    if (active) voicePlayer.seek(position);
+    else void play(position);
+  };
+  const waveform = <VoiceWave peaks={clip.peaks} playing={playing} progress={progress} duration={duration} onSeek={seek} />;
   const playButton = <button className={`voice-play${playing ? " is-playing" : ""}`} type="button" disabled={!clip.url}
     aria-label={playing ? "暫停語音" : "播放語音"}
     onClick={event => { event.stopPropagation(); toggle(); }} />;
@@ -97,19 +82,8 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
           <div className="voice-row">
             {playButton}
             <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot" blur={false}>
-              {content => content === "wave" ? <button ref={animateWave} className={`voice-wave${playing ? " is-playing" : ""}`} type="button" disabled={duration === null}
-              aria-label="跳轉語音播放位置"
-              onClick={event => {
-                event.stopPropagation();
-                const rect = event.currentTarget.getBoundingClientRect();
-                const fraction = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-                const position = fraction * duration!;
-                if (active) voicePlayer.seek(position);
-                else void play(position);
-              }}>
-              {(clip.peaks ?? emptyPeaks).map((peak, index) => <i key={index} aria-hidden="true"
-                className={index / 38 < progress ? "done" : undefined} style={{ height: `${peak * 20}px` }} />)}
-            </button> : <div className="voice-generating" role="status"><AnimatedText text={fallback ? failureText : "生成中"} /></div>}
+              {content => content === "wave" ? waveform
+                : <div className="voice-generating" role="status"><AnimatedText text={fallback ? failureText : "生成中"} /></div>}
             </AnimatedSwap>
           </div>
           <div className="ft-meta">
@@ -122,7 +96,9 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
       </div></div>}
       </AnimatedSwap>
       {viewing && <Suspense fallback={null}>
-        <PaperPreview label="語音台詞" onClose={closePreview} footer={playButton}>
+        <PaperPreview label="語音台詞" onClose={closePreview} footer={
+          <div className="voice-preview-controls">{playButton}{clip.url && !fallback && waveform}</div>
+        }>
           <div className="pv-photo pv-document">
             <div className="pv-file-head">
               <div className="pv-kicker">VOICE  語音</div>

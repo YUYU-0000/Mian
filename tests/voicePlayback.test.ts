@@ -27,10 +27,12 @@ test("one global player waits for playing, replaces older audio, pauses and play
   const previous = Object.getOwnPropertyDescriptor(globalThis, "Audio");
   const previousContext = Object.getOwnPropertyDescriptor(globalThis, "AudioContext");
   let contexts = 0, sources = 0, resumes = 0;
+  const frequencyData = new Uint8Array(1024).fill(128);
   class FakeAudioContext {
     destination = {};
+    sampleRate = 48000;
     constructor() { contexts++; }
-    createAnalyser() { return { fftSize: 0, connect() {}, getFloatTimeDomainData(samples: Float32Array) { samples.fill(0.125); } }; }
+    createAnalyser() { return { fftSize: 0, connect() {}, getByteFrequencyData(samples: Uint8Array) { samples.set(frequencyData); } }; }
     createMediaElementSource(element: FakeAudio) { assert.equal(element, audio); sources++; return { connect() {} }; }
     async resume() { resumes++; }
   }
@@ -55,7 +57,14 @@ test("one global player waits for playing, replaces older audio, pauses and play
   assert.equal(audio!.loop, false);
   audio!.onloadedmetadata!();
   audio!.onplaying!();
-  assert.equal(voicePlayer.readVolume(), 0.5);
+  const spectrum = voicePlayer.readSpectrum();
+  assert.equal(spectrum.length, 38);
+  assert.ok(spectrum.every(level => Math.abs(level - 128 / 255) < 0.0001));
+  frequencyData.fill(0); frequencyData[12] = 255;
+  const lowBand = Array.from(voicePlayer.readSpectrum()).indexOf(1);
+  frequencyData.fill(0); frequencyData[240] = 255;
+  const highBand = Array.from(voicePlayer.readSpectrum()).indexOf(1);
+  assert.ok(lowBand >= 0 && highBand > lowBand, "separate frequencies drive separate bars");
   assert.equal(started, true);
   audio!.currentTime = 0.6;
   audio!.ontimeupdate!();

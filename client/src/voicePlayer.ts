@@ -1,6 +1,8 @@
 import type { VoiceClip, VoicePart } from "../../shared/voice.mjs";
 import { cachedFileUrl } from "./fileCache";
 
+export const VOICE_BAR_COUNT = 38;
+
 type Playback = {
   id: string;
   controller: AbortController;
@@ -20,7 +22,9 @@ class VoicePlayer {
   private audio: HTMLAudioElement | null = null;
   private context: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private samples = new Float32Array(512);
+  private frequencies = new Uint8Array(1024);
+  private spectrum = new Float32Array(VOICE_BAR_COUNT);
+  private frequencyBands: [number, number][] = [];
   private playback: Playback | null = null;
   private state: PlayerState = { id: null, playing: false, duration: null, currentTime: 0 };
   private listeners = new Set<() => void>();
@@ -40,18 +44,31 @@ class VoicePlayer {
     if (!this.context) {
       this.context = new AudioContext();
       this.analyser = this.context.createAnalyser();
-      this.analyser.fftSize = this.samples.length;
+      this.analyser.fftSize = this.frequencies.length * 2;
+      this.analyser.minDecibels = -85;
+      this.analyser.maxDecibels = -25;
+      this.analyser.smoothingTimeConstant = 0.65;
+      // 按对数划分人声频段，避免把大部分条码分给几乎无声的高频。
+      const binHz = this.context.sampleRate / this.analyser.fftSize;
+      const range = Math.min(8000, this.context.sampleRate / 2) / 80;
+      this.frequencyBands = Array.from({ length: VOICE_BAR_COUNT }, (_, index) => [
+        Math.floor(80 * range ** (index / VOICE_BAR_COUNT) / binHz),
+        Math.ceil(80 * range ** ((index + 1) / VOICE_BAR_COUNT) / binHz),
+      ]);
       this.context.createMediaElementSource(this.audio).connect(this.analyser);
       this.analyser.connect(this.context.destination);
     }
     return this.context.resume();
   }
 
-  readVolume() {
-    this.analyser!.getFloatTimeDomainData(this.samples);
-    let power = 0;
-    for (const sample of this.samples) power += sample * sample;
-    return Math.min(1, Math.sqrt(power / this.samples.length) * 4);
+  readSpectrum() {
+    this.analyser!.getByteFrequencyData(this.frequencies);
+    this.frequencyBands.forEach(([start, end], index) => {
+      let peak = 0;
+      for (let bin = start; bin < end; bin++) peak = Math.max(peak, this.frequencies[bin]);
+      this.spectrum[index] = peak / 255;
+    });
+    return this.spectrum;
   }
 
   play(id: string, load: (signal: AbortSignal) => Promise<VoiceClip>, signal?: AbortSignal, onPlaying?: () => void, startAt = 0) {
