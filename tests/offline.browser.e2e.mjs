@@ -35,14 +35,14 @@ const harness = await build({ stdin: { resolveDir: process.cwd(), contents: `
   import { api } from './client/src/api';
   import * as offline from './client/src/offline';
   import { readOffline } from './client/src/offlineStorage';
-  import { backendAvailable } from './client/src/backend';
+  import { backendAvailable, backendAuthorized, setBackendAuthorized } from './client/src/backend';
   import { cachedFile, cachedFileUrl } from './client/src/fileCache';
   import { voicePlayer } from './client/src/voicePlayer';
   import { writeMedia, readSettingsMedia } from './client/src/mediaStorage';
-  window.test = { api, ...offline, readOffline, backendAvailable, cachedFile, cachedFileUrl, voicePlayer, writeMedia, readSettingsMedia };
+  window.test = { api, ...offline, readOffline, backendAvailable, backendAuthorized, setBackendAuthorized, cachedFile, cachedFileUrl, voicePlayer, writeMedia, readSettingsMedia };
   offline.startOfflineSync();
 ` }, bundle: true, write: false, format: "iife" });
-let apiDown = false, failedSave = false, version = 1, delayRead = false, releaseRead;
+let apiDown = false, unauthorized = false, failedSave = false, version = 1, delayRead = false, releaseRead;
 const writes = [], apiRequests = [];
 const app = express();
 app.use(express.json());
@@ -52,6 +52,7 @@ app.get("/sw.js", async (_req, res) => res.set("Cache-Control", "no-store").type
 app.use("/api", async (req, res) => {
   const url = `/api${req.path}`;
   apiRequests.push(url);
+  if (unauthorized) return res.status(401).json({ error: "login required" });
   if (apiDown) return res.status(503).json({ error: "sleeping" });
   if (req.method === "GET") {
     if (url.endsWith("/files/note")) return res.type("text").set("X-File-Created-At", now).send("文件也還在");
@@ -161,6 +162,20 @@ try {
   assert.deepEqual(writes.map(write => write.url), ["/api/clues", "/api/clues", "/api/font-presets", "/api/config"]);
   assert.equal(data["/api/config"].model, "offline-model");
 
+  apiDown = true;
+  await evaluate("test.api.test().catch(()=>{})");
+  await evaluate("test.api.getConfig().then(config=>test.api.saveConfig({...config,model:'after-login'}))");
+  apiDown = false; unauthorized = true;
+  await evaluate("window.locks=0; window.addEventListener('mian:login-required',()=>locks++); test.flushOfflineSaves().catch(()=>{})");
+  await waitFor(() => evaluate("locks===1 && !test.backendAuthorized()"), "401 requires login");
+  const after401 = apiRequests.length;
+  await evaluate("Promise.all([test.flushOfflineSaves().catch(()=>{}), test.api.clues.refresh().catch(()=>{}), Promise.resolve(window.dispatchEvent(new Event('online')))])");
+  assert.equal(apiRequests.length, after401, "logged-out requests and outbox do not keep retrying");
+  assert.equal(await evaluate("test.readOffline('outbox').then(queue=>queue.length)"), 1);
+  unauthorized = false;
+  await evaluate("test.setBackendAuthorized(true); test.flushOfflineSaves()");
+  assert.equal(data["/api/config"].model, "after-login");
+
   await navigate("/");
   await waitFor(() => evaluate("!!navigator.serviceWorker.controller"), "shell installation");
   await navigate("/chat");
@@ -193,8 +208,14 @@ try {
   await navigate("/clues");
   await waitFor(() => evaluate("document.body.textContent.includes('恢復後的線索')"), "reconnect refresh");
   version = 2;
+  await evaluate("window.openingIdentity='same document'");
   await evaluate("navigator.serviceWorker.getRegistration().then(registration=>registration.update())");
-  await waitFor(() => evaluate("document.querySelector('meta[name=test-build]')?.content==='2' && !!document.querySelector('.clues-page')"), "new shell automatically activates and reloads");
+  await waitFor(() => evaluate("navigator.serviceWorker.getRegistration().then(registration=>!!registration.waiting)"), "new shell waits for next cold start");
+  assert.equal(await evaluate("openingIdentity==='same document' && document.querySelector('meta[name=test-build]').content==='1'"), true);
+  await call("Page.navigate", { url: "about:blank" });
+  await sleep(800);
+  await navigate("/clues");
+  await waitFor(() => evaluate("document.querySelector('meta[name=test-build]')?.content==='2' && !!document.querySelector('.clues-page')"), "new shell on next opening");
   assert.deepEqual(errors, []);
   console.log("PASS: cache-first reads, silent updates, stale reads, durable ordered retries, cached files/voice/media, stopped-server navigation, API bypass and shell upgrades");
 } finally {

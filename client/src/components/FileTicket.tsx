@@ -44,6 +44,7 @@ export default memo(function FileTicket({
 }) {
   const [viewing, setViewing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [showProgress, setShowProgress] = useState(() => pending && progress !== undefined && !uploadComplete);
   const closePreview = useCallback(() => setViewing(false), []);
   const download = useRef<HTMLAnchorElement>(null);
   const kind = previewKind(file, navigator.pdfViewerEnabled);
@@ -135,7 +136,15 @@ export default memo(function FileTicket({
           }
         }}
       >
-        <div className="ft-body" />
+        <div className="ft-body">
+          {showProgress && pending && progress !== undefined && (
+            <div className={`ft-progress${uploadComplete ? " is-complete" : ""}`}
+              style={{ transform: `scaleX(${progress / 100})` }} aria-hidden="true"
+              onTransitionEnd={event => {
+                if (event.propertyName === "opacity" && uploadComplete) setShowProgress(false);
+              }} />
+          )}
+        </div>
         <div className="ft-main">
           {image ? (
             <>
@@ -166,10 +175,6 @@ export default memo(function FileTicket({
         <div className="ft-stub">
           <span className="ft-ext">{extension}</span>
         </div>
-        {progress !== undefined && (
-          <div className={`ft-progress${uploadComplete ? " is-complete" : ""}`}
-            style={{ transform: `scaleX(${progress / 100})` }} aria-hidden="true" />
-        )}
         <a
           ref={download}
           href={displayUrl}

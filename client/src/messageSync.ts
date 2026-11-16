@@ -1,4 +1,5 @@
 import { mergeUserGroups, type ChatGroup, type UserGroup } from "../../shared/chatModel.mjs";
+import { backendAuthorized, LoginRequired } from "./backend";
 
 export type MessageSnapshot = { groups: ChatGroup[]; exists: boolean; eventSeq: number; streamId: string };
 export type MessageApi = {
@@ -44,7 +45,7 @@ export class MessageSync {
     clearTimeout(this.timer);
     this.start();
     this.running = this.synchronize().catch(error => {
-      this.retry(2000);
+      if (!(error instanceof LoginRequired)) this.retry(2000);
       throw error;
     }).finally(() => {
       this.running = null;
@@ -74,7 +75,7 @@ export class MessageSync {
       this.pending = this.pending.filter(group => !batch.includes(group));
       this.saveOutbox();
     }
-    if (this.disposed) return;
+    if (this.disposed || !backendAuthorized()) return;
     this.receive({ ...snapshot, groups: mergeUserGroups(snapshot.groups, this.pending) });
     if (this.pending.length) this.retry(500);
   }
@@ -82,7 +83,7 @@ export class MessageSync {
   private saveOutbox() { this.storage.setItem(OUTBOX_KEY, JSON.stringify(this.pending)); }
 
   private retry(delay: number) {
-    if (this.disposed) return;
+    if (this.disposed || !backendAuthorized()) return;
     clearTimeout(this.timer);
     this.timer = setTimeout(() => { void this.refresh().catch(() => {}); }, delay);
   }

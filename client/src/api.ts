@@ -16,7 +16,7 @@ import type { FontPreset, FontSettings } from "./settingsTypes";
 import type { VoiceClip, VoiceOption, VoicePreset, VoiceSettings } from "../../shared/voice.mjs";
 import { voicePlayer } from "./voicePlayer";
 import { createId } from "./id";
-import { readResponse, request, BackendUnavailable, setBackendAvailable } from "./backend";
+import { readResponse, request, BackendUnavailable, setBackendAvailable, backendAuthorized, LoginRequired, requireLogin } from "./backend";
 import { flushOfflineSaves, queueSave, readQuery, refreshReads } from "./offline";
 import { cachedFile } from "./fileCache";
 import { defaultFont, DEFAULT_FONT_ID, DEFAULT_BUBBLE_SIZE } from "./settingsTypes";
@@ -346,6 +346,7 @@ export const api = {
     signal: AbortSignal,
   ) =>
     new Promise<ChatFile>((resolve, reject) => {
+      if (!backendAuthorized()) { reject(new LoginRequired()); return; }
       const upload = new XMLHttpRequest();
       upload.open(
         "POST",
@@ -363,6 +364,7 @@ export const api = {
       upload.onabort = () =>
         reject(new DOMException("已取消上傳", "AbortError"));
       upload.onload = () => {
+        if (upload.status === 401) { reject(requireLogin()); return; }
         if (upload.status >= 500) { setBackendAvailable(false); reject(new BackendUnavailable()); return; }
         setBackendAvailable(true);
         void readResponse<ChatFile>(

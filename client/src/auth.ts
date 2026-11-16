@@ -1,4 +1,4 @@
-import { request } from "./backend";
+import { request, setBackendAuthorized } from "./backend";
 
 export type Access = {
   configured: boolean;
@@ -16,6 +16,7 @@ export function cachedAccess(): Access | null {
     : null;
 }
 function rememberAccess(access: Access) {
+  setBackendAuthorized(access.authenticated);
   if (access.authenticated) localStorage.setItem(ACCESS_KEY, String(access.expiresAt));
   else localStorage.removeItem(ACCESS_KEY);
   window.dispatchEvent(new CustomEvent<Access>("mian:access", { detail: access }));

@@ -1,18 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { readFile, writeFile } from 'node:fs/promises';
-import express from 'express';
 import path from 'node:path';
 import WebSocket from 'ws';
 import { fileTicketServer } from './fileTickets.server.mjs';
 
 const backend = await fileTicketServer({ setup: false });
-const referenceApp = express();
-referenceApp.get('/reference', async (_request, response) => response.type('html').send(await readFile('design-reference/開門/index.html', 'utf8')));
-referenceApp.use(express.static('client/public'));
-const reference = referenceApp.listen(0, '127.0.0.1');
-await once(reference, 'listening');
 const browser = spawn(process.env.MIAN_BROWSER_BIN || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', [
   '--headless=new', '--remote-debugging-port=9381', `--user-data-dir=${path.join(backend.directory, 'auth-browser')}`,
   '--no-first-run', '--disable-background-networking', '--disable-background-timer-throttling', 'about:blank',
@@ -44,6 +37,11 @@ try {
     return result.result.value;
   };
   await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
+  await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.soundStarts=0;
+    const play=HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play=function(){if(!this.muted) soundStarts++;return play.call(this);};
+  ` });
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await call('Page.navigate', { url: backend.base });
   await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), 'first password form');
@@ -84,15 +82,41 @@ try {
   assert.ok(slowOffsets.some(value => value === 0));
   assert.ok(await evaluate(`Number(document.querySelector('[data-ring]').style.strokeDashoffset)>0`));
   await evaluate('gateHoldData=false; releaseGateData()');
-  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening") && !!document.querySelector(".auth-content.is-entering")'), 'gate and home crossfade');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening") && !!document.querySelector(".auth-content .home-screen")'), 'gate and pre-mounted home crossfade');
+  assert.equal(await evaluate('soundStarts'), 0);
   await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'home after setup');
   const { cookies } = await call('Network.getCookies', { urls: [backend.base] });
   const cookie = cookies.find(item => item.name === '__Host-mian');
   assert.ok(cookie?.secure && cookie.httpOnly && cookie.sameSite === 'Strict');
   assert.equal(await evaluate(`document.cookie.includes('__Host-mian')`), false);
   assert.equal(await evaluate(`fetch('/api/auth/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({localBypass:false})}).then(r=>r.status)`), 200);
+  await call('Storage.clearDataForOrigin', { origin: backend.base, storageTypes: 'indexeddb' });
+  const heldPreload = await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const timing=new MutationObserver(()=>{
+      if(!window.coldStarted && document.querySelector('.auth-page.is-drawing')) window.coldStarted=performance.now();
+      if(window.coldStarted && !document.querySelector('.auth-page') && document.querySelector('.home-screen')) {
+        window.coldElapsed=performance.now()-coldStarted;timing.disconnect();
+      }
+    });
+    timing.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+    const original=window.fetch;
+    window.fetch=async (...args)=>{
+      const response=await original(...args);
+      if(String(args[0])==='/api/font-presets') await new Promise(resolve=>window.releaseColdData=resolve);
+      return response;
+    };
+  ` });
   await call('Page.reload');
-  await waitFor(() => evaluate('!!document.querySelector(".home-screen")'), 'cookie restores login without LAN bypass');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-drawing")'), 'cookie cold start draws automatically');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '0');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0');
+  await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'bounded preload opens cached home');
+  const coldElapsed = await evaluate('coldElapsed');
+  assert.ok(coldElapsed < 8100, `opening took ${coldElapsed} ms`);
+  assert.equal(await evaluate('soundStarts'), 0);
+  await waitFor(() => evaluate('document.body.textContent.includes("那邊沒醒，等一下")'), 'slow backend notice');
+  await evaluate('releaseColdData()');
+  await call('Page.removeScriptToEvaluateOnNewDocument', { identifier: heldPreload.identifier });
   assert.equal(await evaluate(`fetch('/api/config').then(r=>r.status)`), 200);
   await evaluate(`fetch('/api/auth/logout-all',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})`);
   await waitFor(() => evaluate('!!document.querySelector(".auth-password:not(:disabled)")'), 'logout closes app and socket');
@@ -107,17 +131,12 @@ try {
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>path.style.strokeDashoffset)`), stopped);
   await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "密碼給門，不用給我"'), 'hint restores');
   await evaluate('document.fonts.ready');
-  await writeFile('.tmp-auth-gate-preview.png', Buffer.from((await call('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
   await evaluate('window.gateStarted=performance.now()');
   await fillPassword();
-  await waitFor(() => evaluate('!!document.querySelector(".auth-content")'), 'login again');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening")'), 'login again');
   assert.ok(await evaluate('performance.now()-gateStarted >= 3000'));
   await waitFor(() => evaluate('!document.querySelector(".auth-page")'), 'fast login finishes its fade');
-  await call('Page.navigate', { url: `http://127.0.0.1:${reference.address().port}/reference` });
-  await waitFor(() => evaluate('!!document.querySelector("#art3 image")'), 'design reference');
-  await evaluate('Promise.all([document.fonts.ready,new Promise(resolve=>{const image=new Image();image.onload=resolve;image.src="/fish_hi.png";})])');
-  await writeFile('.tmp-auth-reference.png', Buffer.from((await call('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
-  console.log('auth browser: two-step setup, mismatch, minimum drawing time, slow data wait, wrong-password fade, crossfade, secure cookie, logout and cache gate passed');
+  console.log(`auth browser: setup, cold start, hidden inputs, crossfade, ${Math.round(coldElapsed)} ms bounded opening, silence, secure cookie, logout and cache gate passed`);
 } catch (error) {
   console.error(error);
   throw error;
@@ -127,5 +146,4 @@ try {
   spawnSync('taskkill.exe', ['/PID', String(browser.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
   await exited;
   await backend.close();
-  reference.close();
 }

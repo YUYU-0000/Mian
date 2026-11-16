@@ -196,8 +196,8 @@
 /* 进度沿票根底边生长，不占用票面空间。 */
 .ft-progress {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 3px;
+  right: 3px;
   bottom: 0;
   height: 1px;
   background: var(--ink);

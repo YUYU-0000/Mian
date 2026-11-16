@@ -77,3 +77,13 @@ test("code-mode calls are scoped to their turns and released when a turn ends", 
   assert.equal(tools[2].tool.command, "second");
   assert.equal(tools[2].tool.state, "success");
 });
+
+test("transport retries keep thinking alive and a final failure clears the busy turn", () => {
+  const { bridge, events, send } = fixture();
+  send("error", { error: { message: "temporary transport error" }, willRetry: true });
+  assert.equal(bridge.getActiveTurnId("c1"), "turn-1");
+  assert.equal(events.length, 1);
+  send("error", { error: { message: "transport failed" }, willRetry: false });
+  assert.equal(bridge.getActiveTurnId("c1"), null);
+  assert.deepEqual(events.at(-1), { type: "turn-completed", conversationId: "c1", turnId: "turn-1", status: "failed", error: "transport failed" });
+});

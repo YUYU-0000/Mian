@@ -184,6 +184,9 @@ export class ChatSessionStore {
   private processingEvents = false;
   private startingTurn = false;
   private pendingReply: ReplyGroup | null = null;
+  private sendingEvents: ChatEvent[] | null = null;
+  private sendingSnapshot: { snapshot: MessageSnapshot; cached: boolean } | null = null;
+  // 只保留 React 节点身份；消息、事件和播放队列始终使用真实 turnId。
   private readonly replyKeys = new Map<string, string>();
   private playbackTimer: ReturnType<typeof setTimeout> | null = null;
   private messages: ChatGroup[];
@@ -264,6 +267,7 @@ export class ChatSessionStore {
   readonly replyKey = (turnId: string) => this.replyKeys.get(turnId) ?? turnId;
 
   enqueueEvent(event: ChatEvent) {
+    if (this.sendingEvents) { this.sendingEvents.push(event); return; }
     if (event.type === "messages-updated") {
       this.refreshMessages();
       return;
@@ -287,15 +291,15 @@ export class ChatSessionStore {
   synchronizeRemoteTurn(turnId: string | null, _reset: boolean) {
     this.refreshMessages();
     if (turnId) {
-      const bound = this.bindPendingReply(turnId);
+      if (!this.sendingEvents) this.pendingReply = null;
       if (this.activeTurnId !== turnId) {
         this.activeTurnId = turnId;
         this.turnPhase = "running";
-        this.commit(bound, true);
+        this.commit(false, true);
       } else if (this.turnPhase !== "running") {
         this.turnPhase = "running";
-        this.commit(bound, false);
-      } else if (bound) this.commit(true, false);
+        this.commit(false, false);
+      } else this.commit(false, false);
       this.markRemoteTurnSynchronized();
       this.schedulePlayback();
       return;
@@ -347,7 +351,7 @@ export class ChatSessionStore {
     this.startingTurn = true;
     this.turnPhase = "starting";
     // 只在界面快照里放占位，服务器 turnId 到来后接入同一个节点。
-    this.pendingReply = applyReplyEvent([], {
+    this.pendingReply = this.activeTurnId ? null : applyReplyEvent([], {
       type: "turn-started", turnId: `waiting:${group.groupId}`,
     }, this.nowLabel())[0] as ReplyGroup;
     this.commit(false, false);
@@ -358,9 +362,14 @@ export class ChatSessionStore {
         try { await this.messageSync.refresh(); }
         catch (error) { if (!this.messageSync.initialized) throw error; }
       }
-      if (this.activeTurnId) return;
+      if (this.activeTurnId) { this.pendingReply = null; return; }
       group = pendingUserGroup(this.messages) ?? group;
+      if (!this.pendingReply) this.pendingReply = applyReplyEvent([], {
+        type: "turn-started", turnId: `waiting:${group.groupId}`,
+      }, this.nowLabel())[0] as ReplyGroup;
       const userText = group.records.map((record) => record.text).join("\n\n");
+      this.sendingEvents = [];
+      this.commit(false, false);
       const result = await this.apiClient.send(
         userText,
         this.conversationId,
@@ -386,11 +395,17 @@ export class ChatSessionStore {
       console.error(error);
       this.onSendError?.(error);
     } finally {
+      const events = this.sendingEvents ?? [];
+      const snapshot = this.sendingSnapshot;
+      this.sendingEvents = null;
+      this.sendingSnapshot = null;
+      if (snapshot) this.receiveMessages(snapshot.snapshot, snapshot.cached);
+      for (const event of events) this.enqueueEvent(event);
       this.startingTurn = false;
       if (!this.activeTurnId) {
         this.turnPhase = "idle";
-        this.commit(false, false);
       }
+      this.commit(false, false);
     }
   }
 
@@ -461,7 +476,6 @@ export class ChatSessionStore {
     let sessionChanged = false;
     if ("turnId" in event) {
       this.markRemoteTurnSynchronized();
-      this.bindPendingReply(event.turnId);
     }
     if (event.type === "turn-started") {
       this.activeTurnId = event.turnId;
@@ -505,7 +519,7 @@ export class ChatSessionStore {
         }
       }
     } else if (event.type === "error") {
-      console.error(event.message);
+      this.onSendError?.(new Error(event.message));
       if (this.pendingReply) this.pendingReply = { ...this.pendingReply, status: "failed" };
       if (this.activeTurnId) {
         const finalized = finalizeReplyGroup(
@@ -544,12 +558,15 @@ export class ChatSessionStore {
     const pending = this.pendingReply;
     if (!pending) return false;
     this.replyKeys.set(turnId, pending.replyGroupId);
-    this.messages = applyReplyEvent(this.messages, { type: "turn-started", turnId }, pending.time);
+    this.messages = this.messages.some(group => group.role === "assistant" && group.replyGroupId === turnId)
+      ? this.messages : [...this.messages, { ...pending, replyGroupId: turnId }];
     this.pendingReply = null;
     return true;
   }
 
   private receiveMessages(snapshot: MessageSnapshot, cached = false) {
+    // HTTP 返回前无法确定哪一轮属于占位，先收齐，绑定后再按真实 ID 回放。
+    if (this.sendingEvents) { this.sendingSnapshot = { snapshot, cached }; return; }
     const currentReply = this.messages.find(group => group.role === "assistant" && group.replyGroupId === this.activeTurnId);
     this.messages = snapshot.groups;
     this.messageSequence = snapshot.eventSeq;

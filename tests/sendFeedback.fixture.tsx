@@ -16,6 +16,10 @@ const decode = HTMLImageElement.prototype.decode;
 HTMLImageElement.prototype.decode = async function () { await decode.call(this); decodedAvatars++; };
 let resolveSend: (value: { turnId: string }) => void;
 let rejectSend: (error: Error) => void;
+localStorage.setItem("mian.conversation.feedback.mian.chat-groups.v2", JSON.stringify([1, 2].map(index => ({
+  role: "user", groupId: `history-${index}`, pending: false, time: "10:00",
+  records: [{ messageId: `history-message-${index}`, text: `歷史 ${index}`, time: "10:00" }],
+}))));
 const session = new ChatSessionStore({
   conversationId: "feedback", nowLabel: () => "10:20",
   apiClient: { send: () => new Promise((resolve, reject) => { resolveSend = resolve; rejectSend = reject; }), stop: async () => {} },
@@ -48,4 +52,5 @@ createRoot(document.getElementById("root")!).render(<Chat
   addFiles: () => session.attachments.add([new File(["attachment"], "notes.txt", { type: "text/plain" }), new File([png], "photo.png", { type: "image/png" })], () => {}),
   progress: (value: number) => uploads.forEach(upload => upload.progress(value)),
   uploaded: () => uploads.forEach((upload, index) => upload.finish({ id: `file-${index}`, name: upload.file.name, mimeType: upload.file.type, size: upload.file.size, createdAt: new Date().toISOString() })),
+  saveFiles: () => session.saveUserRecord("附件", session.attachments.take()),
 };

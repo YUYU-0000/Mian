@@ -137,12 +137,18 @@ export function handleCodexNotification(
       status: params.turn.status,
       error: params.turn.error?.message,
     });
-  } else if (method === "error")
-    emit("event", {
+  } else if (method === "error" && !params.willRetry) {
+    const turnId = conversations.require(conversationId).activeTurnId;
+    const message = params.error?.message || params.message || "Codex 错误";
+    if (turnId) {
+      conversations.clearActiveTurn(conversationId, turnId);
+      emit("event", { type: "turn-completed", conversationId, turnId, status: "failed", error: message });
+    } else emit("event", {
       type: "error",
       conversationId,
-      message: params.error?.message || params.message || "Codex 错误",
+      message,
     });
+  }
 }
 
 // code-mode 的 exec 只有原始调用和结果通知，没有对应的 item/started 事件。

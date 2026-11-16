@@ -80,6 +80,16 @@ export default function Chat({
     session.getSnapshot,
   );
   const { messages, visualReplies, activeTurnId, turnPhase, pendingReplyId } = snapshot;
+  const messageRows = useMemo(() => {
+    const rows: typeof messages = [];
+    for (const message of messages) {
+      const previous = rows.at(-1);
+      if (message.role === "user" && previous?.role === "user")
+        rows[rows.length - 1] = { ...previous, records: [...previous.records, ...message.records] };
+      else rows.push(message);
+    }
+    return rows;
+  }, [messages]);
   const attachments = useSyncExternalStore(
     session.attachments.subscribe,
     session.attachments.getSnapshot,
@@ -446,7 +456,7 @@ export default function Chat({
           }}
         >
           <div ref={streamContent} className="archive-stream-content">
-            {messages.map((message) => (
+            {messageRows.map((message) => (
               <ChatMessage
                 key={
                   message.role === "user" ? message.groupId : session.replyKey(message.replyGroupId)

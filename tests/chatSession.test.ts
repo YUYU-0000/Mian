@@ -385,10 +385,63 @@ test("WebSocket completion before the send response keeps one reply and its orig
   clock.runAll();
   finishSend({ turnId: "fast-turn" });
   await request;
+  clock.runAll();
   assert.equal(store.getSnapshot().activeTurnId, null);
   assert.equal(store.getSnapshot().messages.filter(group => group.role === "assistant").length, 1);
   assert.equal(store.replyKey("fast-turn"), key);
   assert.equal(store.getSnapshot().turnPhase, "idle");
+  store.dispose();
+});
+
+test("only the send response binds a placeholder, and each real turn keeps its own bubbles", async () => {
+  let finishSend!: (result: { turnId: string }) => void;
+  const clock = fakePlaybackClock();
+  const storage = new MemoryStorage();
+  const store = new ChatSessionStore({ storage, conversationId: "binding",
+    nowMs: clock.now, schedule: clock.schedule, cancelSchedule: clock.cancel,
+    apiClient: { send: () => new Promise(resolve => { finishSend = resolve; }), stop: async () => {} },
+  });
+  store.saveUserRecord("第一句");
+  store.saveUserRecord("第二句");
+  const send = store.startPendingTurn();
+  const pending = store.getSnapshot().pendingReplyId;
+  store.enqueueEvent({ type: "turn-completed", turnId: "previous", status: "completed" });
+  store.enqueueEvent({ type: "turn-started", turnId: "current", format: "api" });
+  store.enqueueEvent({ type: "assistant-delta", turnId: "current", format: "api", delta: "<mian-bubble>一。</mian-bubble><mian-bubble>二。</mian-bubble>" });
+  assert.equal(store.replyKey("previous"), "previous");
+  assert.equal(store.getSnapshot().pendingReplyId, pending);
+  finishSend({ turnId: "current" });
+  await send;
+  assert.equal(store.replyKey("current"), pending);
+  assert.equal(store.replyKey("previous"), "previous");
+  store.saveUserRecord("下一輪第一句");
+  store.saveUserRecord("下一輪第二句");
+  await store.startPendingTurn();
+  assert.equal(store.getSnapshot().pendingReplyId, undefined, "active turn cannot create another placeholder");
+  store.enqueueEvent({ type: "turn-completed", turnId: "current", status: "completed" });
+  clock.runAll();
+  const groups = store.getSnapshot().messages;
+  assert.deepEqual(groups.filter(group => group.role === "user").map(group => group.records.length), [2, 2]);
+  const reply = groups.find(group => group.role === "assistant" && group.replyGroupId === "current");
+  assert.equal(reply?.role === "assistant" && reply.bubbles.length, 2);
+  const restored = new ChatSessionStore({ storage, conversationId: "binding" });
+  assert.deepEqual(restored.getSnapshot().messages, JSON.parse(JSON.stringify(groups)));
+  store.dispose(); restored.dispose();
+});
+
+test("remote running turn clears an unbound placeholder without claiming it", async () => {
+  let sends = 0;
+  const store = new ChatSessionStore({ storage: new MemoryStorage(), conversationId: "remote", requireRemoteSynchronization: true,
+    apiClient: { send: async () => { sends++; return { turnId: "unused" }; }, stop: async () => {} },
+  });
+  store.saveUserRecord("等上一輪結束");
+  const send = store.startPendingTurn();
+  store.synchronizeRemoteTurn("already-running", false);
+  await send;
+  assert.equal(sends, 0);
+  assert.equal(store.getSnapshot().pendingReplyId, undefined);
+  assert.equal(store.getSnapshot().messages.filter(group => group.role === "assistant").length, 0);
+  assert.equal(store.replyKey("already-running"), "already-running");
   store.dispose();
 });
 
