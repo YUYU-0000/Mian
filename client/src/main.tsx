@@ -6,6 +6,8 @@ import { reloadOnPreloadError } from "./lazyImport";
 import { registerShellWorker } from "./serviceWorker";
 import AuthGate from "./AuthGate";
 import { installAppViewport } from "./appViewport";
+import { installInputFocus } from "./inputFocus";
+import { installKeyboardViewport } from "./keyboardViewport";
 import { installKeyboardLift } from "./keyboard";
 import "./theme.css";
 import "./mobile-fixes.css";
@@ -21,6 +23,8 @@ import "./components/file-preview.css";
 
 window.addEventListener("vite:preloadError", () => reloadOnPreloadError());
 installAppViewport();
+installInputFocus();
+installKeyboardViewport();
 installKeyboardLift();
 registerShellWorker();
 

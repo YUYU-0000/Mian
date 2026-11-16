@@ -52,6 +52,9 @@ export default function ConnectionSheet({
   const [testing, setTesting] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [manualModel, setManualModel] = useState(false);
+  useLayoutEffect(() => {
+    if (manualModel) ref.current!.querySelector<HTMLInputElement>("input.js-model")!.focus({ preventScroll: true });
+  }, [manualModel]);
   const timer = useRef(0);
   const modelRequest = useRef(0);
   const wasPlus = useRef(draft.plus);
@@ -295,7 +298,6 @@ export default function ConnectionSheet({
                 aria-label="MODEL 模型名稱"
                 autoComplete="off"
                 spellCheck={false}
-                autoFocus
                 placeholder="輸入模型名稱"
                 value={draft.model}
                 onChange={(event) => onChange({ model: event.target.value })}
