@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { reloadOnPreloadError } from "./lazyImport";
+import { registerShellWorker } from "./serviceWorker";
+import { startOfflineSync } from "./offline";
 import "./theme.css";
 import "./mobile-fixes.css";
 import "./ticket-drawer.css";
@@ -16,6 +18,8 @@ import "./components/file-ticket.css";
 import "./components/file-preview.css";
 
 window.addEventListener("vite:preloadError", () => reloadOnPreloadError());
+startOfflineSync();
+registerShellWorker();
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

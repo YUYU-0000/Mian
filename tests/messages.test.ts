@@ -111,14 +111,18 @@ test("initial cache migration is conditional and a blank browser loads the same 
   } finally { second.dispose(); }
 });
 
-test("events crossing a history fetch are applied once without losing newer deltas", async () => {
+test("events crossing cache hydration and a history fetch are applied once without losing newer deltas", async () => {
   let resolve!: (snapshot: MessageSnapshot) => void;
+  let showCache!: (snapshot: MessageSnapshot) => void;
   const store = new ChatSessionStore({ conversationId: "a", storage: storage(), messageApi: {
-    loadMessages: () => new Promise<MessageSnapshot>(done => { resolve = done; }), saveMessages: async () => { throw new Error("unexpected save"); },
+    loadMessages: (_id, cached) => new Promise<MessageSnapshot>(done => { resolve = done; showCache = cached!; }), saveMessages: async () => { throw new Error("unexpected save"); },
   } });
   try {
     const event = { type: "assistant-delta" as const, conversationId: "a", turnId: "reply", delta: "A", format: "plain" as const, streamId: "stream", eventSeq: 1 };
     store.enqueueEvent(event);
+    showCache(snapshot([]));
+    const cachedReply = store.getSnapshot().messages[0];
+    assert.equal(cachedReply.role === "assistant" && cachedReply.raw, "A");
     store.enqueueEvent({ ...event, delta: "B", eventSeq: 2 });
     resolve(snapshot(applyReplyEvent([], event, "12:00"), true, 1));
     await flushMessageSyncs();

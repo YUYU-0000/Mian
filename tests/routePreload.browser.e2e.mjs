@@ -83,6 +83,8 @@ try {
     })),
   });
   await call("Page.addScriptToEvaluateOnNewDocument", { source: `
+    // 分块恢复单独测试；离线壳和新版切换由 offline.browser.e2e.mjs 覆盖。
+    navigator.serviceWorker.register = async () => { throw new Error('shell disabled in chunk test'); };
     const idle = new Map(); let nextIdle = 0;
     window.requestIdleCallback = callback => { idle.set(++nextIdle, callback); return nextIdle; };
     window.cancelIdleCallback = id => idle.delete(id);

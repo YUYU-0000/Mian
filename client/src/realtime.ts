@@ -1,4 +1,5 @@
 import type { ChatEvent, RealtimeSession } from "./types";
+import { setBackendAvailable } from "./backend";
 
 const STREAM_CURSOR_KEY = "mian.chat-event-cursor.v1";
 
@@ -54,13 +55,7 @@ export const subscribe = (
   const reportFailure = () => {
     if (closedByClient || failureReported) return;
     failureReported = true;
-    onEvent({
-      type: "connection",
-      status: {
-        state: "error",
-        message: "与本地服务的实时连接已断开",
-      },
-    });
+    setBackendAvailable(false);
   };
 
   const connect = () => {
@@ -71,6 +66,7 @@ export const subscribe = (
     const ws = new WebSocket(`${protocol}//${location.host}/ws${query}`);
     socket = ws;
     ws.onopen = () => {
+      setBackendAvailable(true);
       failureReported = false;
       reconnectDelay = 250;
     };

@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState, useSyncExternalStore 
 import { stripVoiceTags, type VoiceClip } from "../../../shared/voice.mjs";
 import { cacheLazyImport } from "../lazyImport";
 import { api } from "../api";
+import { cachedFile } from "../fileCache";
 import { voicePlayer } from "../voicePlayer";
 import { notify } from "./Notify";
 import ScrollText from "./ScrollText";
@@ -31,6 +32,10 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
   const previewName = sentAt ? `${sentAt.slice(0, 10).replaceAll("-", ".")}  沈眠` : "沈眠";
   const transcript = stripVoiceTags(clip.text);
   const progress = active && duration ? player.currentTime / duration : 0;
+  useEffect(() => {
+    const urls = clip.parts?.map(part => part.url) ?? [clip.url];
+    for (const url of urls) if (url) void cachedFile(url).catch(() => {});
+  }, [clip.url, clip.parts]);
   useEffect(() => {
     if (!viewing || !clip.url) return;
     const controller = new AbortController();

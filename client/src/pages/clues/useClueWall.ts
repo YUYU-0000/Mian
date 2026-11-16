@@ -13,10 +13,7 @@ export function useClueWall() {
     return next;
   };
   useEffect(() => {
-    void api
-      .clues()
-      .then(replace)
-      .catch((error) => notify.fail("線索讀取失敗", error));
+    return api.clues.watch(replace);
   }, []);
   const update = (change: (wall: ClueWall) => ClueWall) =>
     replace(change(current.current!));

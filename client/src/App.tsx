@@ -12,6 +12,7 @@ import { ConversationSessions } from "./conversationSessions";
 import type {
   Channel,
   ConnectionStatus,
+  Config,
   ConversationActivity,
   ConversationRecord,
 } from "./types";
@@ -85,15 +86,13 @@ export default function App() {
   const { location, transition, navigateWithTransition, handleTransitionEnd } =
     useRouteTransition();
   useEffect(() => {
-    void api
-      .fontPresets()
-      .then(applyBubbleFont)
-      .catch((error) => notify.fail("字體讀取失敗", error));
+    const stopFonts = api.fontPresets.watch(applyBubbleFont);
     void loadAvatars().catch((error) => notify.fail("頭像讀取失敗", error));
     if (sessionStorage.getItem("mian.imported")) {
       sessionStorage.removeItem("mian.imported");
       notify.ok("已導入");
     }
+    return stopFonts;
   }, []);
   useEffect(() => {
     if (location.pathname !== "/") return;
@@ -113,6 +112,21 @@ export default function App() {
     kind: "codex",
     name: "CODEX",
   });
+  useEffect(() => {
+    let config: Config | undefined;
+    let names = new Map<string, string>();
+    const update = () => {
+      if (!config) return;
+      const selected = config.channel ?? { kind: "codex" };
+      setChannel({ ...selected, name: selected.kind === "api" ? names.get(selected.presetId) ?? "API" : "CODEX" });
+    };
+    const stopConfig = api.getConfig.watch(value => { config = value; update(); });
+    const stopPresets = api.apiPresets.watch(value => {
+      names = new Map(value.presets.map(preset => [preset.id, preset.note]));
+      update();
+    });
+    return () => { stopConfig(); stopPresets(); };
+  }, []);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
     defaultConversation,
   ]);
@@ -251,17 +265,16 @@ export default function App() {
           else if (event.type === "channel") setChannel(event.channel);
           else if (event.type === "files-error")
             notify.fail("文件讀取失敗", event.message);
-          else if (event.type === "conversation-updated")
-            setConversations((current) => {
-              conversationSessions.register(event.conversation);
-              return upsertConversation(current, event.conversation);
-            });
+          else if (event.type === "conversation-updated") {
+            conversationSessions.register(event.conversation);
+            void api.rememberConversation(event.conversation).catch(console.error);
+          }
           else if (event.conversationId) conversationSessions.route(event);
           else console.error(`Unroutable ${event.type} event`, event);
         },
         (remote) => {
           if (remote.conversations?.length) {
-            setConversations(remote.conversations);
+            void api.listConversations.refresh().catch(() => {});
             conversationSessions.synchronize(remote);
             applyConversationFallback(
               remote.conversations,
@@ -282,11 +295,7 @@ export default function App() {
     [],
   );
   useEffect(() => {
-    let alive = true;
-    void api
-      .listConversations()
-      .then(({ conversations: records, defaultConversationId }) => {
-        if (!alive) return;
+    return api.listConversations.watch(({ conversations: records, defaultConversationId }) => {
         conversationSessions.registerAll(records);
         setConversations(records);
         for (const record of records) {
@@ -300,11 +309,7 @@ export default function App() {
             });
         }
         applyConversationFallback(records, defaultConversationId);
-      })
-      .catch(console.error);
-    return () => {
-      alive = false;
-    };
+      });
   }, []);
   useEffect(
     () => () => {

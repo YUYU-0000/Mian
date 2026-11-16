@@ -10,7 +10,15 @@ export function reloadOnPreloadError(moduleId = VITE_PRELOAD) {
   sessionStorage.setItem(RELOAD_KEY, moduleId);
   if (refreshing) return;
   refreshing = true;
-  window.location.reload();
+  if ("serviceWorker" in navigator) {
+    void navigator.serviceWorker.getRegistration().then(registration => registration?.update())
+      .catch(() => {}).finally(() => window.location.reload());
+  } else window.location.reload();
+}
+
+export function reloadForNewShell() {
+  sessionStorage.removeItem(RELOAD_KEY);
+  if (!refreshing) { refreshing = true; window.location.reload(); }
 }
 
 export function cacheLazyImport<T>(moduleId: string, load: () => Promise<T>) {

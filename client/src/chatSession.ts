@@ -1,5 +1,6 @@
 import { pad2 } from "./format";
 import { MessageSync, type MessageApi, type MessageSnapshot } from "./messageSync";
+import { backendAvailable, BackendUnavailable } from "./backend";
 import { visualTarget } from "./replyTimeline";
 import { api } from "./api";
 import { FileDrafts } from "./fileDrafts";
@@ -244,7 +245,7 @@ export class ChatSessionStore {
     this.snapshot = this.createSnapshot();
     if (options.messageApi) {
       this.messageSync = new MessageSync(this.conversationId, this.messages, this.storage, options.messageApi,
-        () => { this.syncingEvents = []; }, snapshot => this.receiveMessages(snapshot));
+        () => { this.syncingEvents = []; }, (snapshot, cached) => this.receiveMessages(snapshot, cached));
       void this.messageSync.refresh().catch(() => {});
     }
   }
@@ -325,6 +326,7 @@ export class ChatSessionStore {
   }
 
   async startPendingTurn() {
+    if (!backendAvailable()) { this.onSendError?.(new BackendUnavailable()); return; }
     if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
     if (this.messageSync && !this.messageSync.initialized) {
       try { await this.messageSync.refresh(); }
@@ -380,6 +382,7 @@ export class ChatSessionStore {
   }
 
   async stopCurrentTurn() {
+    if (!backendAvailable()) { this.onSendError?.(new BackendUnavailable()); return; }
     // 先同步服务端状态，再判断是停止回复还是发送待发记录。
     if (!this.remoteTurnSynchronized) await this.remoteTurnSynchronization;
     const turnId = this.activeTurnId;
@@ -520,7 +523,7 @@ export class ChatSessionStore {
 
   refreshMessages() { this.messageSync?.invalidate(); }
 
-  private receiveMessages(snapshot: MessageSnapshot) {
+  private receiveMessages(snapshot: MessageSnapshot, cached = false) {
     this.messages = snapshot.groups;
     this.messageSequence = snapshot.eventSeq;
     this.messageStreamId = snapshot.streamId;
@@ -528,7 +531,7 @@ export class ChatSessionStore {
       if ("turnId" in event && (event.streamId !== snapshot.streamId || (event.eventSeq ?? Infinity) > snapshot.eventSeq))
         this.messages = applyReplyEvent(this.messages, event, this.nowLabel());
     }
-    this.syncingEvents = null;
+    if (!cached) this.syncingEvents = null;
     this.visualReplies = Object.fromEntries(this.messages.filter(group => group.role === "assistant").map(group => [
       group.replyGroupId,
       group.replyGroupId === this.activeTurnId && this.visualReplies[group.replyGroupId]
