@@ -1,3 +1,4 @@
+# 安装当前用户的 Mian、隧道与每日备份计划任务。
 # Run as the Windows user whose Codex login Mian should use.
 $ErrorActionPreference = 'Stop'
 $projectDirectory = Split-Path -Parent $PSScriptRoot

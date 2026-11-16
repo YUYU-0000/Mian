@@ -1,3 +1,5 @@
+/* 定义连接中心背景、信封、标题和整体页面布局。 */
+
 /* ================= 基礎 ================= */
 
 .connections-page {
@@ -29,6 +31,7 @@
 }
 
 /* 左上角返回鍵 */
+
 .connections-page .settings-header {
   position: absolute;
   top: 0;
@@ -36,26 +39,29 @@
   padding: 12.5px 16px;
   z-index: 10;
 }
+
 .connections-page .back-btn {
   display: inline-flex;
   align-items: flex-start;
   cursor: pointer;
   position: relative;
-  transition:
-    transform 0.2s ease,
+  transition: transform 0.2s ease,
     opacity 0.2s ease;
 }
+
 .connections-page .back-btn::after {
   content: "";
   position: absolute;
   inset: -10px -15px;
 }
+
 .connections-page .back-btn:active {
   opacity: 0.6;
   transform: translateX(-4px);
 }
 
 /* ================= 檔案袋 ================= */
+
 .connections-page .envelope {
   width: min(312px, calc(100vw - 32px));
   height: var(--env-h);
@@ -63,19 +69,18 @@
   box-sizing: border-box;
   cursor: pointer;
   border-radius: 2px;
-  box-shadow:
-    -12px 20px 38px rgba(90, 112, 130, 0.22),
+  box-shadow: -12px 20px 38px rgba(90, 112, 130, 0.22),
     -3px 6px 10px rgba(0, 0, 0, 0.08);
   transform: scale(var(--scale));
   transform-origin: right top;
   /* 選取時顯示米白細框。 */
   outline: 0.6px solid transparent;
   outline-offset: 0;
-  transition:
-    transform 0.2s ease,
+  transition: transform 0.2s ease,
     box-shadow 0.2s ease,
     outline-color 0.3s ease;
 }
+
 .connections-page .envelope::before {
   /* 紙紋 */
   content: "";
@@ -87,21 +92,22 @@
   background: var(--grain);
   mix-blend-mode: multiply;
 }
+
 @media (hover: hover) {
   .connections-page .envelope:hover {
     transform: translateY(calc(-4px / var(--scale))) scale(var(--scale));
-    box-shadow:
-      -20px 35px 55px rgba(90, 112, 130, 0.35),
+    box-shadow: -20px 35px 55px rgba(90, 112, 130, 0.35),
       -6px 15px 22px rgba(0, 0, 0, 0.15);
   }
 }
+
 .connections-page .envelope.is-active {
   transform: translateY(calc(-2px / var(--scale))) scale(var(--scale));
-  box-shadow:
-    -18px 30px 50px rgba(90, 112, 130, 0.3),
+  box-shadow: -18px 30px 50px rgba(90, 112, 130, 0.3),
     -5px 12px 18px rgba(0, 0, 0, 0.12);
   outline-color: rgba(241, 239, 233, 0.95);
 }
+
 .connections-page .envelope:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
@@ -115,6 +121,7 @@
     (var(--base-gap) * var(--scale)) - (var(--env-h) * (1 - var(--scale)))
   );
 }
+
 .connections-page .env-second {
   background-color: var(--env2);
   z-index: 1;
@@ -122,6 +129,7 @@
 }
 
 /* 扣子和繩子 */
+
 .connections-page .tie-btn {
   position: absolute;
   z-index: 10;
@@ -129,8 +137,7 @@
   height: 22px;
   border-radius: 50%;
   background-color: #516575;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18),
     inset 0 -1px 2px rgba(0, 0, 0, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.18);
   display: flex;
@@ -138,6 +145,7 @@
   align-items: center;
   transition: background-color 0.2s ease;
 }
+
 .connections-page .tie-btn::after {
   content: "";
   width: 5px;
@@ -145,15 +153,18 @@
   border-radius: 50%;
   background-color: rgba(241, 239, 233, 0.7);
 }
+
 .connections-page .env-second .tie-btn {
   background-color: #627683;
 }
+
 .connections-page .tie-container-v,
 .connections-page .tie-container-h {
   position: absolute;
   z-index: 10;
   cursor: pointer;
 }
+
 .connections-page .tie-container-v {
   right: 100px;
   top: 50%;
@@ -161,12 +172,15 @@
   width: 60px;
   height: 22px;
 }
+
 .connections-page .tie-container-v .tie-btn:nth-child(1) {
   left: 0;
 }
+
 .connections-page .tie-container-v .tie-btn:nth-child(2) {
   right: 0;
 }
+
 .connections-page .tie-container-h {
   top: 69px;
   left: 50%;
@@ -174,14 +188,17 @@
   width: 22px;
   height: 60px;
 }
+
 .connections-page .tie-container-h .tie-btn:nth-child(1) {
   top: 0;
   left: 0;
 }
+
 .connections-page .tie-container-h .tie-btn:nth-child(2) {
   bottom: 0;
   left: 0;
 }
+
 .connections-page .string-svg-v,
 .connections-page .string-svg-h {
   position: absolute;
@@ -191,14 +208,17 @@
   pointer-events: none;
   overflow: visible;
 }
+
 .connections-page .string-svg-v {
   width: 80px;
   height: 60px;
 }
+
 .connections-page .string-svg-h {
   width: 60px;
   height: 80px;
 }
+
 @media (hover: hover) {
   .connections-page .tie-container-v:hover .tie-btn,
   .connections-page .tie-container-h:hover .tie-btn {
@@ -210,6 +230,7 @@
 }
 
 /* 訂閱袋：右側翻蓋與直排 CLOUD PLANS */
+
 .connections-page .env-side-flap {
   position: absolute;
   top: 0;
@@ -222,6 +243,7 @@
   box-shadow: -5px 0 14px rgba(0, 0, 0, 0.12);
   border-radius: 0 2px 2px 0;
 }
+
 .connections-page .env1-title-container {
   position: absolute;
   left: -8px;
@@ -230,6 +252,7 @@
   z-index: 5;
   pointer-events: none;
 }
+
 .connections-page .env1-title-text {
   position: absolute;
   left: 0;
@@ -242,6 +265,7 @@
   font-weight: 400;
   color: rgba(241, 239, 233, 0.9);
 }
+
 .connections-page .env1-title-text .maison {
   font-style: italic;
   font-weight: 300;
@@ -249,6 +273,7 @@
 }
 
 /* API 袋：上方翻蓋與置中的 REMOTE CONNECT */
+
 .connections-page .env-top-flap-wrapper {
   position: absolute;
   top: 0;
@@ -258,6 +283,7 @@
   z-index: 4;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
 }
+
 .connections-page .env-top-flap {
   width: 100%;
   height: 100%;
@@ -265,6 +291,7 @@
   clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   border-radius: 3px 3px 0 0;
 }
+
 .connections-page .env-top-flap::before {
   content: "";
   position: absolute;
@@ -274,6 +301,7 @@
   height: 1px;
   background: rgba(255, 255, 255, 0.12);
 }
+
 .connections-page .env2-center-title {
   position: absolute;
   top: 50%;
@@ -285,16 +313,19 @@
   font-size: 24px;
   color: rgba(241, 239, 233, 0.9);
 }
+
 .connections-page .env2-center-title .forma {
   letter-spacing: 4px;
   font-weight: 400;
   margin-bottom: -4px;
 }
+
 .connections-page .env2-center-title .maison {
   letter-spacing: 2px;
   font-style: italic;
   font-weight: 300;
 }
+
 .connections-page .env2-footer {
   position: absolute;
   left: 20px;

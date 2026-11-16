@@ -1,3 +1,4 @@
+// 验证自定义边界回弹的幅度、归零和键盘、操作、导航中断。
 import assert from "node:assert/strict";
 
 export async function testWallOverscroll({ call, evaluate, waitFor, click, point, mouse }) {

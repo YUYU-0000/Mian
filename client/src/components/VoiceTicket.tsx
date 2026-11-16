@@ -1,3 +1,4 @@
+// 显示语音票根与台词预览，订阅全局播放器的进度和状态。
 import { lazy, Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { stripVoiceTags, type VoiceClip } from "../../../shared/voice.mjs";
 import { cacheLazyImport } from "../lazyImport";
@@ -18,7 +19,7 @@ function durationLabel(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-export default function VoiceTicket({ clip, fallback, animate = false }: { clip: VoiceClip; fallback?: "failed" | "stopped"; animate?: boolean }) {
+export default function VoiceTicket({ clip, fallback, animate = false }: { clip: VoiceClip; fallback?: "failed" | "stopped"; animate?: boolean; }) {
   const player = useSyncExternalStore(voicePlayer.subscribe, voicePlayer.getSnapshot);
   const active = player.id === clip.url;
   const playing = active && player.playing;
@@ -34,7 +35,7 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
   const progress = active && duration ? player.currentTime / duration : 0;
   useEffect(() => {
     const urls = clip.parts?.map(part => part.url) ?? [clip.url];
-    for (const url of urls) if (url) void cachedFile(url).catch(() => {});
+    for (const url of urls) if (url) void cachedFile(url).catch(() => { });
   }, [clip.url, clip.parts]);
   useEffect(() => {
     if (!viewing || !clip.url) return;
@@ -76,24 +77,24 @@ export default function VoiceTicket({ clip, fallback, animate = false }: { clip:
         {displayed => displayed === "text"
           ? <div className={`archive-bubble${fallback === "stopped" ? " stopped" : ""}`}><AnimatedText text={transcript} /></div>
           : <div className="voice-ticket"><div className="ft" onClick={() => setViewing(true)}>
-        <div className="ft-body" />
-        <div className="ft-main">
-          <div className="ft-kicker">VOICE  語音</div>
-          <div className="voice-row">
-            {playButton}
-            <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot" blur={false}>
-              {content => content === "wave" ? waveform
-                : <div className="voice-generating" role="status"><AnimatedText text={fallback ? failureText : "生成中"} /></div>}
-            </AnimatedSwap>
-          </div>
-          <div className="ft-meta">
-            <span><b><AnimatedText text={durationText} /></b></span>
-            <button className="ft-act" type="button" aria-haspopup="dialog">台詞</button>
-          </div>
-        </div>
-        <div className="ft-perf" />
-        <div className="ft-stub"><div className="ft-ext">VOICE</div></div>
-      </div></div>}
+            <div className="ft-body" />
+            <div className="ft-main">
+              <div className="ft-kicker">VOICE  語音</div>
+              <div className="voice-row">
+                {playButton}
+                <AnimatedSwap value={clip.url ? "wave" : "status"} className="voice-wave-slot" blur={false}>
+                  {content => content === "wave" ? waveform
+                    : <div className="voice-generating" role="status"><AnimatedText text={fallback ? failureText : "生成中"} /></div>}
+                </AnimatedSwap>
+              </div>
+              <div className="ft-meta">
+                <span><b><AnimatedText text={durationText} /></b></span>
+                <button className="ft-act" type="button" aria-haspopup="dialog">台詞</button>
+              </div>
+            </div>
+            <div className="ft-perf" />
+            <div className="ft-stub"><div className="ft-ext">VOICE</div></div>
+          </div></div>}
       </AnimatedSwap>
       {viewing && <Suspense fallback={null}>
         <PaperPreview label="語音台詞" onClose={closePreview} footer={

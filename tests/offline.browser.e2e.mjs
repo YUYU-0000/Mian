@@ -1,3 +1,4 @@
+// 验证缓存优先读取、顺序补发、鉴权中断和离线外壳升级。
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
@@ -13,10 +14,12 @@ import { mp3 } from "./voiceFixtures.mjs";
 const directory = await mkdtemp(path.join(tmpdir(), "mian-offline-"));
 const dist = path.resolve("client/dist");
 const now = new Date().toISOString();
-const conversation = { conversationId: "c1", threadId: null, parentConversationId: null,
+const conversation = {
+  conversationId: "c1", threadId: null, parentConversationId: null,
   rootNumber: 1, branchPath: [], branchCounter: 0, abbr: "C-01", title: "離線會話", frontName: "Mian", image: "", pinned: true,
   model: null, reasoningEffort: null, totalTokens: null, uncachedTotalTokens: null, lastActivityAt: now, lastMessage: "上次的內容",
-  collaborationMode: null, createdAt: now, updatedAt: now };
+  collaborationMode: null, createdAt: now, updatedAt: now
+};
 const file = { id: "note", name: "離線.txt", size: 15, mimeType: "text/plain", createdAt: now };
 const voice = { url: "/api/voice-audio/old.mp3", text: "留下的聲音", duration: 0.4 };
 const data = {
@@ -31,7 +34,9 @@ const data = {
   "/api/subscriptions/codex": { loggedIn: true, account: "cached@example.com", plan: "plus", model: "cached-model" },
   "/api/subscriptions/codex/quota": { left: 73, resetAt: "明天" },
 };
-const harness = await build({ stdin: { resolveDir: process.cwd(), contents: `
+const harness = await build({
+  stdin: {
+    resolveDir: process.cwd(), contents: `
   import { api } from './client/src/api';
   import * as offline from './client/src/offline';
   import { readOffline, writeOffline } from './client/src/offlineStorage';
@@ -41,7 +46,8 @@ const harness = await build({ stdin: { resolveDir: process.cwd(), contents: `
   import { writeMedia, readSettingsMedia } from './client/src/mediaStorage';
   window.test = { api, ...offline, readOffline, writeOffline, backendAvailable, backendAuthorized, setBackendAuthorized, cachedFile, cachedFileUrl, voicePlayer, writeMedia, readSettingsMedia };
   offline.startOfflineSync();
-` }, bundle: true, write: false, format: "iife" });
+` }, bundle: true, write: false, format: "iife"
+});
 let apiDown = false, unauthorized = false, failedSave = false, version = 1, delayRead = false, releaseRead;
 const writes = [], apiRequests = [];
 const app = express();
@@ -78,8 +84,10 @@ app.get(["/", "/index.html", "/chat", "/clues", "/settings", "/connections"], as
 app.use(express.static(dist));
 const server = createServer(app);
 const sockets = new WebSocketServer({ server, path: "/ws" });
-sockets.on("connection", socket => socket.send(JSON.stringify({ kind: "session", streamId: "test", seq: 0, reset: false,
-  ...data["/api/conversations"], activeTurns: {}, connectionStatus: { state: "ready", message: "connected" }, channel: { kind: "api", presetId: "p1", name: "緩存通道" } })));
+sockets.on("connection", socket => socket.send(JSON.stringify({
+  kind: "session", streamId: "test", seq: 0, reset: false,
+  ...data["/api/conversations"], activeTurns: {}, connectionStatus: { state: "ready", message: "connected" }, channel: { kind: "api", presetId: "p1", name: "緩存通道" }
+})));
 server.listen(0, "127.0.0.1");
 await once(server, "listening");
 const port = server.address().port, base = `http://127.0.0.1:${port}`;

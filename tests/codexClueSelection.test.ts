@@ -1,3 +1,4 @@
+// 验证线索挑选使用独立只读线程，并保留正式聊天线程。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CodexClueSelection } from "../server/src/codexClueSelection.ts";
@@ -14,7 +15,7 @@ const config: AppConfig = {
 
 test("Codex selection uses an ephemeral system prompt and consumes its own notifications", async () => {
   const selector = new CodexClueSelection();
-  const requests: { method: string; params: any }[] = [];
+  const requests: { method: string; params: any; }[] = [];
   const request = async (method: string, params: any) => {
     requests.push({ method, params });
     if (method === "thread/start") return { thread: { id: "selection" } };

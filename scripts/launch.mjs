@@ -1,3 +1,4 @@
+// 处理手动启动和重启，复用已有守护进程并在需要时重新打包。
 import { spawn } from "node:child_process";
 import { appendFile, mkdir, open } from "node:fs/promises";
 import path from "node:path";

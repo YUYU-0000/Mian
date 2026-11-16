@@ -1,5 +1,7 @@
 # Mian 项目协作说明
 
+本文记录模块职责、协作约定和容易被后续整理破坏的行为，交接时先看“常见坑”。
+
 ## 一、项目概况
 
 Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组织对话，支持文字、图片、文件和语音。前端是 React + Vite + TypeScript，后端是 Node.js + Express，`shared/` 放前后端共用的协议、数据模型和类型声明。
@@ -52,6 +54,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 不新增依赖，除非明确要求。
 - design-reference 文件夹是设计稿，不要改动；有设计稿的界面照设计稿做。
 - server/data 里的用户数据不要提交。
+- 代码文件开头用一两句中文说明职责；只给不直观的时序和计算写简短原因。JSON、manifest 和二进制资源不插注释，设计稿不改。动态拼出的 CSS 类和浏览器私有伪元素不能仅凭文本搜索结果删除。
 - 外网开放前必须先完成本机密码设置。`/api/auth` 的状态、首次设置和登录是公开入口，其余 `/api`（含文件、图片和语音）及 `/ws` 都经服务端鉴权。Cookie 固定为 HttpOnly、Secure、SameSite=Strict，30 天到期；首次设置只允许直连本机，隧道回环连接不享受本机免登录。
 - Codex 只使用 `codexSecurity.ts` 生成的 `mian-workspace` / `mian-read` 权限，禁止联网与提权，关闭宿主 MCP、插件、浏览器和额外文件工具。Windows 使用 MXC，不能退回 `unelevated`；工作目录只由 `MIAN_WORKSPACE_DIR` 控制，网页和导入备份不得扩大权限。
 
@@ -71,6 +74,7 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 ## 五、常见坑
 
 - 门锁界面已暂时从档案馆移除；服务器的修改密码、退出所有设备及本机/局域网免登录设置接口仍保留，后续重新设计界面时再接回。
+- 线索墙只由 `useWallOverscroll.ts` 处理手指越界：内容层最多约 36px，松手 220ms ease-out 归零；不根据滚动速度追加惯性。`.wall` 保持 `overscroll-behavior: none`，`.wall-space` 固定真实滚动范围，背景留在内容层外。键盘、卡片操作、切页和卸载均清掉位移；回归入口为 `tests/clues.browser.e2e.mjs`。
 - 键盘布局统一用 `appViewport.ts` 的 `--app-h`，只在初次加载及宽度/方向变化时重新测量；html/body 固定且不可滚动。`keyboardViewport.ts` 优先用 VirtualKeyboard 的 overlaysContent/geometrychange，没有该接口才使用 visualViewport；视口 offsetTop 在事件当帧用根节点平移抵消，不能给这层加动画。纸片与聊天输入栏共用这份键盘几何，不再各自读取视口造成双重位移。
 - 输入框和 label 的聚焦由 `inputFocus.ts` 接管，统一用 `focus({ preventScroll: true })`；程序聚焦也显式传这个参数，不用 autoFocus。只在当前纸片容器标记 `data-keyboard-surface`，不要包住背景、标题或其他纸片；登录页只移动包住横线和 SINCE 的 `auth-entry`。纸片未被挡住时不动，被挡住时底边停在键盘上方 6px；纸片过高会把字段顶出屏幕时才改按字段避让。`keyboard.ts` 扣除根节点抵消后计算目标，上移、回落、切换字段均用 200ms ease-out 接续当前位移，不回弹；不用 scrollIntoView、内部滚动或垫高层对齐。聊天输入栏继续跟随键盘。
 - 键盘避让的底边取纸片和可见子元素的包围盒并集，隐藏纸页、透明分支及滚动区裁掉的内容不计入。伪元素伸出并集之外的下沿用纸片上的 `--keyboard-extra` 声明像素值；实际垫纸节点会自动计入，不要再把同一段偏移填进变量重复计算。连接中心和档案馆的纸堆目前没有额外伪元素下沿，变量为 0px；线索编辑页的伪元素是纸内边框，无需声明。
@@ -80,10 +84,10 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 
 - 回复占位只由本次 `send` 返回的 `turnId` 绑定；HTTP 返回前暂存实时事件和消息快照，绑定后按真实 ID 归组、播放和保存。`replyKey` 仅保持 React 节点身份，不能让其他回合认领占位；已有运行回合时不新建占位，连续用户记录仍合并到待发组。相邻用户组在展示时合成一个头像，原记录格式不变。
 - PWA 使用 `manifest.webmanifest` 和蓝猫图标；Safari 与 iOS 主屏幕应用各自保存登录状态，首次从主屏幕打开可能需要重新登录。每次冷启动都画鱼，页面内切换不重播；字体就绪前隐藏文字，首页挂在门后交叉淡化，获准进入后的预载连同收尾最多等 8 秒，超时进入缓存首页并提示。开门过程不启动语音。
-- Service worker 只缓存界面、静态资源和字体，绕过 `/api`、WebSocket、鉴权结果及受保护的文件；不能将私人内容放入 Cache Storage。新版安装后等待旧页面关闭，下一次冷启动接管，不在开门过程中刷新；分块失效仍沿用 `lazyImport` 的单次恢复。401 与 WebSocket 4001 立即收起应用并暂停保存和消息重试，重新登录后才续传。
+- Service worker 只缓存界面、静态资源和字体，绕过 `/api`、`/ws`、鉴权结果及受保护的文件；不能将私人内容放入 Cache Storage。新版安装后等待旧页面关闭，下一次冷启动接管，不在开门过程中刷新；分块失效仍沿用 `lazyImport` 的单次恢复。
 - Codex 权限中的禁网仅限制工具，模型通信在 app-server 进程中进行。完成通知可能早于 `turn/start` 响应，晚到的响应不能重新占用已完成回合；可重试的传输错误继续等待，最终错误结束回合并通知用户。进程重启后恢复原线程，权限仍固定在工作目录。
 
-- 读取走 `api.ts` 的 IndexedDB 缓存与 `watch` 静默更新，断线不清空页面；保存队列按顺序补发，未补发的本地快照不能被旧响应覆盖，聊天仍走 `messageSync`。附件、语音由页面缓存 Blob，头像和首页照片沿用原媒体库；service worker 只缓存前端壳、分块和字体，绕过 `/api`、`/ws`，新版接入懒加载恢复。停服后重新打开页面需 HTTPS 或 localhost，普通局域网 HTTP 不支持 service worker。
+- 读取走 `api.ts` 的 IndexedDB 缓存与 `watch` 静默更新，断线不清空页面；`offline.ts` 的新保存与重连补发共用串行队列，未补发的本地快照不能被旧响应覆盖，聊天仍走 `messageSync`。附件、语音由页面缓存 Blob，头像和首页照片沿用原媒体库。停服后重新打开页面需 HTTPS 或 localhost，普通局域网 HTTP 不支持 service worker。
 - 重新打包后，旧页面可能仍引用已经失效的分块文件；懒加载接入 `pagePreloads.ts` / `lazyImport.ts`，沿用现有预载和一次刷新恢复逻辑。
 - 内容撑宽的父层配上百分比子宽度会让票根塌缩；语音票根及包裹层用 `width: 228px; max-width: 100%`，失败退回文字时恢复气泡宽度规则。
 - API 缓存依赖稳定前缀：system 只放回复协议、固定顺序的常驻线索和语音规则；时间、触发/语音场景线索、格式提醒放最后一条用户消息末尾，历史不改写，`read_clue` 工具定义和 tools 参数保持固定。
@@ -95,8 +99,9 @@ Mian 是手机优先的私人聊天应用，用档案馆、票根和线索墙组
 - 语音试听点 Play 先进入 out，真正出声才进入 playing，结束、停止或失败时一起收回；播放 Promise 等音频播完，所有入口共用 `voicePlayer`。
 - 发文件不能编 Markdown、sandbox: 或 file: 链接；API 用 `<mian-file name="文件名.txt">完整内容</mian-file>`，Codex 真正写入当前会话工作目录，文件正文里的空白和标签须原样保留。
 - 数据路径统一引用 `config.ts` 的 `dataDirectory`，不要拼接 `process.cwd()`；历史错位目录 `server/server/data-迁移前` 只留作还原，不再写入。Codex 工作目录在项目外，默认是用户目录下的 `MianWorkspace`，每个会话独立子目录。
-- 登录状态不放进离线读取队列；收到 401 或 WebSocket 4001 必须收起应用并停止同步。离线只能展示这个浏览器此前已获准且未到期的缓存；退出后不能凭数据缓存自动进入。恢复网络会重新校验会话。
-- 测试服务必须显式传 `MIAN_DATA_DIR` 和 `MIAN_WORKSPACE_DIR` 指向临时目录；切换 cwd 不再隔离数据，不能让测试接触真实 `server/data`。
+- 登录状态不放进离线读取队列；收到 401 或 WebSocket 4001 必须收起应用并停止保存和消息重试，重新登录后才续传。离线只能展示这个浏览器此前已获准且未到期的缓存；退出后不能凭数据缓存自动进入。恢复网络会重新校验会话。
+- 测试服务必须显式传 `MIAN_DATA_DIR` 和 `MIAN_WORKSPACE_DIR` 指向项目外的临时目录；切换 cwd 不再隔离数据，不能让测试接触真实 `server/data`。需要固定启动约定的用例还要显式传端口，避免继承本机 `.env`。
+- 登录与预加载看 `auth.browser.e2e.mjs`，键盘与首页媒体看 `mobileNavigation.browser.e2e.mjs`，上传和占位看 `sendFeedback.browser.e2e.mjs`，缓存与重连看 `offline.browser.e2e.mjs`，语音看 `voicePlayback.test.ts` / `voicePreview.browser.e2e.mjs`。回合与鉴权竞态的不同触发顺序各有用例，不要当成重复删除；500 会进入离线队列，拒绝保存并保留草稿的用例用 400。
 - 当前公网地址是 `https://mian.crab-bless.com`，Cloudflare Tunnel `mian` 指向 `http://127.0.0.1:5173`，配置在用户目录 `.cloudflared/mian.yml`。隧道必须保留公网 Host；转发头不能把外网连接伪装成本机免登录。配置和凭据都不进 Git。
 - Windows 任务 `Mian-Service` / `Mian-Tunnel` 在 ASUS 登录后自动运行，沿用该用户 Codex 登录；不是登录前启动。任务不弹窗口、不因切换电池而停止，异常退出后每分钟重试，后端自身崩溃由守护进程 5 秒重启。安装命令为 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-tasks.ps1`。任务运行时阻止闲置睡眠，手动休眠、关机或合盖睡眠仍会中断外网服务。
 - `Mian-Backup` 每天本机时间 02:00 运行，允许唤醒、错过后补跑。Windows 默认备份到用户桌面 `Mian备份/每日/YYYY-MM-DD`，Linux 默认 `~/MianBackups/daily`，可用 `MIAN_BACKUP_DIR` 覆盖。只保留最近 14 天内的日期目录，同日不覆盖已有完整备份；旧手工备份不参与清理。备份通过本机控制通道等回复结束、暂停并落盘、完整复制，再恢复服务；不要绕过这个流程直接复制运行中的数据。关机期间不能备份，当前 Windows 任务须用户已登录。

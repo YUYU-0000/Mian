@@ -1,7 +1,8 @@
+// 同步一个会话的聊天快照与待发记录，鉴权失效时停止自动重试。
 import { mergeUserGroups, type ChatGroup, type UserGroup } from "../../shared/chatModel.mjs";
 import { backendAuthorized, LoginRequired } from "./backend";
 
-export type MessageSnapshot = { groups: ChatGroup[]; exists: boolean; eventSeq: number; streamId: string };
+export type MessageSnapshot = { groups: ChatGroup[]; exists: boolean; eventSeq: number; streamId: string; };
 export type MessageApi = {
   loadMessages: (id: string, cached?: (snapshot: MessageSnapshot) => void) => Promise<MessageSnapshot>;
   saveMessages: (id: string, groups: ChatGroup[], initialize?: boolean) => Promise<MessageSnapshot>;
@@ -56,7 +57,7 @@ export class MessageSync {
 
   invalidate() {
     if (this.running) this.reloadRequested = true;
-    else void this.refresh().catch(() => {});
+    else void this.refresh().catch(() => { });
   }
 
   private async synchronize() {
@@ -85,7 +86,7 @@ export class MessageSync {
   private retry(delay: number) {
     if (this.disposed || !backendAuthorized()) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => { void this.refresh().catch(() => {}); }, delay);
+    this.timer = setTimeout(() => { void this.refresh().catch(() => { }); }, delay);
   }
 
   dispose() {

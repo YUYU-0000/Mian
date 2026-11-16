@@ -1,3 +1,4 @@
+// 组织页面路由和独立聊天会话，保持首页媒体挂载并协调切页动画。
 import { useRouteTransition } from "./useRouteTransition";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -274,7 +275,7 @@ export default function App() {
         },
         (remote) => {
           if (remote.conversations?.length) {
-            void api.listConversations.refresh().catch(() => {});
+            void api.listConversations.refresh().catch(() => { });
             conversationSessions.synchronize(remote);
             applyConversationFallback(
               remote.conversations,
@@ -296,20 +297,20 @@ export default function App() {
   );
   useEffect(() => {
     return api.listConversations.watch(({ conversations: records, defaultConversationId }) => {
-        conversationSessions.registerAll(records);
-        setConversations(records);
-        for (const record of records) {
-          const store = conversationSessions.get(record.conversationId);
-          const lastMessage = lastVisibleMessageSummary(
-            store.getSnapshot().messages,
-          );
-          if (lastMessage && lastMessage !== record.lastMessage)
-            recordConversationActivity(record.conversationId, {
-              lastMessage,
-            });
-        }
-        applyConversationFallback(records, defaultConversationId);
-      });
+      conversationSessions.registerAll(records);
+      setConversations(records);
+      for (const record of records) {
+        const store = conversationSessions.get(record.conversationId);
+        const lastMessage = lastVisibleMessageSummary(
+          store.getSnapshot().messages,
+        );
+        if (lastMessage && lastMessage !== record.lastMessage)
+          recordConversationActivity(record.conversationId, {
+            lastMessage,
+          });
+      }
+      applyConversationFallback(records, defaultConversationId);
+    });
   }, []);
   useEffect(
     () => () => {
@@ -402,10 +403,10 @@ export default function App() {
     )
       ? current.latestTargetConversationId
       : resolveAvailableConversationId(
-          records,
-          undefined,
-          DEFAULT_CONVERSATION_ID,
-        );
+        records,
+        undefined,
+        DEFAULT_CONVERSATION_ID,
+      );
     if (latestTargetConversationId !== displayedConversationIdRef.current) {
       updateConversationSwitch(null);
       beginConversationSwitch(
@@ -490,12 +491,12 @@ export default function App() {
       );
       return conversation.pinned
         ? updated.sort((left, right) =>
-            left.pinned === right.pinned
-              ? left.createdAt.localeCompare(right.createdAt)
-              : left.pinned
-                ? -1
-                : 1,
-          )
+          left.pinned === right.pinned
+            ? left.createdAt.localeCompare(right.createdAt)
+            : left.pinned
+              ? -1
+              : 1,
+        )
         : updated;
     });
     return conversation;
@@ -555,7 +556,7 @@ export default function App() {
               initialScrollTop={
                 conversationSwitch
                   ? (conversationViewStates.current.get(displayedConversationId)
-                      ?.scrollTop ?? null)
+                    ?.scrollTop ?? null)
                   : null
               }
               onViewStateChange={updateConversationViewState}
@@ -596,33 +597,32 @@ export default function App() {
   const homeVisible = location.pathname === "/" || (crossfadeReady && transition.fromLocation.pathname === "/");
   const routeLayers = crossfadeReady
     ? [
-        transition.fromLocation.pathname !== "/" && <div
-          className={`route-transition-layer route-layer-surface-${
-            transition.fromLocation.pathname === "/connections"
-              ? "connections"
-              : transition.fromLocation.pathname === "/settings"
-                ? "settings"
-                : "paper"
+      transition.fromLocation.pathname !== "/" && <div
+        className={`route-transition-layer route-layer-surface-${transition.fromLocation.pathname === "/connections"
+            ? "connections"
+            : transition.fromLocation.pathname === "/settings"
+              ? "settings"
+              : "paper"
           } route-transition-outgoing`}
-          key={transition.fromLocation.key}
-        >
-          {renderRoutes(transition.fromLocation)}
-        </div>,
-        location.pathname !== "/" && <div
-          className={`route-transition-layer route-layer-surface-${surface} route-transition-incoming`}
-          key={location.key}
-        >
-          {renderRoutes(location)}
-        </div>,
-      ]
+        key={transition.fromLocation.key}
+      >
+        {renderRoutes(transition.fromLocation)}
+      </div>,
+      location.pathname !== "/" && <div
+        className={`route-transition-layer route-layer-surface-${surface} route-transition-incoming`}
+        key={location.key}
+      >
+        {renderRoutes(location)}
+      </div>,
+    ]
     : [
-        location.pathname !== "/" && <div
-          className={`route-transition-layer route-layer-surface-${surface}`}
-          key={location.key}
-        >
-          {renderRoutes(location)}
-        </div>,
-      ];
+      location.pathname !== "/" && <div
+        className={`route-transition-layer route-layer-surface-${surface}`}
+        key={location.key}
+      >
+        {renderRoutes(location)}
+      </div>,
+    ];
 
   return (
     <div

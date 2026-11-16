@@ -1,3 +1,4 @@
+// 绘制登录页双鱼底稿与描线，等待预加载后从当前笔迹平滑收尾。
 import { useId, type Ref } from "react";
 import DATA from "./authFishData.json";
 
@@ -20,7 +21,7 @@ const cy = DATA.dots.reduce((sum, dot) => sum + dot[1], 0) / DATA.dots.length;
 const radius = Math.max(...DATA.dots.map(([dx, dy]) => Math.hypot(dx - cx, dy - cy))) + width / 300 * 2;
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-export default function AuthFish({ svgRef }: { svgRef: Ref<SVGSVGElement> }) {
+export default function AuthFish({ svgRef }: { svgRef: Ref<SVGSVGElement>; }) {
   const id = useId();
   const alpha = `${id}-fish`, reveal = `${id}-reveal`, gradient = `${id}-gradient`;
   return <svg ref={svgRef} className="auth-fish" viewBox={[centeredX, y, width, height].join(" ")} aria-hidden="true" stroke="none">

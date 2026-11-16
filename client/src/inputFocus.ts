@@ -1,4 +1,5 @@
-export const editableSelector = 'textarea:not(:disabled):not([readonly]),input:not(:disabled):not([readonly]):not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):not([type="submit"]),[contenteditable="true"]';
+// 接管输入框与标签聚焦，阻止浏览器自动滚动并保留触屏键盘激活。
+export const editableSelector = "textarea:not(:disabled):not([readonly]),input:not(:disabled):not([readonly]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"hidden\"]):not([type=\"button\"]):not([type=\"submit\"]),[contenteditable=\"true\"]";
 
 export function installInputFocus() {
   const focus = (event: MouseEvent | PointerEvent) => {

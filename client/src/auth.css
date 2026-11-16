@@ -1,3 +1,5 @@
+/* 定义登录页双鱼、标题和密码横线的布局及整页淡入淡出。 */
+
 .auth-page {
   height: var(--app-h, 100svh);
   position: fixed;
@@ -10,6 +12,7 @@
   opacity: 1;
   transition: opacity .6s ease-out;
 }
+
 .auth-gate {
   --auth-edge-gap: calc((var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * .03);
   position: relative;
@@ -18,6 +21,7 @@
   height: var(--app-h, 100svh);
   margin: 0 auto;
 }
+
 .auth-brand {
   position: absolute;
   top: calc(var(--auth-edge-gap) + env(safe-area-inset-top, 0px));
@@ -26,6 +30,7 @@
   letter-spacing: 1px;
   color: #2d3c47;
 }
+
 .auth-decor {
   position: absolute;
   top: calc(var(--auth-edge-gap) + env(safe-area-inset-top, 0px));
@@ -34,6 +39,7 @@
   gap: 8px;
   align-items: flex-start;
 }
+
 .auth-en {
   writing-mode: vertical-rl;
   font: 500 8px/1 ZSFT-br, serif;
@@ -42,11 +48,13 @@
   opacity: .75;
   padding-top: 1px;
 }
+
 .auth-decor-line {
   width: 1px;
   height: 65px;
   background: linear-gradient(180deg, rgba(90,112,130,.6), rgba(90,112,130,0));
 }
+
 .auth-cn {
   margin: 0;
   writing-mode: vertical-rl;
@@ -57,6 +65,7 @@
   background-clip: text;
   color: transparent;
 }
+
 .auth-entry {
   position: absolute;
   left: 0;
@@ -65,6 +74,7 @@
   height: 50px;
   pointer-events: none;
 }
+
 .auth-keyrow {
   position: absolute;
   left: 50%;
@@ -75,6 +85,7 @@
   opacity: 0;
   pointer-events: none;
 }
+
 .auth-keyrow::before {
   content: "";
   position: absolute;
@@ -83,6 +94,7 @@
   background: linear-gradient(90deg, rgba(59,77,90,0), rgba(59,77,90,.55) 20%, rgba(59,77,90,.55) 80%, rgba(59,77,90,0));
   pointer-events: none;
 }
+
 .auth-password {
   display: block;
   width: 100%;
@@ -99,6 +111,7 @@
   opacity: 0;
   caret-color: transparent;
 }
+
 .auth-hint {
   position: absolute;
   inset: 0;
@@ -110,13 +123,23 @@
   pointer-events: none;
   transition: opacity .2s;
 }
-.auth-hint [data-reveal-characters] { display: block; text-align: left; }
-.auth-hint.is-typing { right: 42px; text-align: left; }
+
+.auth-hint [data-reveal-characters] {
+  display: block;
+  text-align: left;
+}
+
+.auth-hint.is-typing {
+  right: 42px;
+  text-align: left;
+}
+
 .auth-keyrow .auth-password-toggle {
   position: absolute;
   right: 0;
   top: 8px;
 }
+
 .auth-submit {
   position: absolute;
   bottom: -12px;
@@ -127,6 +150,7 @@
   padding: 0;
   background: none;
 }
+
 .auth-submit::before {
   content: "";
   position: absolute;
@@ -137,6 +161,7 @@
   background: #3b4d5a;
   transform: rotate(45deg);
 }
+
 .auth-foot {
   position: absolute;
   left: 0;
@@ -150,6 +175,7 @@
   opacity: 0;
   transition: opacity .3s;
 }
+
 .auth-fish {
   position: absolute;
   left: 50%;
@@ -161,12 +187,43 @@
   pointer-events: none;
   stroke: none;
 }
-.auth-fish-ink { opacity: 0; transition: opacity .3s; }
-.auth-page.is-drawing .auth-fish-ink { opacity: 1; }
-.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-keyrow { opacity: 1; }
-.auth-page.is-locked .auth-keyrow { pointer-events: auto; }
-.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-foot { opacity: .6; }
-.auth-page.is-opening { opacity: 0; pointer-events: none; }
-.auth-content { min-height: 100%; height: 100%; background: #f1efe9; }
-.auth-brand, .auth-decor, .auth-keyrow, .auth-foot { visibility: hidden; }
-.gate-fonts-ready :is(.auth-brand, .auth-decor, .auth-keyrow, .auth-foot) { visibility: visible; }
+
+.auth-fish-ink {
+  opacity: 0;
+  transition: opacity .3s;
+}
+
+.auth-page.is-drawing .auth-fish-ink {
+  opacity: 1;
+}
+
+.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-keyrow {
+  opacity: 1;
+}
+
+.auth-page.is-locked .auth-keyrow {
+  pointer-events: auto;
+}
+
+.auth-page:is(.is-locked, .is-welcoming, .is-drawing) .auth-foot {
+  opacity: .6;
+}
+
+.auth-page.is-opening {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-content {
+  min-height: 100%;
+  height: 100%;
+  background: #f1efe9;
+}
+
+.auth-brand, .auth-decor, .auth-keyrow, .auth-foot {
+  visibility: hidden;
+}
+
+.gate-fonts-ready :is(.auth-brand, .auth-decor, .auth-keyrow, .auth-foot) {
+  visibility: visible;
+}

@@ -1,3 +1,4 @@
+// 管理登录、冷启动开门动画和首页交叉淡化，鉴权失效时收起私人内容。
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, cachedAccess, type Access } from "./auth";
@@ -17,7 +18,7 @@ type Phase = "checking" | "locked" | "welcome" | "drawing" | "settled" | "openin
 const WELCOME_MS = 600;
 const PASSWORD_ECHO = "我聽見你來了，門就要開了";
 
-export default function AuthGate({ children }: { children: ReactNode }) {
+export default function AuthGate({ children }: { children: ReactNode; }) {
   const [access, setAccess] = useState<Access | null>(cachedAccess);
   const currentAccess = useRef(access);
   const [phase, setPhase] = useState<Phase>("checking");
@@ -46,6 +47,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     const prepared = Promise.all([
       gateFontsReady,
       preloadHomePages(),
+      // 分块可提前下载，私人数据必须等这次登录许可；描鱼与两者并行。
       permission.then(() => preloadHomeData()),
     ]).then(() => false).catch(error => {
       if (!currentAccess.current?.authenticated) throw error;
@@ -150,9 +152,16 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const typing = phase === "locked" && !!value && !errorHint;
   const echoLength = Array.from(value).length;
   const echo = PASSWORD_ECHO.repeat(Math.ceil(echoLength / PASSWORD_ECHO.length)).slice(0, echoLength);
-  const hint = phase === "checking" ? "" : busy || access?.authenticated ? "門開著，進來。" : errorHint || (typing ? showPassword ? value : echo : offline ? OFFLINE_MESSAGE : setup
-    ? access.canSetup ? confirming ? "再寫一次。" : "先把門鎖好。至少十個字。" : "先在這台電腦上把門鎖好。"
-    : "密碼給門，不用給我");
+  const hint = (() => {
+    if (phase === "checking") return "";
+    if (busy || access?.authenticated) return "門開著，進來。";
+    if (errorHint) return errorHint;
+    if (typing) return showPassword ? value : echo;
+    if (offline) return OFFLINE_MESSAGE;
+    if (!setup) return "密碼給門，不用給我";
+    if (!access.canSetup) return "先在這台電腦上把門鎖好。";
+    return confirming ? "再寫一次。" : "先把門鎖好。至少十個字。";
+  })();
   useLayoutEffect(() => {
     const line = hintLine.current?.querySelector(".scroll-text");
     if (line && typing) line.scrollLeft = line.scrollWidth;

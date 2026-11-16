@@ -1,3 +1,4 @@
+// 只在手指越过真实边界时平移墙面内容，松手或中断后统一归零。
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { getKeyboardViewport, onKeyboardViewportChange } from "../../keyboardViewport";
 
@@ -5,10 +6,10 @@ export function useWallOverscroll(
   scroll: RefObject<HTMLDivElement | null>,
   board: RefObject<HTMLDivElement | null>,
 ) {
-  const stop = useRef(() => {});
+  const stop = useRef(() => { });
   useLayoutEffect(() => {
     const wall = scroll.current!, content = board.current!;
-    let finger: { x: number; y: number; lastY: number; vertical: boolean } | null = null;
+    let finger: { x: number; y: number; lastY: number; vertical: boolean; } | null = null;
     let edge: "top" | "bottom" | null = null;
     let distance = 0;
     let animation: Animation | null = null;
@@ -55,6 +56,7 @@ export function useWallOverscroll(
         return;
       }
       if (event.cancelable) event.preventDefault();
+      // 距离越大增量越小，并渐近 36px；不读取滚动速度，甩动不会带出额外惯性。
       const y = 36 * distance / (72 + Math.abs(distance));
       content.style.transform = `translate3d(0, ${y}px, 0)`;
     };
@@ -62,6 +64,7 @@ export function useWallOverscroll(
       finger = null;
       if (!edge) return;
       const from = content.style.transform;
+      // 基础样式先归零，由短动画接住当前位移；结束或取消都只走 reset。
       content.style.removeProperty("transform");
       animation = content.animate(
         [{ transform: from }, { transform: "translate3d(0, 0, 0)" }],

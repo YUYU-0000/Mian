@@ -1,3 +1,4 @@
+// 管理 Codex app-server 的连接、线程和回合，隔离旧进程的迟到事件。
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
@@ -97,7 +98,7 @@ export class CodexBridge extends EventEmitter {
     const { account } = (await this.request("account/read", {
       refreshToken: false,
     })) as {
-      account: { type: string; email?: string; planType?: string } | null;
+      account: { type: string; email?: string; planType?: string; } | null;
     };
     const status: ConnectionStatus = {
       state: account ? "ready" : "login-required",
@@ -121,7 +122,7 @@ export class CodexBridge extends EventEmitter {
   }
 
   restoreConversationThreads(
-    records: Array<{ conversationId: string; threadId: string | null }>,
+    records: Array<{ conversationId: string; threadId: string | null; }>,
   ) {
     this.conversations.restore(records);
   }
@@ -252,16 +253,16 @@ export class CodexBridge extends EventEmitter {
       if (!this.isCurrent(instance)) throw new Error("app-server 实例已失效");
       const status: ConnectionStatus = account?.account
         ? {
-            state: "ready",
-            message: "Codex app-server 已连接",
-            version: this.version,
-            account: account.account.email || account.account.type,
-          }
+          state: "ready",
+          message: "Codex app-server 已连接",
+          version: this.version,
+          account: account.account.email || account.account.type,
+        }
         : {
-            state: "login-required",
-            message: "app-server 已连接，但 Codex 尚未登录",
-            version: this.version,
-          };
+          state: "login-required",
+          message: "app-server 已连接，但 Codex 尚未登录",
+          version: this.version,
+        };
       this.lifecycleState = "ready";
       this.lastStatus = status;
       this.emit("event", { type: "connection", status });

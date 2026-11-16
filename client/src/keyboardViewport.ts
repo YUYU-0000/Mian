@@ -1,10 +1,11 @@
+// 统一键盘几何来源，并在同一帧抵消浏览器对整个可见视口的平移。
 import { getAppViewport, onAppResize } from "./appViewport";
 
 type VirtualKeyboard = EventTarget & {
   overlaysContent: boolean;
   readonly boundingRect: DOMRectReadOnly;
 };
-type KeyboardViewport = { height: number; offsetTop: number; keyboardOpen: boolean };
+type KeyboardViewport = { height: number; offsetTop: number; keyboardOpen: boolean; };
 let viewport: KeyboardViewport = { height: window.innerHeight, offsetTop: 0, keyboardOpen: false };
 const listeners = new Set<() => void>();
 
@@ -16,7 +17,7 @@ export function onKeyboardViewportChange(listener: () => void) {
 
 export function installKeyboardViewport() {
   const root = document.getElementById("root")!;
-  const keyboard = (navigator as Navigator & { virtualKeyboard?: VirtualKeyboard }).virtualKeyboard;
+  const keyboard = (navigator as Navigator & { virtualKeyboard?: VirtualKeyboard; }).virtualKeyboard;
   const update = () => {
     const visible = window.visualViewport;
     const bounds = keyboard?.boundingRect;
@@ -34,7 +35,7 @@ export function installKeyboardViewport() {
     keyboard.addEventListener("geometrychange", update);
   } else {
     // 没有键盘几何接口时仍需要浏览器提供缩小后的可视视口。
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')!;
+    const meta = document.querySelector<HTMLMetaElement>("meta[name=\"viewport\"]")!;
     meta.content = meta.content.replace("interactive-widget=overlays-content", "interactive-widget=resizes-visual");
   }
   (window.visualViewport ?? window).addEventListener("resize", update);

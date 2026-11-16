@@ -1,3 +1,4 @@
+// 管理卡片、肖像和图钉的拖动、缩放、旋转及连线操作。
 import {
   useEffect,
   useRef,
@@ -65,7 +66,7 @@ export function useWallGestures({
   const [selected, setSelected] = useState<string | null>(null);
   const [pressed, setPressed] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  const [ghost, setGhost] = useState<{ x: number; y: number; } | null>(null);
   useEffect(
     () => () => {
       clearTimeout(gesture.current?.timer);
@@ -74,7 +75,7 @@ export function useWallGestures({
     [],
   );
   const save = () => {
-    void persist().catch(() => {});
+    void persist().catch(() => { });
   };
   const point = (event: PointerEvent) => {
     const rect = board.current!.getBoundingClientRect();
@@ -88,13 +89,13 @@ export function useWallGestures({
       id === PORTRAIT_ID
         ? { ...wall, portrait: rect }
         : {
-            ...wall,
-            cards: wall.cards.map((card) =>
-              card.id === id
-                ? { ...card, ...rect, updatedAt: new Date().toISOString() }
-                : card,
-            ),
-          },
+          ...wall,
+          cards: wall.cards.map((card) =>
+            card.id === id
+              ? { ...card, ...rect, updatedAt: new Date().toISOString() }
+              : card,
+          ),
+        },
     );
 
   const start = (

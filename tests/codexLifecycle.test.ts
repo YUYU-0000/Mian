@@ -1,3 +1,4 @@
+// 验证 Codex 进程重连、线程复用与回合竞态，使用模拟进程。
 import assert from "node:assert/strict";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -162,10 +163,12 @@ class FakeAppServer extends EventEmitter {
       result = { turn: { id: `turn-${++this.turnCount}` } };
       if (this.completeBeforeReply) queueMicrotask(() => {
         for (const method of ["turn/started", "turn/completed"])
-          this.stdout.write(JSON.stringify({ method, params: {
-            threadId: (message.params as any).threadId,
-            turn: { id: `turn-${this.turnCount}`, status: "completed" },
-          } }) + "\n");
+          this.stdout.write(JSON.stringify({
+            method, params: {
+              threadId: (message.params as any).threadId,
+              turn: { id: `turn-${this.turnCount}`, status: "completed" },
+            }
+          }) + "\n");
       });
     }
     else if (

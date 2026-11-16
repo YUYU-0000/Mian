@@ -1,10 +1,11 @@
+// 维护实时连接，分发会话事件并处理重连和登录失效。
 import type { ChatEvent, RealtimeSession } from "./types";
 import { setBackendAvailable, requireLogin } from "./backend";
 
 const STREAM_CURSOR_KEY = "mian.chat-event-cursor.v1";
 
-type StreamCursor = { streamId: string; seq: number };
-type SessionEnvelope = { kind: "session" } & RealtimeSession;
+type StreamCursor = { streamId: string; seq: number; };
+type SessionEnvelope = { kind: "session"; } & RealtimeSession;
 type EventEnvelope = {
   kind: "event";
   streamId: string;
@@ -105,9 +106,8 @@ export const subscribe = (
       } catch (error) {
         onEvent({
           type: "error",
-          message: `无法读取流式事件：${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          message: `无法读取流式事件：${error instanceof Error ? error.message : String(error)
+            }`,
         });
       }
     };

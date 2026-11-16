@@ -1,3 +1,4 @@
+// 提供文字替换和逐字出现动画，切换中断时释放上一段动画。
 import { useLayoutEffect, useRef } from "react";
 
 export const textTransition = {

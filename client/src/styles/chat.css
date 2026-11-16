@@ -1,4 +1,7 @@
+/* 定义聊天布局、消息分组与输入区域的样式。 */
+
 /* 对话页布局。 */
+
 .archive-chat {
   position: relative;
   display: flex;
@@ -6,6 +9,7 @@
   font-family: var(--font-main);
   color: var(--ink);
 }
+
 .archive-header {
   position: absolute;
   top: 0;
@@ -18,6 +22,7 @@
   z-index: 10;
   pointer-events: none;
 }
+
 .archive-ribbon {
   position: relative;
   width: 370px;
@@ -27,6 +32,7 @@
   align-items: center;
   pointer-events: auto;
 }
+
 .archive-ribbon > svg {
   position: absolute;
   width: 100%;
@@ -34,13 +40,16 @@
   stroke: var(--line);
   stroke-width: 1.2;
 }
+
 .archive-ribbon polygon,
 .archive-ribbon rect {
   fill: #e2dacf;
 }
+
 .archive-ribbon .ribbon-dark {
   fill: #c5bcac;
 }
+
 .archive-ribbon > div {
   z-index: 1;
   font-size: 15px;
@@ -51,6 +60,7 @@
   text-shadow: 0.5px 1px #fff;
   transform: translateY(2px);
 }
+
 .ribbon-back-hit {
   position: absolute;
   z-index: 3;
@@ -61,6 +71,7 @@
   border: 0;
   background: transparent;
 }
+
 .archive-stream {
   flex: 1;
   overflow-y: auto;
@@ -81,19 +92,23 @@
     transparent calc(100% - 75px)
   );
 }
+
 .archive-stream::-webkit-scrollbar {
   display: none;
 }
+
 .archive-stream:before {
   content: "";
   display: block;
   height: 70px;
 }
+
 .archive-stream:after {
   content: "";
   display: block;
   height: 100px;
 }
+
 .archive-msg {
   display: flex;
   flex-direction: column;
@@ -101,17 +116,21 @@
   margin-bottom: 24px;
   min-height: 50px;
 }
+
 .archive-msg-head {
   display: flex;
   align-items: flex-start;
   margin-bottom: -34px;
 }
+
 .archive-msg[data-role="user"] .archive-msg-head {
   justify-content: flex-end;
 }
+
 .archive-msg[data-role="assistant"] .archive-msg-head {
   justify-content: flex-start;
 }
+
 .archive-avatar {
   width: 34px;
   height: 34px;
@@ -122,23 +141,25 @@
   background-position: center;
   position: relative;
 }
+
 .archive-avatar.user {
   background-color: #d8d0c5;
   background-image: var(--avatar-user, none);
 }
+
 .archive-avatar time {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
   margin-top: 2px;
-  font:
-    10px "ZSFT-br",
+  font: 10px "ZSFT-br",
     "LXGW Heart Serif",
     sans-serif;
   color: var(--muted);
   white-space: nowrap;
 }
+
 .archive-msg-content {
   display: flex;
   flex-direction: column;
@@ -147,9 +168,11 @@
   gap: 6px;
   align-items: flex-start;
 }
+
 .archive-msg[data-role="user"] .archive-msg-content {
   align-items: flex-end;
 }
+
 .archive-bubble {
   width: fit-content;
   max-width: 100%;
@@ -166,19 +189,24 @@
   color: var(--ink);
   background: #fcfbf8;
 }
+
 .archive-msg[data-role="user"] .archive-bubble {
   background: #ebe7de;
 }
+
 .archive-bubble .reply-code pre code {
   font-size: calc(12px * var(--bubble-font-scale, 1));
 }
+
 .archive-bubble.stopped {
   border-color: var(--blue);
 }
+
 .archive-module {
   width: fit-content;
   max-width: 100%;
 }
+
 .archive-module > summary {
   display: flex;
   align-items: center;
@@ -189,6 +217,7 @@
   letter-spacing: 4px;
   color: var(--line);
 }
+
 .status-icon {
   width: 14px;
   height: 14px;
@@ -196,13 +225,16 @@
   stroke: var(--blue);
   stroke-width: 2;
 }
+
 .archive-module > summary .status-icon {
   width: 12px;
   height: 12px;
 }
+
 .hourglass {
   animation: hourglass 4s ease-in-out infinite;
 }
+
 .archive-thought,
 .archive-step-body {
   font-size: 12px;
@@ -210,17 +242,21 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
 .archive-thought {
   color: #5480a6;
   margin: 6px 0 0 18px;
 }
+
 .archive-tool-path {
   margin: 7px 0 0 18px;
 }
+
 .archive-tool-step {
   padding-bottom: 12px;
   position: relative;
 }
+
 .archive-tool-step summary {
   display: flex;
   align-items: center;
@@ -230,39 +266,46 @@
   color: var(--line);
   cursor: pointer;
 }
+
 .archive-step-body {
   margin: 6px 0 0 22px;
   color: var(--muted);
 }
+
 .status-success {
   stroke: var(--green);
 }
+
 .status-failed {
   stroke: var(--red);
 }
+
 .status-rejected {
   stroke: var(--muted);
 }
+
 .archive-approval {
-  font:
-    12px "ZSFT-br",
+  font: 12px "ZSFT-br",
     "LXGW Heart Serif",
     sans-serif;
   padding-left: 10px;
   max-width: 100%;
 }
+
 .archive-approval pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--muted);
   margin: 5px 0;
 }
+
 .archive-approval button {
   border: 0;
   background: none;
   color: var(--muted);
   padding: 3px 8px;
 }
+
 .archive-input {
   position: absolute;
   bottom: calc(12px + env(safe-area-inset-bottom));
@@ -278,6 +321,7 @@
   gap: 4px;
   z-index: 10;
 }
+
 .archive-input textarea {
   flex: 1;
   width: 100%;
@@ -289,13 +333,13 @@
   max-height: 120px;
   padding: 6px 0 4px;
   overflow-y: auto;
-  font:
-    14.5px "ZSFT-br",
+  font: 14.5px "ZSFT-br",
     "LXGW Heart Serif",
     sans-serif;
   color: var(--ink);
   letter-spacing: 1px;
 }
+
 .archive-input button {
   background: none;
   border: 0;
@@ -309,35 +353,41 @@
   color: var(--line);
   position: relative;
 }
+
 .archive-input button:disabled {
   opacity: 1;
   cursor: not-allowed;
 }
+
 .archive-input button svg {
   width: 20px;
   height: 20px;
   stroke-width: 1.2;
 }
+
 .send-icon,
 .stop-icon {
   position: absolute;
   display: flex;
-  transition:
-    transform 0.45s,
+  transition: transform 0.45s,
     opacity 0.3s;
 }
+
 .stop-icon {
   opacity: 0;
   transform: scale(0.4) rotate(-60deg);
 }
+
 .is-streaming .send-icon {
   opacity: 0;
   transform: translate(8px, -8px) scale(0.5) rotate(15deg);
 }
+
 .is-streaming .stop-icon {
   opacity: 1;
   transform: scale(1);
 }
+
 @keyframes hourglass {
   0% {
     transform: rotate(0);
@@ -351,6 +401,7 @@
     transform: rotate(360deg);
   }
 }
+
 .paper-overlay {
   position: fixed;
   inset: 0;
@@ -359,6 +410,7 @@
   backdrop-filter: blur(4px);
   z-index: 100;
 }
+
 @media (min-width: 481px) {
   .home-screen,
   .archive-chat {

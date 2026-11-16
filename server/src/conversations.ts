@@ -1,3 +1,4 @@
+// 持久化会话列表与分支关系，处理创建、切换、归档和恢复。
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -76,12 +77,12 @@ export function normalizeConversationRecord(
         : 1,
     branchPath: Array.isArray(value.branchPath)
       ? value.branchPath.filter(
-          (part) => Number.isSafeInteger(part) && part > 0,
-        )
+        (part) => Number.isSafeInteger(part) && part > 0,
+      )
       : [],
     branchCounter:
       Number.isSafeInteger(value.branchCounter) &&
-      Number(value.branchCounter) >= 0
+        Number(value.branchCounter) >= 0
         ? Number(value.branchCounter)
         : 0,
     abbr: typeof value.abbr === "string" && value.abbr ? value.abbr : "C-01",
@@ -99,14 +100,14 @@ export function normalizeConversationRecord(
     reasoningEffort: normalizeNullableText(value.reasoningEffort),
     totalTokens:
       typeof value.totalTokens === "number" &&
-      Number.isSafeInteger(value.totalTokens) &&
-      value.totalTokens >= 0
+        Number.isSafeInteger(value.totalTokens) &&
+        value.totalTokens >= 0
         ? value.totalTokens
         : null,
     uncachedTotalTokens:
       typeof value.uncachedTotalTokens === "number" &&
-      Number.isSafeInteger(value.uncachedTotalTokens) &&
-      value.uncachedTotalTokens >= 0
+        Number.isSafeInteger(value.uncachedTotalTokens) &&
+        value.uncachedTotalTokens >= 0
         ? value.uncachedTotalTokens
         : null,
     lastActivityAt: normalizeNullableText(value.lastActivityAt),
@@ -137,8 +138,8 @@ export class ConversationRegistry {
       ) as Partial<PersistedConversations>;
       const records = Array.isArray(parsed.records)
         ? parsed.records
-            .map(normalizeConversationRecord)
-            .filter((record): record is ConversationRecord => Boolean(record))
+          .map(normalizeConversationRecord)
+          .filter((record): record is ConversationRecord => Boolean(record))
         : [];
       // 只在首次启动或旧档案为空时创建 C-01。
       if (records.length === 0) records.push(defaultConversation());
@@ -303,7 +304,7 @@ export class ConversationRegistry {
 
   async updateActivity(
     conversationId: string,
-    patch: { lastActivityAt?: string; lastMessage?: string },
+    patch: { lastActivityAt?: string; lastMessage?: string; },
   ) {
     const record = this.require(conversationId);
     if (typeof patch.lastActivityAt === "string" && patch.lastActivityAt.trim())

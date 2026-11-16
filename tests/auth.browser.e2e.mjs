@@ -1,15 +1,16 @@
-import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
-import { once } from 'node:events';
-import path from 'node:path';
-import WebSocket from 'ws';
-import { fileTicketServer } from './fileTickets.server.mjs';
+// 验证登录与开门动画、预加载、键盘定位和鉴权失效后的界面收起。
+import assert from "node:assert/strict";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
+import path from "node:path";
+import WebSocket from "ws";
+import { fileTicketServer } from "./fileTickets.server.mjs";
 
 const backend = await fileTicketServer({ setup: false });
-const browser = spawn(process.env.MIAN_BROWSER_BIN || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', [
-  '--headless=new', '--remote-debugging-port=9381', `--user-data-dir=${path.join(backend.directory, 'auth-browser')}`,
-  '--no-first-run', '--disable-background-networking', '--disable-background-timer-throttling', 'about:blank',
-], { windowsHide: true, stdio: 'ignore' });
+const browser = spawn(process.env.MIAN_BROWSER_BIN || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe", [
+  "--headless=new", "--remote-debugging-port=9381", `--user-data-dir=${path.join(backend.directory, "auth-browser")}`,
+  "--no-first-run", "--disable-background-networking", "--disable-background-timer-throttling", "about:blank",
+], { windowsHide: true, stdio: "ignore" });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(read, name) {
   const end = Date.now() + 20_000;
@@ -19,12 +20,12 @@ async function waitFor(read, name) {
 let cdp;
 try {
   let targets;
-  await waitFor(async () => { try { targets = await (await fetch('http://127.0.0.1:9381/json')).json(); return true; } catch { return false; } }, 'browser startup');
-  cdp = new WebSocket(targets.find(target => target.type === 'page').webSocketDebuggerUrl);
-  await once(cdp, 'open');
+  await waitFor(async () => { try { targets = await (await fetch("http://127.0.0.1:9381/json")).json(); return true; } catch { return false; } }, "browser startup");
+  cdp = new WebSocket(targets.find(target => target.type === "page").webSocketDebuggerUrl);
+  await once(cdp, "open");
   let sequence = 0;
   const pending = new Map();
-  cdp.on('message', raw => {
+  cdp.on("message", raw => {
     const message = JSON.parse(String(raw)), waiter = pending.get(message.id);
     if (!waiter) return;
     pending.delete(message.id);
@@ -32,20 +33,26 @@ try {
   });
   const call = (method, params = {}) => new Promise((resolve, reject) => { const id = ++sequence; pending.set(id, { resolve, reject }); cdp.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expression => {
-    const result = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+    const result = await call("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
   };
-  await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
-  await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+  // 各阶段都验证同一组下沿元素可见，避免复制断言时漏掉其中一个。
+  const assertEntryVisible = async () => {
+    const opacity = await evaluate('[".auth-keyrow", ".auth-foot"].map(selector => getComputedStyle(document.querySelector(selector)).opacity)');
+    assert.deepEqual(opacity, ["1", "0.6"]);
+  };
+  await call("Page.enable"); await call("Runtime.enable"); await call("Network.enable");
+  await call("Page.addScriptToEvaluateOnNewDocument", {
+    source: `
     Object.defineProperty(navigator,'virtualKeyboard',{configurable:true,value:undefined});
     window.soundStarts=0;
     const play=HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play=function(){if(!this.muted) soundStarts++;return play.call(this);};
   ` });
-  await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await call('Page.navigate', { url: backend.base });
-  await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), 'first password form');
+  await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await call("Page.navigate", { url: backend.base });
+  await waitFor(() => evaluate('document.querySelector(".auth-hint")?.textContent === "先把門鎖好。至少十個字。"'), "first password form");
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
   const spacing = await evaluate(`(() => {
     const rect=selector=>document.querySelector(selector).getBoundingClientRect();
@@ -67,8 +74,8 @@ try {
     const rect=svg.getBoundingClientRect();
     return {inkCenter:point.x,screenCenter:innerWidth/2,verticalCenter:rect.top+rect.height/2,pageCenter:innerHeight/2};
   })()`);
-  assert.ok(Math.abs(fishPlacement.inkCenter-fishPlacement.screenCenter)<0.05,'visible fish pixels are horizontally centered');
-  assert.ok(Math.abs(fishPlacement.verticalCenter-fishPlacement.pageCenter)<0.05,'fish keeps its original vertical placement');
+  assert.ok(Math.abs(fishPlacement.inkCenter - fishPlacement.screenCenter) < 0.05, "visible fish pixels are horizontally centered");
+  assert.ok(Math.abs(fishPlacement.verticalCenter - fishPlacement.pageCenter) < 0.05, "fish keeps its original vertical placement");
   const keyboardGate = await evaluate(`(async()=>{
     const input=document.querySelector('.auth-password');
     const snapshot=()=>Object.fromEntries(Object.entries({fish:'.auth-fish',input:'.auth-password',brand:'.auth-brand',decor:'.auth-decor',foot:'.auth-foot',paper:'.auth-entry',page:'.auth-page'})
@@ -85,49 +92,49 @@ try {
     await new Promise(resolve=>setTimeout(resolve,300));
     return {before,during,immediate,restoredOffset,after:input.getBoundingClientRect().toJSON()};
   })()`);
-  const loginLift=keyboardGate.before.paper.bottom-474;
-  assert.deepEqual(keyboardGate.immediate.page,keyboardGate.before.page,'viewport panning is cancelled before the next animation frame');
-  assert.equal(keyboardGate.immediate.offset,'96px');
-  assert.equal(keyboardGate.immediate.animations,0,'root compensation has no animation');
-  assert.equal(keyboardGate.restoredOffset,'0px');
-  for (const name of ['input','foot']) {
-    const before=keyboardGate.before[name], during=keyboardGate.during[name];
-    assert.ok(Math.abs(before.y-during.y-loginLift)<0.1, `login ${name} moves with the input block`);
-    assert.equal(before.width,during.width);
-    assert.equal(before.height,during.height);
+  const loginLift = keyboardGate.before.paper.bottom - 474;
+  assert.deepEqual(keyboardGate.immediate.page, keyboardGate.before.page, "viewport panning is cancelled before the next animation frame");
+  assert.equal(keyboardGate.immediate.offset, "96px");
+  assert.equal(keyboardGate.immediate.animations, 0, "root compensation has no animation");
+  assert.equal(keyboardGate.restoredOffset, "0px");
+  for (const name of ["input", "foot"]) {
+    const before = keyboardGate.before[name], during = keyboardGate.during[name];
+    assert.ok(Math.abs(before.y - during.y - loginLift) < 0.1, `login ${name} moves with the input block`);
+    assert.equal(before.width, during.width);
+    assert.equal(before.height, during.height);
   }
-  for (const name of ['fish','brand','decor','page']) assert.deepEqual(keyboardGate.during[name],keyboardGate.before[name],`login ${name} stays fixed behind the keyboard lift`);
-  assert.ok(Math.abs(keyboardGate.during.paper.bottom-474)<0.1, 'login entry bottom clears the keyboard by exactly 6px');
-  assert.ok(keyboardGate.during.input.top>=0 && keyboardGate.during.input.bottom<=474,'login input remains visible');
-  assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, 'login line returns to its original position');
+  for (const name of ["fish", "brand", "decor", "page"]) assert.deepEqual(keyboardGate.during[name], keyboardGate.before[name], `login ${name} stays fixed behind the keyboard lift`);
+  assert.ok(Math.abs(keyboardGate.during.paper.bottom - 474) < 0.1, "login entry bottom clears the keyboard by exactly 6px");
+  assert.ok(keyboardGate.during.input.top >= 0 && keyboardGate.during.input.bottom <= 474, "login input remains visible");
+  assert.equal(keyboardGate.after.y, keyboardGate.before.input.y, "login line returns to its original position");
   const typePassword = async password => {
     await evaluate(`{const input=document.querySelector('.auth-password'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(password)}); input.dispatchEvent(new Event('input',{bubbles:true}));}`);
   };
-  const fillPassword = async (password = 'browser-test-password') => {
+  const fillPassword = async (password = "browser-test-password") => {
     await typePassword(password);
     await evaluate(`document.querySelector('.auth-keyrow').requestSubmit()`);
   };
-  await typePassword('a');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我"'), 'first password character');
-  assert.equal(await evaluate('document.querySelector(".auth-password").type'), 'password');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-password")).opacity'), '0');
+  await typePassword("a");
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我"'), "first password character");
+  assert.equal(await evaluate('document.querySelector(".auth-password").type'), "password");
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-password")).opacity'), "0");
   await evaluate('window.firstEchoCharacter=document.querySelector("[data-reveal-characters]").firstElementChild');
-  await typePassword('ab');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽"'), 'second password character');
+  await typePassword("ab");
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽"'), "second password character");
   assert.equal(await evaluate('firstEchoCharacter === document.querySelector("[data-reveal-characters]").firstElementChild'), true);
-  await typePassword('a');
-  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我');
-  await typePassword('abcdefghijklmnop');
-  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), '我聽見你來了，門就要開了我聽見你');
+  await typePassword("a");
+  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), "我");
+  await typePassword("abcdefghijklmnop");
+  assert.equal(await evaluate('document.querySelector(".auth-hint").textContent'), "我聽見你來了，門就要開了我聽見你");
   await evaluate('document.querySelector(".auth-password-toggle").click()');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "abcdefghijklmnop" && document.querySelector(".auth-password-toggle").textContent === "HIDE"'), 'show test password with text transition');
-  assert.equal(await evaluate('document.querySelector(".auth-password").type'), 'password');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "abcdefghijklmnop" && document.querySelector(".auth-password-toggle").textContent === "HIDE"'), "show test password with text transition");
+  assert.equal(await evaluate('document.querySelector(".auth-password").type'), "password");
   await evaluate('document.querySelector(".auth-password-toggle").click()');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽見你來了，門就要開了我聽見你" && document.querySelector(".auth-password-toggle").textContent === "SHOW"'), 'hide restores the echo');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "我聽見你來了，門就要開了我聽見你" && document.querySelector(".auth-password-toggle").textContent === "SHOW"'), "hide restores the echo");
   await fillPassword();
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "再寫一次。"'), 'same line confirms the new password');
-  await fillPassword('different-test-password');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "不對。"'), 'password confirmation mismatch');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "再寫一次。"'), "same line confirms the new password");
+  await fillPassword("different-test-password");
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "不對。"'), "password confirmation mismatch");
   assert.equal(await evaluate('!!document.querySelector(".auth-page.is-drawing")'), false);
   await evaluate(`
     window.gateRequests=[];
@@ -146,35 +153,34 @@ try {
     window.gateStarted=performance.now();
   `);
   await fillPassword();
-  await waitFor(() => evaluate('!!window.releaseGateLogin'), 'login response held');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "門開著，進來。"'), 'password echo transitions into the welcome hint');
+  await waitFor(() => evaluate("!!window.releaseGateLogin"), "login response held");
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "門開著，進來。"'), "password echo transitions into the welcome hint");
   assert.equal(await evaluate('document.querySelector(".auth-password").readOnly && document.activeElement !== document.querySelector(".auth-password")'), true);
-  await evaluate('releaseGateLogin()');
-  await waitFor(() => evaluate('!!window.releaseGateData'), 'home data requested during drawing');
+  await evaluate("releaseGateLogin()");
+  await waitFor(() => evaluate("!!window.releaseGateData"), "home data requested during drawing");
   const order = await evaluate(`({login:gateRequests.find(item=>item.url==='/api/auth/setup').end, data:gateRequests.filter(item=>['/api/config','/api/api-presets','/api/conversations','/api/font-presets','/api/clues'].includes(item.url)).map(item=>item.start)})`);
   assert.ok(order.data.length >= 5 && order.data.every(start => start >= order.login));
   assert.ok(await evaluate(`performance.getEntriesByType('resource').some(entry=>entry.name.includes('/assets/Chat-'))`));
-  await waitFor(() => evaluate('performance.now()-gateStarted > 3400'), 'slow preload wait');
+  await waitFor(() => evaluate("performance.now()-gateStarted > 3400"), "slow preload wait");
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
   assert.equal(await evaluate('!!document.querySelector(".auth-page.is-drawing")'), true);
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
+  await assertEntryVisible();
   const slowOffsets = await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>Number(path.style.strokeDashoffset))`);
   assert.ok(slowOffsets.some(value => value === 0));
   assert.ok(await evaluate(`Number(document.querySelector('[data-ring]').style.strokeDashoffset)>0`));
-  await evaluate('gateHoldData=false; releaseGateData()');
-  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening") && !!document.querySelector(".auth-content .home-screen")'), 'gate and pre-mounted home crossfade');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
-  assert.equal(await evaluate('soundStarts'), 0);
-  await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'home after setup');
-  const { cookies } = await call('Network.getCookies', { urls: [backend.base] });
-  const cookie = cookies.find(item => item.name === '__Host-mian');
-  assert.ok(cookie?.secure && cookie.httpOnly && cookie.sameSite === 'Strict');
+  await evaluate("gateHoldData=false; releaseGateData()");
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening") && !!document.querySelector(".auth-content .home-screen")'), "gate and pre-mounted home crossfade");
+  await assertEntryVisible();
+  assert.equal(await evaluate("soundStarts"), 0);
+  await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), "home after setup");
+  const { cookies } = await call("Network.getCookies", { urls: [backend.base] });
+  const cookie = cookies.find(item => item.name === "__Host-mian");
+  assert.ok(cookie?.secure && cookie.httpOnly && cookie.sameSite === "Strict");
   assert.equal(await evaluate(`document.cookie.includes('__Host-mian')`), false);
   assert.equal(await evaluate(`fetch('/api/auth/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({localBypass:false})}).then(r=>r.status)`), 200);
-  await call('Storage.clearDataForOrigin', { origin: backend.base, storageTypes: 'indexeddb' });
-  const heldPreload = await call('Page.addScriptToEvaluateOnNewDocument', { source: `
+  await call("Storage.clearDataForOrigin", { origin: backend.base, storageTypes: "indexeddb" });
+  const heldPreload = await call("Page.addScriptToEvaluateOnNewDocument", {
+    source: `
     const timing=new MutationObserver(()=>{
       if(!window.coldStarted && document.querySelector('.auth-page.is-welcoming')) window.coldStarted=performance.now();
       if(window.coldStarted && !document.querySelector('.auth-page') && document.querySelector('.home-screen')) {
@@ -189,50 +195,49 @@ try {
       return response;
     };
   ` });
-  await call('Page.reload');
-  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-welcoming") && document.querySelector(".auth-hint").textContent === "門開著，進來。" && getComputedStyle(document.querySelector(".auth-keyrow")).opacity === "1"'), 'cookie cold start shows the welcome line');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
+  await call("Page.reload");
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-welcoming") && document.querySelector(".auth-hint").textContent === "門開著，進來。" && getComputedStyle(document.querySelector(".auth-keyrow")).opacity === "1"'), "cookie cold start shows the welcome line");
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), "0.6");
   assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-submit"),"::before").content'), '""');
   assert.equal(await evaluate('document.querySelector(".auth-password").focus(); document.activeElement === document.querySelector(".auth-password")'), false);
   assert.equal(await evaluate('document.querySelector(".auth-password").disabled'), true);
-  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-drawing")'), 'cookie cold start draws automatically');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-keyrow")).opacity'), '1');
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".auth-foot")).opacity'), '0.6');
-  await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), 'bounded preload opens cached home');
-  const coldElapsed = await evaluate('coldElapsed');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-drawing")'), "cookie cold start draws automatically");
+  await assertEntryVisible();
+  await waitFor(() => evaluate('!!document.querySelector(".home-screen") && !document.querySelector(".auth-page")'), "bounded preload opens cached home");
+  const coldElapsed = await evaluate("coldElapsed");
   assert.ok(coldElapsed < 8100, `opening took ${coldElapsed} ms`);
-  assert.equal(await evaluate('soundStarts'), 0);
-  await waitFor(() => evaluate('document.body.textContent.includes("那邊沒醒，等一下")'), 'slow backend notice');
-  await evaluate('releaseColdData()');
-  await call('Page.removeScriptToEvaluateOnNewDocument', { identifier: heldPreload.identifier });
+  assert.equal(await evaluate("soundStarts"), 0);
+  await waitFor(() => evaluate('document.body.textContent.includes("那邊沒醒，等一下")'), "slow backend notice");
+  await evaluate("releaseColdData()");
+  await call("Page.removeScriptToEvaluateOnNewDocument", { identifier: heldPreload.identifier });
   assert.equal(await evaluate(`fetch('/api/config').then(r=>r.status)`), 200);
   await evaluate(`fetch('/api/auth/logout-all',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})`);
-  await waitFor(() => evaluate('!!document.querySelector(".auth-password:not(:disabled)")'), 'logout closes app and socket');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-password:not(:disabled)")'), "logout closes app and socket");
   assert.equal(await evaluate('!!document.querySelector(".home-screen")'), false);
-  await call('Page.reload');
-  await waitFor(() => evaluate('!!document.querySelector(".auth-password:not(:disabled)")'), 'cached content remains behind login');
+  await call("Page.reload");
+  await waitFor(() => evaluate('!!document.querySelector(".auth-password:not(:disabled)")'), "cached content remains behind login");
   assert.equal(await evaluate(`fetch('/api/config').then(r=>r.status)`), 401);
-  await fillPassword('wrong-test-password');
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "不對。" && getComputedStyle(document.querySelector(".auth-fish-ink")).opacity === "0"'), 'wrong password returns to the draft');
+  await fillPassword("wrong-test-password");
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "不對。" && getComputedStyle(document.querySelector(".auth-fish-ink")).opacity === "0"'), "wrong password returns to the draft");
   assert.equal(await evaluate('!document.querySelector(".auth-password").readOnly && !document.querySelector(".auth-password").disabled'), true);
   const stopped = await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>path.style.strokeDashoffset)`);
   await sleep(250);
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('[data-stroke]'),path=>path.style.strokeDashoffset)`), stopped);
-  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "密碼給門，不用給我"'), 'hint restores');
-  await evaluate('document.fonts.ready');
-  await evaluate('window.gateStarted=performance.now()');
+  await waitFor(() => evaluate('document.querySelector(".auth-hint").textContent === "密碼給門，不用給我"'), "hint restores");
+  await evaluate("document.fonts.ready");
+  await evaluate("window.gateStarted=performance.now()");
   await fillPassword();
-  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening")'), 'login again');
-  assert.ok(await evaluate('performance.now()-gateStarted >= 3000'));
-  await waitFor(() => evaluate('!document.querySelector(".auth-page")'), 'fast login finishes its fade');
+  await waitFor(() => evaluate('!!document.querySelector(".auth-page.is-opening")'), "login again");
+  assert.ok(await evaluate("performance.now()-gateStarted >= 3000"));
+  await waitFor(() => evaluate('!document.querySelector(".auth-page")'), "fast login finishes its fade");
   console.log(`auth browser: aligned titles, setup, welcome line without keyboard, cold start, crossfade, ${Math.round(coldElapsed)} ms bounded opening, silence, secure cookie, logout and cache gate passed`);
 } catch (error) {
   console.error(error);
   throw error;
 } finally {
   cdp?.close();
-  const exited = once(browser, 'exit');
-  spawnSync('taskkill.exe', ['/PID', String(browser.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+  const exited = once(browser, "exit");
+  spawnSync("taskkill.exe", ["/PID", String(browser.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
   await exited;
   await backend.close();
 }

@@ -1,3 +1,4 @@
+// 验证多个会话的消息、回合和同步状态互不混用。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConversationSessions } from "../client/src/conversationSessions.ts";
@@ -41,11 +42,11 @@ const record = (conversationId: string): ConversationRecord => ({
 
 test("three registered conversations own independent pending, turns and event streams", async () => {
   const storage = new MemoryStorage();
-  const sends: Array<{ text: string; conversationId: string }> = [];
+  const sends: Array<{ text: string; conversationId: string; }> = [];
   const sessions = new ConversationSessions({
     initialConversationIds: ["c1"],
     storage,
-    onActivity: () => {},
+    onActivity: () => { },
     apiClient: {
       send: async (text, conversationId) => {
         sends.push({ text, conversationId });
@@ -112,7 +113,7 @@ test("a remote session reconciles every conversation and later stores inherit au
   const sessions = new ConversationSessions({
     initialConversationIds: ["c1", "c2"],
     storage,
-    onActivity: () => {},
+    onActivity: () => { },
     apiClient: {
       send: async (_text, conversationId) => ({ turnId: `new-${conversationId}` }),
       stop: async () => undefined,
@@ -148,7 +149,7 @@ test("a pre-session empty-send waits for backend authority and then submits once
   const sessions = new ConversationSessions({
     initialConversationIds: ["c1", "c2"],
     storage,
-    onActivity: () => {},
+    onActivity: () => { },
     apiClient: {
       send: async (_text, conversationId) => {
         sends.push(conversationId);
@@ -182,7 +183,7 @@ test("removing one conversation clears only its own persisted runtime", () => {
   const sessions = new ConversationSessions({
     initialConversationIds: ["c1", "c2"],
     storage,
-    onActivity: () => {},
+    onActivity: () => { },
     apiClient: {
       send: async (_text, conversationId) => ({ turnId: `turn-${conversationId}` }),
       stop: async () => undefined,

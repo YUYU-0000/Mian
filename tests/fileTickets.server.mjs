@@ -1,3 +1,4 @@
+// 为浏览器测试启动独立后端和模拟服务，统一临时数据的创建与清理。
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:http";

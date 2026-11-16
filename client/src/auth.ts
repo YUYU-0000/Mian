@@ -1,3 +1,4 @@
+// 请求登录状态与首次设置或登录，并同步浏览器中的登录有效期。
 import { request, setBackendAuthorized } from "./backend";
 
 export type Access = {
@@ -22,13 +23,10 @@ function rememberAccess(access: Access) {
   window.dispatchEvent(new CustomEvent<Access>("mian:access", { detail: access }));
   return access;
 }
-const write = (url: string, body: unknown, method = "POST") => request<Access>(`/api/auth/${url}`, {
-  method, body: JSON.stringify(body),
+const write = (url: string, body: unknown) => request<Access>(`/api/auth/${url}`, {
+  method: "POST", body: JSON.stringify(body),
 }).then(rememberAccess);
 export const auth = {
   status: () => request<Access>("/api/auth/status", { cache: "no-store" }).then(rememberAccess),
   login: (password: string, setup: boolean) => write(setup ? "setup" : "login", { password }),
-  settings: (localBypass: boolean) => write("settings", { localBypass }, "PUT"),
-  password: (currentPassword: string, password: string) => write("password", { currentPassword, password }),
-  logoutAll: () => write("logout-all", {}),
 };

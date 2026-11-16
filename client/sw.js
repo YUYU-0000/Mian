@@ -1,3 +1,4 @@
+// 只缓存前端界面资源和字体，绕过鉴权接口、WebSocket 与私人文件。
 const SHELL = "mian-shell-__MIAN_VERSION__";
 const ASSETS = __MIAN_ASSETS__;
 const assetPaths = new Set(ASSETS);

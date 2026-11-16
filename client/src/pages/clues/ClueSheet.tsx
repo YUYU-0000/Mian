@@ -1,3 +1,4 @@
+// 编辑单张线索的内容和触发条件，处理保存、撕除与关闭。
 import { useEffect, useRef, useState } from "react";
 import type { Clue } from "../../clueTypes";
 import AnimatedText from "../../components/AnimatedText";
@@ -20,7 +21,7 @@ export default function ClueSheet({
   const [tearArmed, setTearArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const backdropPress = useRef<{ x: number; y: number } | null>(null);
+  const backdropPress = useRef<{ x: number; y: number; } | null>(null);
   useEffect(() => {
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => setShow(true));

@@ -1,7 +1,11 @@
+/* 定义连接中心 API 纸片的字段、操作区和纸面排版。 */
+
 /* ================= API 紙片 ================= */
+
 .connections-page .api-sheet {
   --accent: var(--env1);
 }
+
 .connections-page .api-lines {
   position: absolute;
   top: 0;
@@ -15,6 +19,7 @@
     transparent 1px 7px
   );
 }
+
 .connections-page .api-block {
   position: absolute;
   top: 22%;
@@ -26,6 +31,7 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%, 50% 50%, 0 50%);
   transition: background-color 0.4s ease;
 }
+
 .connections-page .api-bar {
   position: absolute;
   top: 0;
@@ -36,6 +42,7 @@
   background-color: var(--accent);
   transition: background-color 0.4s ease;
 }
+
 .connections-page .api-hatch {
   position: absolute;
   top: 37%;
@@ -50,6 +57,7 @@
   );
   opacity: 0.55;
 }
+
 .connections-page .api-side {
   position: absolute;
   left: 10px;
@@ -61,6 +69,7 @@
   font-weight: 500;
   color: var(--muted);
 }
+
 .connections-page .api-head {
   position: absolute;
   left: 26px;
@@ -68,6 +77,7 @@
   top: 26px;
   z-index: 2;
 }
+
 .connections-page .api-giant {
   display: flex;
   align-items: baseline;
@@ -78,11 +88,13 @@
   letter-spacing: -1px;
   color: var(--ink);
 }
+
 .connections-page .api-total {
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--muted);
 }
+
 .connections-page .api-plus {
   all: unset;
   cursor: pointer;
@@ -92,9 +104,11 @@
   color: var(--ink);
   padding-right: 6px;
 }
+
 .connections-page .api-plus:active {
   opacity: 0.5;
 }
+
 .connections-page .api-note-label {
   display: block;
   margin-top: 8px;
@@ -103,6 +117,7 @@
   font-weight: 500;
   color: var(--muted);
 }
+
 .connections-page .api-note {
   all: unset;
   display: block;
@@ -116,10 +131,12 @@
   color: var(--ink);
   border-bottom: 1px solid var(--ink);
 }
+
 .connections-page .api-note:placeholder-shown {
   border-bottom-style: dashed;
   border-bottom-color: rgba(59, 77, 90, 0.45);
 }
+
 .connections-page .api-note::placeholder {
   color: rgba(114, 130, 142, 0.6);
   font-weight: 400;
@@ -139,11 +156,13 @@
   font-weight: 500;
   color: var(--muted);
 }
+
 .connections-page .api-rule-line {
   flex: 1;
   height: 1px;
   background: rgba(59, 77, 90, 0.35);
 }
+
 .connections-page .api-del {
   all: unset;
   cursor: pointer;
@@ -151,6 +170,7 @@
   letter-spacing: 1.5px;
   color: var(--muted);
 }
+
 .connections-page .api-del:active {
   opacity: 0.6;
 }
@@ -165,11 +185,13 @@
   flex-direction: column;
   gap: 11px;
 }
+
 .connections-page .api-field {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .connections-page .api-label {
   display: flex;
   align-items: baseline;
@@ -179,10 +201,12 @@
   font-weight: 500;
   color: var(--muted);
 }
+
 .connections-page .api-label b {
   font-weight: 600;
   color: var(--ink);
 }
+
 .connections-page .api-row {
   position: relative;
   display: flex;
@@ -190,9 +214,11 @@
   border-bottom: 1px solid rgba(59, 77, 90, 0.3);
   transition: border-color 0.2s ease;
 }
+
 .connections-page .api-row:focus-within {
   border-color: var(--ink);
 }
+
 .connections-page .api-input {
   all: unset;
   flex: 1;
@@ -202,9 +228,11 @@
   font-size: 12px;
   color: var(--ink);
 }
+
 .connections-page .api-input::placeholder {
   color: rgba(114, 130, 142, 0.55);
 }
+
 .connections-page .api-pick {
   all: unset;
   flex: 1;
@@ -216,14 +244,17 @@
   display: flex;
   justify-content: space-between;
 }
+
 .connections-page .api-pick::after {
   content: "›";
   font-size: 13px;
   color: rgba(59, 77, 90, 0.4);
 }
+
 .connections-page .api-pick.is-empty {
   color: rgba(114, 130, 142, 0.55);
 }
+
 .connections-page .api-pick:active {
   opacity: 0.6;
 }
@@ -241,14 +272,17 @@
   letter-spacing: 1.5px;
   color: var(--muted);
 }
+
 .connections-page .api-status.is-on {
   color: var(--btn);
   font-weight: 600;
 }
+
 .connections-page .api-actions {
   display: flex;
   gap: 14px;
 }
+
 .connections-page .api-act {
   all: unset;
   cursor: pointer;
@@ -257,10 +291,12 @@
   font-weight: 500;
   color: var(--ink);
 }
+
 .connections-page .api-act.is-primary {
   padding-bottom: 1px;
   border-bottom: 1px solid var(--ink);
 }
+
 .connections-page .api-act:active {
   opacity: 0.6;
 }

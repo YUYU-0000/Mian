@@ -1,3 +1,4 @@
+// 组装后端服务、鉴权、实时连接与静态页面，并注册各业务路由。
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -118,7 +119,7 @@ const broadcast = (event: unknown) => {
   };
   eventBuffer.push(envelope);
   if (conversationId && event && typeof event === "object" && "turnId" in event)
-    void messages.recordEvent(conversationId, event as Extract<ChatEvent, { turnId: string }>, envelope.seq)
+    void messages.recordEvent(conversationId, event as Extract<ChatEvent, { turnId: string; }>, envelope.seq)
       .catch(error => console.error("[messages]", error));
   if (eventBuffer.length > maxBufferedEvents) eventBuffer.shift();
   const data = JSON.stringify({ kind: "event", ...envelope });
@@ -270,7 +271,7 @@ bridge.on(
     conversationId,
     threadId,
     metadata,
-  }: ConversationThreadBinding & { conversationId: string }) => {
+  }: ConversationThreadBinding & { conversationId: string; }) => {
     queueConversationWrite(async () => {
       const conversation = await conversations.setThread(conversationId, {
         threadId,
@@ -380,7 +381,7 @@ const shutdown = async () => {
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
-process.on("message", (message: { type?: string }) => {
+process.on("message", (message: { type?: string; }) => {
   if (message.type === "shutdown") void shutdown();
   if (message.type === "shutdown-when-idle") {
     const check = () => {

@@ -1,3 +1,4 @@
+// 用满高条码承载静态峰值与实时频谱，保持播放进度和点击跳转。
 import { useCallback, type CSSProperties } from "react";
 import { voicePlayer, VOICE_BAR_COUNT } from "../voicePlayer";
 
@@ -16,6 +17,7 @@ export default function VoiceWave({ peaks = emptyPeaks, playing, progress, durat
     let frame: number;
     const animate = (time: number) => {
       const spectrum = voicePlayer.readSpectrum(time);
+      // CSS 给每条满高，实时值直接映射到 15%–70%，不会再乘静态轮廓。
       bars.forEach((bar, index) => {
         bar.style.transform = `scaleY(${0.15 + spectrum[index] * 0.55})`;
       });

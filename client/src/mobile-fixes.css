@@ -1,4 +1,7 @@
+/* 补充手机端页面尺寸、手势区域和响应式布局，不让键盘改变纸片大小。 */
+
 /* 移动端布局补充。 */
+
 .home-date,
 .home-time,
 .home-time span {
@@ -57,23 +60,25 @@
 }
 
 /* 档案袋的扣子和绳子。 */
+
 .tie-container-v,
 .tie-container-h {
   cursor: pointer;
 }
+
 .tie-btn {
   position: absolute;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: var(--muted);
-  box-shadow:
-    inset 1px 2px 3px rgba(255, 255, 255, 0.2),
+  box-shadow: inset 1px 2px 3px rgba(255, 255, 255, 0.2),
     inset -1px -2px 3px rgba(0, 0, 0, 0.3),
     1px 3px 6px rgba(0, 0, 0, 0.25);
   z-index: 10;
   transition: background-color 0.2s ease;
 }
+
 .tie-btn::after {
   content: "";
   position: absolute;
@@ -85,22 +90,27 @@
   background: var(--ink);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
+
 .tie-container-v .tie-btn:nth-child(1) {
   left: 0;
   top: 0;
 }
+
 .tie-container-v .tie-btn:nth-child(2) {
   right: 0;
   top: 0;
 }
+
 .tie-container-h .tie-btn:nth-child(1) {
   left: 0;
   top: 0;
 }
+
 .tie-container-h .tie-btn:nth-child(2) {
   left: 0;
   bottom: 0;
 }
+
 .string-svg-v {
   position: absolute;
   top: -2px;
@@ -112,6 +122,7 @@
   stroke: var(--ink);
   stroke-width: 1.5;
 }
+
 .string-svg-h {
   position: absolute;
   top: -2px;
@@ -125,58 +136,64 @@
 }
 
 /* 思考与工具步骤的展开动画。 */
+
 .archive-chat {
   --archive-block-gap: 6px;
   --mask-solid: #000;
   --icon-size-md: 14px;
   --ink-muted: var(--muted);
 }
+
 .archive-msg-content {
   gap: var(--archive-block-gap);
 }
+
 .collapsible-content-wrap,
 .step-body-wrap {
   display: grid;
   grid-template-rows: 0fr;
   margin-top: 0;
-  transition:
-    grid-template-rows 280ms ease,
+  transition: grid-template-rows 280ms ease,
     margin-top 280ms ease;
 }
+
 .step-body-wrap {
   transition-duration: 220ms, 220ms;
   margin-left: 22px;
   overflow: hidden;
 }
+
 .collapsible-content,
 .step-body-wrap > .archive-step-body {
   min-height: 0;
   overflow: hidden;
 }
+
 .archive-module.is-expanded > .collapsible-content-wrap,
 .archive-tool-step.is-expanded > .step-body-wrap {
   grid-template-rows: 1fr;
   margin-top: var(--archive-block-gap);
 }
+
 .collapsible-content {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .collapsible-content,
 .archive-step-body {
   opacity: 0;
   transform: translateY(-3px);
-  transition:
-    opacity 160ms ease,
+  transition: opacity 160ms ease,
     transform 200ms ease;
 }
+
 .archive-module.is-expanded .collapsible-content,
 .archive-tool-step.is-expanded .archive-step-body {
   opacity: 1;
   transform: translateY(0);
-  transition:
-    opacity 240ms ease 20ms,
+  transition: opacity 240ms ease 20ms,
     transform 240ms ease 20ms;
 }
 
@@ -190,6 +207,7 @@
   -webkit-filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
 }
+
 .env-top-flap {
   position: relative;
   width: 100%;
@@ -199,6 +217,7 @@
   clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
   border-radius: 3px 3px 0 0;
 }
+
 .env-top-flap::before {
   content: "";
   position: absolute;
@@ -226,25 +245,31 @@
     transparent calc(var(--input-top-y, calc(100% - 100px)) + 25px)
   );
 }
+
 .archive-stream::after {
   height: var(--input-area-height, 100px);
 }
+
 .archive-msg:last-child {
   margin-bottom: 0;
 }
+
 .archive-msg[data-role="user"] {
   min-height: 0;
 }
+
 .archive-reply-head {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
+
 .archive-reply-body {
   margin-top: var(--archive-block-gap);
 }
 
 /* 折叠标题和工具步骤的布局。 */
+
 .archive-module-header {
   display: flex;
   align-items: center;
@@ -258,6 +283,7 @@
   color: var(--line);
   text-shadow: 0.5px 0.5px 0 rgba(255, 255, 255, 0.7);
 }
+
 .archive-toggle-slot,
 .archive-header-status {
   width: 12px;
@@ -267,14 +293,17 @@
   align-items: center;
   justify-content: center;
 }
+
 .archive-module-title {
   line-height: 12px;
   white-space: nowrap;
 }
+
 .archive-header-status .status-icon {
   width: 12px;
   height: 12px;
 }
+
 .step-head {
   position: relative;
   display: flex;
@@ -287,6 +316,7 @@
   user-select: none;
   color: var(--line);
 }
+
 .step-head::after {
   content: "";
   position: absolute;
@@ -295,6 +325,7 @@
   bottom: -6px;
   left: -6px;
 }
+
 .archive-toggle-arrow {
   width: 12px;
   height: 12px;
@@ -306,13 +337,16 @@
   stroke-linejoin: round;
   transition: transform 220ms ease;
 }
+
 .archive-module.is-expanded > summary .archive-toggle-arrow {
   transform: rotate(90deg);
 }
+
 .archive-step-summary {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
 .archive-tool-step .status-icon,
 .step-head .status-icon {
   width: 14px;
@@ -322,6 +356,7 @@
   background: var(--bg);
   border-radius: 2px;
 }
+
 .archive-step-body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -330,6 +365,7 @@
   margin: 0;
   overflow-x: hidden;
 }
+
 .archive-thought,
 .archive-step-summary,
 .archive-step-body {
@@ -342,6 +378,7 @@
   font-kerning: normal;
   font-synthesis: none;
 }
+
 .archive-tool-path,
 .archive-tool-step,
 .step-body-wrap {
@@ -349,6 +386,7 @@
   min-width: 0;
   box-sizing: border-box;
 }
+
 .archive-thought,
 .archive-tool-path {
   margin-left: 0;
@@ -356,32 +394,36 @@
 }
 
 /* 工具步骤与相邻气泡保持一致间距。 */
+
 .tool-calls-module .collapsible-content,
 .archive-tool-path,
 .archive-step-body {
   gap: var(--archive-block-gap);
 }
+
 .archive-tool-path,
 .archive-step-body {
   display: flex;
   flex-direction: column;
 }
+
 .archive-tool-step {
   display: flex;
   flex-direction: column;
   padding-bottom: 0;
 }
+
 .archive-step-body :where(p, pre) {
   margin: 0;
   font: inherit;
   letter-spacing: inherit;
   white-space: pre-wrap;
 }
+
 .archive-step-body .archive-tool-output {
   min-width: 0;
   max-width: 100%;
-  font:
-    11px/1.6 ui-monospace,
+  font: 11px/1.6 ui-monospace,
     "SF Mono",
     Consolas,
     monospace;
@@ -389,6 +431,7 @@
   overflow-wrap: normal;
   overflow-x: auto;
 }
+
 .archive-tool-more {
   all: unset;
   align-self: flex-start;
@@ -398,28 +441,34 @@
 }
 
 /* 新挂载的消息执行入场动画。 */
+
 .archive-pop-in {
   will-change: transform, opacity;
   animation: bubblePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
+
 .archive-tool-step.archive-pop-in {
   animation-duration: 0.3s;
 }
+
 .ft.archive-pop-in,
 .voice-reply.archive-pop-in {
   animation-name: ticketPop;
   animation-fill-mode: both;
   will-change: auto;
 }
+
 .archive-msg[data-role="user"] .archive-msg-head,
 .archive-msg[data-role="user"] .archive-bubble {
   transform-origin: right bottom;
 }
+
 .archive-msg[data-role="assistant"] .archive-msg-head,
 .archive-msg[data-role="assistant"] .archive-bubble,
 .archive-msg[data-role="assistant"] .archive-reply-head {
   transform-origin: left bottom;
 }
+
 @keyframes bubblePop {
   0% {
     opacity: 0;
@@ -430,6 +479,7 @@
     transform: translateY(0) scale(1);
   }
 }
+
 @keyframes ticketPop {
   from {
     opacity: 0;
@@ -440,6 +490,7 @@
     transform: translateY(0);
   }
 }
+
 .cursor-blink {
   display: inline-block;
   width: 0;
@@ -448,6 +499,7 @@
   position: relative;
   animation: blink 1s step-end infinite;
 }
+
 .cursor-blink::after {
   content: "";
   position: absolute;
@@ -457,6 +509,7 @@
   height: var(--icon-size-md);
   background-color: var(--ink-muted);
 }
+
 @keyframes blink {
   50% {
     opacity: 0;
@@ -464,23 +517,29 @@
 }
 
 /* 主界面的连接状态颜色。 */
+
 .indicator-capsule {
   background-color: #e2dfd5;
 }
+
 .status-content.failed {
   color: #9e9e9e;
 }
+
 .status-content.success {
   color: #8a98a3;
 }
+
 .status-content .home-icon {
   stroke: currentColor;
 }
+
 .status-content .capsule-text {
   color: currentColor;
 }
 
 /* 页面切换时的按钮反馈与淡入淡出。 */
+
 .route-transition-frame {
   width: 100%;
   max-width: 480px;
@@ -490,30 +549,37 @@
   overflow: hidden;
   background-color: var(--bg);
 }
+
 html,
 body,
 #root {
   overflow: hidden;
 }
+
 .route-transition-frame.route-surface-connections {
   background-color: #e8e6df;
 }
+
 .route-transition-frame[data-transition-active="true"] {
   pointer-events: none;
 }
+
 .route-transition-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
   background-color: var(--bg);
 }
+
 .route-layer-surface-connections {
   background-color: #e8e6df;
 }
+
 .home-route.is-hidden {
   visibility: hidden;
   pointer-events: none;
 }
+
 .route-transition-press[data-transition-target="/chat"] .icon-1,
 .route-transition-press[data-transition-target="/clues"] .icon-2,
 .route-transition-press[data-transition-target="/"] .clues-back,
@@ -521,18 +587,21 @@ body,
 .route-transition-press[data-transition-target="/"] .ribbon-back-hit {
   animation: routeControlPress 40ms ease-out both;
 }
+
 .route-transition-outgoing {
   z-index: 2;
   pointer-events: none;
   will-change: opacity;
   animation: routePageExit 130ms ease-out both;
 }
+
 .route-transition-incoming {
   z-index: 1;
   pointer-events: none;
   will-change: opacity;
   animation: routePageEnter 180ms ease-out both;
 }
+
 @keyframes routeControlPress {
   0% {
     transform: scale(1);
@@ -547,6 +616,7 @@ body,
     opacity: 0.9;
   }
 }
+
 @keyframes routePageExit {
   from {
     opacity: 1;
@@ -555,6 +625,7 @@ body,
     opacity: 0;
   }
 }
+
 @keyframes routePageEnter {
   from {
     opacity: 0;
@@ -565,17 +636,20 @@ body,
 }
 
 /* 档案袋扣子和遮罩的交互反馈。 */
+
 @media (hover: hover) {
   .tie-container-v:hover .tie-btn,
   .tie-container-h:hover .tie-btn {
     background-color: #688094;
   }
 }
+
 .paper-overlay {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
 .paper-overlay.is-visible {
   opacity: 1;
   pointer-events: auto;

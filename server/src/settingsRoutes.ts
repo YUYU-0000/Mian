@@ -1,3 +1,4 @@
+// 提供设置和完整备份接口，导入时保留服务器控制的权限边界。
 import { Router } from "express";
 import {
   migrateClues,
@@ -32,7 +33,7 @@ type Backup = {
   version: 1;
   config: AppConfig;
   apiPresets: Omit<ApiPreset, "key">[];
-  voices?: { presets: Omit<VoicePreset, "key" | "hasKey">[]; activeId: string };
+  voices?: { presets: Omit<VoicePreset, "key" | "hasKey">[]; activeId: string; };
   fonts: FontSettings;
   clues: ClueWall;
   conversations: ConversationRecord[];
@@ -144,7 +145,7 @@ function parseBackup(value: Backup): Backup {
   });
   if (
     new Set(conversations.map((record) => record.conversationId)).size !==
-      conversations.length ||
+    conversations.length ||
     new Set(presets.map((preset) => preset.id)).size !== presets.length
   )
     throw invalidBackup();

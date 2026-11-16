@@ -1,3 +1,4 @@
+// 读取部署配置并启动 cloudflared，退出后按守护流程重连。
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import path from "node:path";

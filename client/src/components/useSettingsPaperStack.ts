@@ -1,3 +1,4 @@
+// 维护档案馆预设纸堆的当前页、增删和滑动切换。
 import { useLayoutEffect, useRef, useState } from "react";
 import { makeStack, type PaperStack } from "./paperStack";
 import { isScrollingText } from "./ScrollText";
@@ -8,7 +9,7 @@ export function useSettingsPaperStack(count: number, open: boolean) {
   const track = useRef<HTMLDivElement>(null);
   const stack = useRef<PaperStack>(null);
   const [index, setIndex] = useState(0);
-  const focus = useRef<{ index: number; animate: boolean } | null>(null);
+  const focus = useRef<{ index: number; animate: boolean; } | null>(null);
   const removal = useRef<(() => void) | null>(null);
 
   useLayoutEffect(() => {

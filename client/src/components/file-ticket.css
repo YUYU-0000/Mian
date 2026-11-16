@@ -1,4 +1,7 @@
+/* 定义文件票根纸面、缺口及上传细线，进度元素只在上传期间存在。 */
+
 /* 票面数值沿用文件票根设计稿。 */
+
 .ft {
   --ink: #3b4d5a;
   --muted: #72828e;
@@ -22,27 +25,29 @@
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
+
 /* 票面：四角小圓缺口 + 打孔處上下兩個半圓缺口，用遮罩挖出來 */
+
 .ft-body {
   position: absolute;
   inset: 0;
   background: var(--t-paper);
   background-image: var(--grain);
-  --cut: 50px; /* 存根寬度 */
-  -webkit-mask:
-    radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
+  --cut: 50px;
+  /* 存根寬度 */
+  -webkit-mask: radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
       top/100% 51% no-repeat,
     radial-gradient(circle 5px at calc(100% - var(--cut)) 100%, #0000 98%, #000)
       bottom/100% 51% no-repeat;
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
-  mask:
-    radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
+  mask: radial-gradient(circle 5px at calc(100% - var(--cut)) 0, #0000 98%, #000)
       top/100% 51% no-repeat,
     radial-gradient(circle 5px at calc(100% - var(--cut)) 100%, #0000 98%, #000)
       bottom/100% 51% no-repeat;
   border-radius: 3px;
 }
+
 .ft-main {
   position: relative;
   flex: 1;
@@ -51,6 +56,7 @@
   display: flex;
   flex-direction: column;
 }
+
 .ft-kicker {
   white-space: pre;
   font-family: "ZSFT-br", "LXGW Heart Serif", serif;
@@ -62,12 +68,14 @@
   gap: 8px;
   align-items: center;
 }
+
 .ft-kicker::after {
   content: "";
   flex: 1;
   height: 1px;
   background: var(--t-line);
 }
+
 .ft-name {
   margin-top: 3px;
   font-family: "LXGW Heart Serif", serif;
@@ -82,9 +90,11 @@
   -webkit-mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
   mask: linear-gradient(90deg, #000 calc(100% - 14px), #0000);
 }
+
 .ft-name::-webkit-scrollbar {
   display: none;
 }
+
 .ft-meta {
   margin-top: auto;
   display: flex;
@@ -95,10 +105,12 @@
   letter-spacing: 1.2px;
   color: var(--t-muted);
 }
+
 .ft-meta b {
   font-weight: 400;
   color: var(--t-muted);
 }
+
 .ft-act {
   margin-left: auto;
   font-family: "LXGW Heart Serif", serif;
@@ -108,14 +120,18 @@
   border-bottom: 1px solid var(--t-ink);
   padding-bottom: 1px;
 }
+
 /* 打孔虛線 */
+
 .ft-perf {
   position: relative;
   width: 0;
   margin: 8px 0;
   border-left: 1px dashed var(--t-line);
 }
+
 /* 存根：直排副檔名 + 小號編號 */
+
 .ft-stub {
   position: relative;
   width: 50px;
@@ -125,6 +141,7 @@
   justify-content: center;
   gap: 7px;
 }
+
 .ft-ext {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -133,6 +150,7 @@
   letter-spacing: 2.5px;
   color: var(--t-ink);
 }
+
 .ft-stub::before {
   content: "";
   position: absolute;
@@ -144,12 +162,14 @@
 }
 
 /* 圖片：主票左側放一格縮圖 */
+
 .ft.is-image .ft-main {
   flex-direction: row;
   gap: 9px;
   padding-right: 10px;
   align-items: center;
 }
+
 .ft-thumb {
   width: 44px;
   height: 56px;
@@ -159,6 +179,7 @@
   object-fit: cover;
   box-shadow: 0 0 0 1px var(--t-line);
 }
+
 .reply-image-failure {
   display: flex;
   flex-direction: column;
@@ -173,10 +194,12 @@
   text-decoration: none;
   overflow-wrap: anywhere;
 }
+
 .reply-image-failure small {
   font-size: 11px;
   color: var(--muted);
 }
+
 .ft-col {
   min-width: 0;
   flex: 1;
@@ -186,6 +209,7 @@
 }
 
 /* 我發的：灰藍紙、米白字 */
+
 .ft.is-mine {
   --t-paper: var(--env1);
   --t-ink: var(--paper);
@@ -193,7 +217,9 @@
   --t-line: rgba(245, 242, 236, 0.35);
   --t-accent: var(--paper);
 }
+
 /* 进度沿票根底边生长，不占用票面空间。 */
+
 .ft-progress {
   position: absolute;
   left: 3px;
@@ -206,26 +232,31 @@
   transition: transform 200ms ease-out, opacity 240ms ease-out;
   pointer-events: none;
 }
+
 .ft-progress.is-complete {
   opacity: 0;
   transition-delay: 0s, 200ms;
 }
 
 /* 盒模型不受聊天页全局规则影响。 */
+
 .ft,
 .ft *,
 .ft *::before,
 .ft *::after {
   box-sizing: content-box;
 }
+
 .ft.is-image {
   height: 74px;
 }
+
 .ft.is-image .ft-name {
   font-size: 13px;
 }
 
 /* 待发送票根悬在输入框上方。 */
+
 .file-drafts {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -240,9 +271,11 @@
   overflow-y: hidden;
   scrollbar-width: none;
 }
+
 .file-drafts::-webkit-scrollbar {
   display: none;
 }
+
 .file-draft {
   position: relative;
   flex: 0 0 228px;
@@ -252,13 +285,17 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
 .file-draft .scroll-text {
   touch-action: pan-x;
 }
+
 /* 草稿在滚动区域内，票根阴影会被裁成硬边；聊天中的票根保留阴影。 */
+
 .file-draft .ft {
   filter: none;
 }
+
 .file-draft-floating {
   position: fixed;
   z-index: 80;

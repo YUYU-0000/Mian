@@ -1,3 +1,4 @@
+// 按会话回合呈现头像、思考、气泡和票根，复用现有回复播放顺序。
 import {
   Fragment,
   memo,
@@ -36,7 +37,7 @@ const Hourglass = () => (
     <path d="M7 3v5l5 4 5-4V3M7 21v-5l5-4 5 4v5" />
   </svg>
 );
-const StateIcon = ({ state }: { state: ToolEvent["state"] }) =>
+const StateIcon = ({ state }: { state: ToolEvent["state"]; }) =>
   state === "running" ? (
     <Hourglass />
   ) : (
@@ -308,8 +309,8 @@ export default memo(function ChatMessage({
   const displayedTools =
     message.role === "assistant"
       ? message.tools
-          .filter((tool) => visual!.visibleToolIds.includes(tool.id))
-          .map((tool) => visual!.toolStates[tool.id] ?? tool)
+        .filter((tool) => visual!.visibleToolIds.includes(tool.id))
+        .map((tool) => visual!.toolStates[tool.id] ?? tool)
       : [];
   return (
     <article

@@ -1,3 +1,4 @@
+// 呈现首页分页、照片与入口，离开首页时暂停媒体并保留原画面。
 import {
   ChatGlyph,
   DockOpenBook,
@@ -42,7 +43,7 @@ function HomePhoto({
   );
 }
 
-const PlaceholderIcon = ({ className }: { className: string }) => (
+const PlaceholderIcon = ({ className }: { className: string; }) => (
   <button
     className={`home-app-icon ${className}`}
     aria-hidden="true"
@@ -69,7 +70,7 @@ export default function Home({
   const [page, setPage] = useState(0);
   const [sliding, setSliding] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; left: number } | null>(null);
+  const drag = useRef<{ x: number; left: number; } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30000);

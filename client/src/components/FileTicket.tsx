@@ -1,3 +1,4 @@
+// 呈现图片和文件票根，管理上传细线、缓存读取、预览与下载。
 import { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { cachedFileUrl } from "../fileCache";
@@ -44,6 +45,7 @@ export default memo(function FileTicket({
 }) {
   const [viewing, setViewing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  // 只让本次上传生成进度线；淡出后卸载，历史附件不会重新挂上这层。
   const [showProgress, setShowProgress] = useState(() => pending && progress !== undefined && !uploadComplete);
   const closePreview = useCallback(() => setViewing(false), []);
   const download = useRef<HTMLAnchorElement>(null);
@@ -83,12 +85,12 @@ export default memo(function FileTicket({
         {!image && (
           <span>
             {pending
-                ? "待寄出"
-                : new Date(file.createdAt).toLocaleTimeString("zh-CN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
+              ? "待寄出"
+              : new Date(file.createdAt).toLocaleTimeString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })}
           </span>
         )}
         {(!mine || image) && (

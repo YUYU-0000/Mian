@@ -1,3 +1,4 @@
+// 显示本地图片和视频，复用内存媒体地址并只为新上传播放显影动画。
 import { getCachedMedia, loadCachedMedia, watchMedia, writeMedia, type CachedMedia } from "../mediaStorage";
 import { compressImage } from "../imageCompression";
 import {
@@ -12,7 +13,7 @@ import { notify } from "./Notify";
 import AvatarCropper from "./AvatarCropper";
 import "./media.css";
 
-type Picture = CachedMedia & { developing: boolean };
+type Picture = CachedMedia & { developing: boolean; };
 export default function Media({
   storageKey,
   cover = false,
@@ -38,10 +39,11 @@ export default function Media({
   const timers = useRef<number[]>([]);
   const frames = useRef<number[]>([]);
   const show = (picture: CachedMedia | null, animate: boolean) => {
-    setPictures((current) =>
-      picture ? animate ? [...current, { ...picture, developing: true }]
-        : [{ ...picture, developing: false }] : [],
-    );
+    setPictures((current) => {
+      if (!picture) return [];
+      const next = { ...picture, developing: animate };
+      return animate ? [...current, next] : [next];
+    });
     setLoading(false);
     if (!animate) setIcon(!picture);
   };

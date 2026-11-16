@@ -1,3 +1,4 @@
+// 把 Codex 流式消息与工具事件转换成对应会话的前端事件。
 import type { ConversationRuntimeRegistry } from "./conversationRuntime.js";
 import type { ConversationRuntimeMetadata } from "./types.js";
 import { parseCumulativeTokenUsage } from "./tokenUsage.js";
@@ -169,9 +170,9 @@ function codeModeToolFrom(
     : typeof item.output === "string"
       ? item.output
       : item.output
-          .filter((part: { type: string }) => part.type === "input_text")
-          .map((part: { text: string }) => part.text)
-          .join("\n");
+        .filter((part: { type: string; }) => part.type === "input_text")
+        .map((part: { text: string; }) => part.text)
+        .join("\n");
   if (!started) calls.delete(key);
   return {
     id: item.call_id,
@@ -197,7 +198,7 @@ function resolveConversationId(
   }
   const thread = params?.thread;
   if (thread && typeof thread === "object" && "id" in thread) {
-    const nestedThreadId = (thread as { id?: unknown }).id;
+    const nestedThreadId = (thread as { id?: unknown; }).id;
     if (typeof nestedThreadId === "string") {
       const conversationId =
         conversations.conversationForThread(nestedThreadId);
@@ -211,7 +212,7 @@ function resolveConversationId(
   }
   const turn = params?.turn;
   if (turn && typeof turn === "object" && "id" in turn) {
-    const turnId = (turn as { id?: unknown }).id;
+    const turnId = (turn as { id?: unknown; }).id;
     if (typeof turnId === "string") {
       const conversationId = conversations.conversationForTurn(turnId);
       if (conversationId) return conversationId;

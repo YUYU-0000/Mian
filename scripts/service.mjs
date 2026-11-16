@@ -1,3 +1,4 @@
+// 守护后端进程，处理异常重启、本机控制请求和停服备份。
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:net";
@@ -53,7 +54,7 @@ const server = createServer(socket => {
     operations = next;
     void next.then(result => socket.end(JSON.stringify(result)), error => socket.end(JSON.stringify({ error: error.message })));
   });
-  socket.on("error", () => {});
+  socket.on("error", () => { });
 });
 async function close() {
   if (stopping) return;
